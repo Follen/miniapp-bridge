@@ -1,0 +1,78 @@
+{
+  "schema": "comet.native.verification-evidence.v2",
+  "change": "complete-wmpf-parity",
+  "sourceRevision": 26,
+  "result": "fail",
+  "freshness": "complete",
+  "contractHash": "68a4afdc884c6068126dc3c524a96cdf2269e9658f15a8d3b434511b80887b3a",
+  "acceptanceCriteriaHash": "eec82d3bc4fc2b950d6334d139db9cf0403d95baef0b5c0b43b7fc7c61cbe61d",
+  "implementationScopeRef": "runtime/evidence/scopes/e7e6b792b88d7e65cf59cda83dba372c473fa8590cb8688db799d2f5fa538397.json",
+  "implementationScopeHash": "e7e6b792b88d7e65cf59cda83dba372c473fa8590cb8688db799d2f5fa538397",
+  "reportRef": "verification.md",
+  "reportHash": "9480e360cba8d07609b18e69f69b22f251e30cd18938b38cca7ebae9e571cdc8",
+  "acceptanceTrace": {
+    "schema": "comet.native.acceptance-trace.v2",
+    "nativeRootRef": "docs/comet",
+    "criteriaHash": "eec82d3bc4fc2b950d6334d139db9cf0403d95baef0b5c0b43b7fc7c61cbe61d",
+    "total": 6,
+    "evidenced": 0,
+    "skipped": 6,
+    "entries": [
+      {
+        "acceptanceId": "acceptance-57ca7c9d743817f8abe630b2c6877d87eac38087b67b22896dd99d836c762eed",
+        "status": "failed",
+        "kind": "spec-must",
+        "source": "specs/complete-parity/spec.md",
+        "evidenceRefs": [],
+        "skippedReason": "Comet required check was blocked by the vendored frida-core.h scan-size limit; return to Build to narrow only the text-inspection scope."
+      },
+      {
+        "acceptanceId": "acceptance-5a08b12a267314c48da379aad3c1f7d706b9d9e0af8776c348bbfef2285a7913",
+        "status": "failed",
+        "kind": "spec-must",
+        "source": "specs/complete-parity/spec.md",
+        "evidenceRefs": [],
+        "skippedReason": "Comet required check was blocked by the vendored frida-core.h scan-size limit; return to Build to narrow only the text-inspection scope."
+      },
+      {
+        "acceptanceId": "acceptance-8fc22df3cdf7b059bdf074c158b79eebdeca763ce0fe3f0cd5c29b5e3ec056ba",
+        "status": "failed",
+        "kind": "spec-must",
+        "source": "specs/complete-parity/spec.md",
+        "evidenceRefs": [],
+        "skippedReason": "Comet required check was blocked by the vendored frida-core.h scan-size limit; return to Build to narrow only the text-inspection scope."
+      },
+      {
+        "acceptanceId": "acceptance-b0f8901c7a7bd76470106a6537cbf7e24560956e7e85f7df8462349b7dff7eee",
+        "status": "failed",
+        "kind": "spec-must",
+        "source": "specs/complete-parity/spec.md",
+        "evidenceRefs": [],
+        "skippedReason": "Comet required check was blocked by the vendored frida-core.h scan-size limit; return to Build to narrow only the text-inspection scope."
+      },
+      {
+        "acceptanceId": "acceptance-cded77aeed14a7b3ddf6cfe5bfa819b52f9fc4cec72ea935d9b6347359e51c98",
+        "status": "failed",
+        "kind": "spec-must",
+        "source": "specs/complete-parity/spec.md",
+        "evidenceRefs": [],
+        "skippedReason": "Comet required check was blocked by the vendored frida-core.h scan-size limit; return to Build to narrow only the text-inspection scope."
+      },
+      {
+        "acceptanceId": "acceptance-ea88e62bd0e2c7996e0eec9b16495d7826fb1677cf90fce295fb876a41321ebb",
+        "status": "failed",
+        "kind": "spec-must",
+        "source": "specs/complete-parity/spec.md",
+        "evidenceRefs": [],
+        "skippedReason": "Comet required check was blocked by the vendored frida-core.h scan-size limit; return to Build to narrow only the text-inspection scope."
+      }
+    ],
+    "traceHash": "5b48e9e180780e4d47d5e22dec83c159fea3c96d6b7691d9120ed55ea52df287"
+  },
+  "partialAllowanceRef": null,
+  "partialAllowanceHash": null,
+  "requiredReceiptRefs": [],
+  "receiptRefs": [],
+  "createdAt": "2026-08-08T16:06:32.863Z",
+  "envelopeHash": "67bc441f6d51094176b6499b9cdabaf473570a446505f6eda2bbc9148a8267c0"
+}

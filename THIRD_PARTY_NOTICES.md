@@ -24,7 +24,17 @@ https://github.com/frida/frida
 
 Windows builds statically link zlib 1.3.1.
 
+Source URL: https://zlib.net/fossils/zlib-1.3.1.tar.gz
+Source archive SHA-256: `9A93B2B7DFDAC77CEBA5A558A580E74667DD6FEDE4585B91EEFB60F03B72DF23`
+
+The archive and extracted source are build caches under
+`third_party/downloads/cache/` and `third_party/zlib/src-1.3.1/`; they are
+ignored by git and are verified before use. The first uncached Windows build
+requires network access to the pinned URL or a legally obtained,
+hash-matching cache. A verified cache allows subsequent `-Offline` builds.
+
 Copyright (C) 1995-2024 Jean-loup Gailly and Mark Adler.
 
-The complete zlib license is preserved at
-`third_party/zlib/src-1.3.1/LICENSE`.
+The complete zlib license is supplied by the downloaded source at
+`third_party/zlib/src-1.3.1/LICENSE` and must be retained with distributed
+source/binary packages as required by the zlib license.

@@ -21,11 +21,21 @@ Run `miniapp-bridge.exe --help` for all CLI options.
 
 ## Frida packaging
 
-The native integration is pinned to `frida-core 17.3.2`, matching the reference dependency line. The official `frida-core-devkit-17.3.2-windows-x86_64.tar.xz` archive is stored under `third_party/downloads` (SHA-256 `8AF15423D6E534626F91A67FAA0582E42C67A07A95A190F4C622695105549C72`) and extracted under `third_party/frida/devkit-17.3.2`.
+The native integration is pinned to `frida-core 17.3.2`, matching the reference dependency line. `scripts/ensure-frida-devkit.ps1` downloads the official `frida-core-devkit-17.3.2-windows-x86_64.tar.xz` archive when needed, verifies its SHA-256 (`8AF15423D6E534626F91A67FAA0582E42C67A07A95A190F4C622695105549C72`), and extracts it under `third_party/frida/devkit-17.3.2`. The download and extracted SDK are ignored build caches; an exclusive cache lock serializes concurrent builds, and extracted header/library hashes are checked before every native build. The first uncached native build needs access to the pinned GitHub release. A verified extracted SDK remains usable offline even if the download archive has been cleaned; `-Offline` makes a missing or invalid cache fail without network access.
 
 `scripts/build-frida-shim.ps1` uses MSVC to encapsulate the official static library in `miniapp-frida.dll`. cgo links only the shim's small opaque C ABI; Frida pointers never enter Go business packages. `scripts/build-windows.ps1` builds the shim, runs `go test -tags frida ./...`, builds the tagged executable, and copies the DLL beside it in `dist`.
 
-Windows compression is pinned to official zlib 1.3.1. The committed source archive is `third_party/zlib/zlib-1.3.1.tar.gz` (SHA-256 `9A93B2B7DFDAC77CEBA5A558A580E74667DD6FEDE4585B91EEFB60F03B72DF23`). `scripts/build-zlib.ps1` verifies the archive, restores the ignored extraction cache when needed, checks the header version, and builds a static `libz.a`; this reproduces Node zlib's observable deflate bytes without a `zlib1.dll` runtime dependency.
+Windows compression is pinned to official zlib 1.3.1 from
+`https://zlib.net/fossils/zlib-1.3.1.tar.gz` (SHA-256
+`9A93B2B7DFDAC77CEBA5A558A580E74667DD6FEDE4585B91EEFB60F03B72DF23`).
+`scripts/build-zlib.ps1` verifies the archive, restores the ignored download
+and extraction caches (`third_party/downloads/cache/` and
+`third_party/zlib/src-1.3.1/`) when present, checks the header version, and
+builds a static `libz.a`; this reproduces Node zlib's observable deflate bytes
+without a `zlib1.dll` runtime dependency. The first uncached build requires
+network access to the pinned URL (or a legally obtained, hash-matching cache);
+once both caches are populated and verified, `-Offline` supports repeatable
+offline builds.
 
 The final executable does not use Node.js. Node and the reference repository's locked development dependencies are only used to regenerate differential fixtures:
 

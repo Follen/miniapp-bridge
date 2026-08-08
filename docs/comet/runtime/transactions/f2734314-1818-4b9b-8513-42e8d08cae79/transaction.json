@@ -1,0 +1,27 @@
+{
+  "schema": "comet.native.transaction.v2",
+  "id": "f2734314-1818-4b9b-8513-42e8d08cae79",
+  "kind": "archive",
+  "status": "committed",
+  "change": "complete-wmpf-parity",
+  "createdAt": "2026-08-08T20:36:58.735Z",
+  "preflightHash": "bfe9cfced497b771744fef91e02ec663b10849d0a79902b7bdaa1103043b3df1",
+  "operations": [
+    {
+      "id": "spec-1-complete-parity",
+      "type": "write",
+      "target": "specs/complete-parity/spec.md",
+      "staged": "runtime/transactions/f2734314-1818-4b9b-8513-42e8d08cae79/staged/specs/complete-parity/spec.md",
+      "expectedTargetHash": null,
+      "stagedHash": "7a77c74a2e913bf3e2b23a2251e3d65f01fc2888fe8cd07517da7f979376538a"
+    },
+    {
+      "id": "archive-change",
+      "type": "move",
+      "source": "changes/complete-wmpf-parity",
+      "target": "archive/2026-08-08-complete-wmpf-parity",
+      "expectedSourceHash": "23ce4a2e91e38470e954e198d3403ac302f3244f9395f700d06e4a8d1096965d",
+      "expectedTargetHash": null
+    }
+  ]
+}

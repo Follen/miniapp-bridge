@@ -1,11 +1,13 @@
 $ErrorActionPreference = 'Stop'
 $env:CGO_ENABLED = '1'
+$repo = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+Set-Location $repo
 New-Item -ItemType Directory -Force -Path dist | Out-Null
 & $PSScriptRoot\build-zlib.ps1
 & $PSScriptRoot\build-frida-shim.ps1
 $runtime = Resolve-Path third_party/frida/runtime-17.3.2
 $env:PATH = "$runtime;$env:PATH"
-go test -tags frida ./...
+go test -tags frida -race ./... -count=1
 if ($LASTEXITCODE -ne 0) { throw "native tests failed with exit $LASTEXITCODE" }
 go build -tags frida -trimpath -o dist/miniapp-bridge.exe ./cmd/miniapp-bridge
 if ($LASTEXITCODE -ne 0) { throw "native build failed with exit $LASTEXITCODE" }

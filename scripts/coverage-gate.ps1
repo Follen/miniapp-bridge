@@ -21,9 +21,9 @@ if ($codex.debug_wrap.Count -ne 7 -or $codex.developer_outgoing.Count -ne 11 -or
     throw 'Codex category/command fixture coverage is incomplete'
 }
 
-$matrix = Get-Content docs/behavior-matrix.md -Raw
+$matrix = Get-Content docs/behavior-matrix.md -Encoding UTF8 -Raw
 $rows = $matrix -split "`n" | Where-Object { $_ -match '^\|' -and $_ -notmatch '^\|---' } | Select-Object -Skip 1
-$implemented = ([char]0x5df2) + ([char]0x5b9e) + ([char]0x73b0)
+$implemented = -join @([char]0x5df2, [char]0x5b9e, [char]0x73b0)
 if ($rows.Count -ne 13 -or ($rows | Where-Object { $_ -notmatch $implemented }).Count -ne 0) {
     throw 'behavior matrix is incomplete'
 }
@@ -57,8 +57,8 @@ try {
 }
 $taggedCoverage = Join-Path $env:TEMP "miniapp-bridge-coverage-frida-$([guid]::NewGuid().ToString('N')).out"
 $oldPath = $env:PATH
+$dist = Join-Path $repo 'dist'
 try {
-    $dist = Join-Path $repo 'dist'
     if (Test-Path $dist) { $env:PATH = (Resolve-Path $dist).Path + ';' + $env:PATH }
     Run 'tagged statement coverage' { go test -tags frida ./internal/... -count=1 -timeout 180s "-coverprofile=$taggedCoverage" }
     $taggedReport = & go tool cover "-func=$taggedCoverage"
@@ -68,10 +68,11 @@ try {
     if ($taggedTotal -notmatch '^total:\s+\(statements\)\s+100\.0%$') {
         throw "tagged Go statement coverage must be 100.0%; got: $taggedTotal"
     }
+    Run 'tagged race' { go test -tags frida -race ./... -count=1 -timeout 240s }
 } finally {
     $env:PATH = $oldPath
     Remove-Item -LiteralPath $taggedCoverage -Force -ErrorAction SilentlyContinue
 }
 Run 'race' { go test -race ./... -count=1 -timeout 180s }
 Run 'vet' { go vet ./... }
-Write-Output 'coverage_gate=100% reference behaviors; internal_go_statements=100.0%; smoke_runner_go_statements=100.0%; unit/race/vet=passed'
+Write-Output 'coverage_gate=100% reference behaviors; internal_go_statements=100.0%; smoke_runner_go_statements=100.0%; unit/race/tagged-race/vet=passed'

@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"reflect"
 	"regexp"
 	"strings"
 	"testing"
@@ -40,6 +41,38 @@ func TestAuditAgentConfigReplacementIsStructuredAndComplete(t *testing.T) {
 	}
 	if got.Version != config.Version || got.LoadStartHookOffset != config.LoadStartHookOffset || got.CDPFilterHookOffset != config.CDPFilterHookOffset || len(got.SceneOffsets) != 6 {
 		t.Fatalf("embedded config=%+v", got)
+	}
+}
+
+func TestAuditAgentConfigReplacementCoversEveryPinnedVersion(t *testing.T) {
+	t.Parallel()
+	configs, err := version.LoadDir("../../configs/addresses")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(configs) != 47 {
+		t.Fatalf("address configs=%d, want 47", len(configs))
+	}
+	re := regexp.MustCompile("(?s)const rawConfig = `([^`]*)`;")
+	for number, config := range configs {
+		source := agent.SourceForConfig(config)
+		if strings.Contains(source, "@@CONFIG@@") {
+			t.Errorf("version %d still contains config placeholder", number)
+			continue
+		}
+		match := re.FindStringSubmatch(source)
+		if len(match) != 2 {
+			t.Errorf("version %d rawConfig literal not found", number)
+			continue
+		}
+		var got version.AddressConfig
+		if err := json.Unmarshal([]byte(match[1]), &got); err != nil {
+			t.Errorf("version %d embedded config: %v", number, err)
+			continue
+		}
+		if !reflect.DeepEqual(got, config) {
+			t.Errorf("version %d embedded config=%+v want=%+v", number, got, config)
+		}
 	}
 }
 

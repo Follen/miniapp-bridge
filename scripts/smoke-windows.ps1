@@ -13,6 +13,21 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+function Normalize-TcpAddress {
+    param([object]$Address)
+    $value = [string]$Address
+    if ([string]::IsNullOrWhiteSpace($value)) { return '' }
+    try {
+        $parsed = [System.Net.IPAddress]::Parse($value)
+        if ($parsed.AddressFamily -eq [System.Net.Sockets.AddressFamily]::InterNetworkV6 -and $parsed.IsIPv4MappedToIPv6) {
+            return $parsed.MapToIPv4().ToString()
+        }
+        return $parsed.ToString()
+    } catch {
+        return $value.ToLowerInvariant()
+    }
+}
+
 function Get-TargetProcessSnapshot {
     $rows = @(Get-CimInstance Win32_Process -Filter "Name = 'WeChatAppEx.exe'" -ErrorAction Stop)
     $snapshot = foreach ($row in $rows) {
@@ -131,6 +146,9 @@ try {
     if (9421 -notin $ownedPorts -or 62000 -notin $ownedPorts) { throw "listeners are not owned by pid ${childPid}: $($ownedPorts -join ',')" }
     $output = Get-Content $stdout -Raw -ErrorAction SilentlyContinue
     if ($output -notmatch '\[frida\] attached pid=') { throw "Frida attach was not confirmed: $output" }
+    if ($output -notmatch '\[frida\] attached pid=(\d+)') { throw "Frida attached target PID was not parseable: $output" }
+    $attachedTargetPid = [int]$Matches[1]
+    $attachLogOffset = $output.Length
     $initialTargetSnapshot = @(Get-TargetProcessSnapshot)
     if ($initialTargetSnapshot.Count -eq 0) { throw 'target-process: not-present' }
     Add-ObservedTargetSnapshot -Observed $observedTargetSnapshot -Snapshot $initialTargetSnapshot
@@ -143,17 +161,37 @@ try {
     Write-Output 'action-required=open-or-reload-miniapp'
 
     $deadline = [DateTime]::UtcNow.AddSeconds($UpstreamWaitSeconds)
-    $upstream = $null
+    $upstream = @()
+    $upstreamPeerConnections = @()
+    $lastPeerPortCandidates = @()
     while ([DateTime]::UtcNow -lt $deadline) {
         if ($runner.HasExited) {
             $failure = Get-Content $stderr -Raw -ErrorAction SilentlyContinue
             throw "miniapp-bridge exited while waiting for WMPF upstream: $failure"
         }
-        $upstream = Get-NetTCPConnection -State Established -OwningProcess $childPid -ErrorAction SilentlyContinue | Where-Object LocalPort -eq 9421
-        if ($upstream) { break }
+        $tcpConnections = @(Get-NetTCPConnection -State Established -ErrorAction SilentlyContinue)
+        $upstream = @($tcpConnections | Where-Object { $_.OwningProcess -eq $childPid -and $_.LocalPort -eq 9421 })
+        $lastPeerPortCandidates = @($tcpConnections | Where-Object {
+            $candidate = $_
+            @($upstream | Where-Object {
+                $candidate.LocalPort -eq $_.RemotePort -and
+                $candidate.RemotePort -eq $_.LocalPort
+            }).Count -gt 0
+        })
+        $upstreamPeerConnections = @(foreach ($serverConnection in $upstream) {
+            $tcpConnections | Where-Object {
+                $_.OwningProcess -gt 0 -and
+                $_.OwningProcess -ne $childPid -and
+                (Normalize-TcpAddress $_.LocalAddress) -eq (Normalize-TcpAddress $serverConnection.RemoteAddress) -and
+                $_.LocalPort -eq $serverConnection.RemotePort -and
+                (Normalize-TcpAddress $_.RemoteAddress) -eq (Normalize-TcpAddress $serverConnection.LocalAddress) -and
+                $_.RemotePort -eq $serverConnection.LocalPort
+            }
+        })
+        if ($upstreamPeerConnections.Count -gt 0) { break }
         $currentTargetSnapshot = @(Get-TargetProcessSnapshot)
         Add-ObservedTargetSnapshot -Observed $observedTargetSnapshot -Snapshot $currentTargetSnapshot
-        Start-Sleep -Milliseconds 500
+        Start-Sleep -Milliseconds 100
     }
     if (-not $upstream) {
         $output = Get-Content $stdout -Raw -ErrorAction SilentlyContinue
@@ -164,34 +202,146 @@ try {
         $exitedPids = @($observedTargetSnapshot.Values | Where-Object { $_.Identity -notin $currentIdentities } | Select-Object -ExpandProperty Id -Unique)
         throw "WMPF upstream connection on 9421 was not established by pid ${childPid} within ${UpstreamWaitSeconds}s; observed-new-target-pids=$($newPids -join ','); exited-target-pids=$($exitedPids -join ','); agent-log=$output"
     }
-    $upstreamPeerConnections = foreach ($serverConnection in @($upstream)) {
-        Get-NetTCPConnection -State Established -ErrorAction SilentlyContinue |
-            Where-Object {
-                $_.OwningProcess -gt 0 -and
-                $_.OwningProcess -ne $childPid -and
-                $_.LocalPort -eq $serverConnection.RemotePort -and
-                $_.RemotePort -eq $serverConnection.LocalPort
-            }
-    }
     $upstreamPeerPids = @($upstreamPeerConnections | Select-Object -ExpandProperty OwningProcess -Unique | Where-Object { $_ -gt 0 })
-    if ($upstreamPeerPids.Count -eq 0) { throw 'WMPF upstream peer process could not be identified' }
+    if ($upstreamPeerPids.Count -eq 0) {
+        $serverDiagnostic = @($upstream | ForEach-Object { "$($_.LocalAddress):$($_.LocalPort)<-$($_.RemoteAddress):$($_.RemotePort) pid=$($_.OwningProcess)" }) -join ';'
+        $candidateDiagnostic = @($lastPeerPortCandidates | ForEach-Object { "$($_.LocalAddress):$($_.LocalPort)->$($_.RemoteAddress):$($_.RemotePort) pid=$($_.OwningProcess)" }) -join ';'
+        throw "WMPF upstream peer process could not be identified within ${UpstreamWaitSeconds}s; server=$serverDiagnostic; reverse-port-candidates=$candidateDiagnostic"
+    }
 
-    $connectedTargetSnapshot = @()
-    $upstreamPeerTargets = @()
+    # Revalidate the exact connection and process identity after the initial
+    # selection. TCP rows and process IDs can change between snapshots, so a
+    # port-only match is insufficient for attaching shutdown-survival roles.
+    $selectedServerConnection = $null
+    $selectedPeerConnection = $null
+    foreach ($serverConnection in @($upstream)) {
+        $candidatePeer = @($upstreamPeerConnections | Where-Object {
+            $_.OwningProcess -gt 0 -and
+            (Normalize-TcpAddress $_.LocalAddress) -eq (Normalize-TcpAddress $serverConnection.RemoteAddress) -and
+            $_.LocalPort -eq $serverConnection.RemotePort -and
+            (Normalize-TcpAddress $_.RemoteAddress) -eq (Normalize-TcpAddress $serverConnection.LocalAddress) -and
+            $_.RemotePort -eq $serverConnection.LocalPort
+        } | Select-Object -First 1)
+        if ($candidatePeer.Count -eq 1) {
+            $selectedServerConnection = $serverConnection
+            $selectedPeerConnection = $candidatePeer[0]
+            break
+        }
+    }
+    if (-not $selectedServerConnection -or -not $selectedPeerConnection) {
+        throw 'WMPF upstream peer did not form a complete server/peer tuple'
+    }
+    $connectedTargetSnapshot = @(Get-TargetProcessSnapshot)
+    Add-ObservedTargetSnapshot -Observed $observedTargetSnapshot -Snapshot $connectedTargetSnapshot
+    $upstreamPeerTargets = @($connectedTargetSnapshot | Where-Object { $_.Id -eq $selectedPeerConnection.OwningProcess })
+    if ($upstreamPeerTargets.Count -ne 1) {
+        throw "WMPF upstream peer is not an identifiable WeChatAppEx process: peer=$($upstreamPeerPids -join ',')"
+    }
+    $peerIdentity = $upstreamPeerTargets[0].Identity
+    $peerValidationDiagnostics = @()
+    $peerValidated = $false
     for ($attempt = 0; $attempt -lt 10; $attempt++) {
+        $tcpValidationConnections = @(Get-NetTCPConnection -State Established -ErrorAction SilentlyContinue)
         $connectedTargetSnapshot = @(Get-TargetProcessSnapshot)
         Add-ObservedTargetSnapshot -Observed $observedTargetSnapshot -Snapshot $connectedTargetSnapshot
-        $upstreamPeerTargets = @($connectedTargetSnapshot | Where-Object { $_.Id -in $upstreamPeerPids })
-        if ($upstreamPeerTargets.Count -eq $upstreamPeerPids.Count) { break }
+        $currentServers = @($tcpValidationConnections | Where-Object {
+            $_.OwningProcess -eq $childPid -and $_.LocalPort -eq 9421
+        })
+        $currentPeers = @(foreach ($serverConnection in $currentServers) {
+            $tcpValidationConnections | Where-Object {
+                $_.OwningProcess -gt 0 -and
+                $_.OwningProcess -ne $childPid -and
+                (Normalize-TcpAddress $_.LocalAddress) -eq (Normalize-TcpAddress $serverConnection.RemoteAddress) -and
+                $_.LocalPort -eq $serverConnection.RemotePort -and
+                (Normalize-TcpAddress $_.RemoteAddress) -eq (Normalize-TcpAddress $serverConnection.LocalAddress) -and
+                $_.RemotePort -eq $serverConnection.LocalPort
+            }
+        })
+        $serverMatch = @($currentServers | Where-Object {
+            (Normalize-TcpAddress $_.LocalAddress) -eq (Normalize-TcpAddress $selectedServerConnection.LocalAddress) -and
+            $_.LocalPort -eq $selectedServerConnection.LocalPort -and
+            (Normalize-TcpAddress $_.RemoteAddress) -eq (Normalize-TcpAddress $selectedServerConnection.RemoteAddress) -and
+            $_.RemotePort -eq $selectedServerConnection.RemotePort -and
+            $_.OwningProcess -eq $childPid
+        } | Select-Object -First 1)
+        $peerMatch = @($currentPeers | Where-Object {
+            (Normalize-TcpAddress $_.LocalAddress) -eq (Normalize-TcpAddress $selectedPeerConnection.LocalAddress) -and
+            $_.LocalPort -eq $selectedPeerConnection.LocalPort -and
+            (Normalize-TcpAddress $_.RemoteAddress) -eq (Normalize-TcpAddress $selectedPeerConnection.RemoteAddress) -and
+            $_.RemotePort -eq $selectedPeerConnection.RemotePort -and
+            $_.OwningProcess -eq $selectedPeerConnection.OwningProcess
+        } | Select-Object -First 1)
+        $peerTupleMatch = @($currentPeers | Where-Object {
+            (Normalize-TcpAddress $_.LocalAddress) -eq (Normalize-TcpAddress $selectedPeerConnection.LocalAddress) -and
+            $_.LocalPort -eq $selectedPeerConnection.LocalPort -and
+            (Normalize-TcpAddress $_.RemoteAddress) -eq (Normalize-TcpAddress $selectedPeerConnection.RemoteAddress) -and
+            $_.RemotePort -eq $selectedPeerConnection.RemotePort
+        } | Select-Object -First 1)
+        $peerProcess = @($connectedTargetSnapshot | Where-Object {
+            $_.Id -eq $selectedPeerConnection.OwningProcess
+        } | Select-Object -First 1)
+        if ($serverMatch.Count -eq 1 -and $peerMatch.Count -eq 1 -and $peerProcess.Count -eq 1 -and
+            $peerProcess[0].Identity -eq $peerIdentity) {
+            $peerValidated = $true
+            $upstream = @($serverMatch)
+            $upstreamPeerConnections = @($peerMatch)
+            $upstreamPeerPids = @($peerMatch | Select-Object -ExpandProperty OwningProcess -Unique)
+            $upstreamPeerTargets = @($peerProcess)
+            Write-Output "upstream-peer-validated=true attempt=$($attempt + 1) tuple=$((Normalize-TcpAddress $serverMatch[0].LocalAddress)):$($serverMatch[0].LocalPort)<->$((Normalize-TcpAddress $serverMatch[0].RemoteAddress)):$($serverMatch[0].RemotePort) pid=$($peerProcess[0].Id) identity=$($peerProcess[0].Identity)"
+            break
+        }
+
+        $reason = @()
+        if ($serverMatch.Count -ne 1) { $reason += 'server-four-tuple-missing' }
+        if ($peerMatch.Count -ne 1) { $reason += 'peer-four-tuple-missing' }
+        if ($peerTupleMatch.Count -eq 1 -and $peerTupleMatch[0].OwningProcess -ne $selectedPeerConnection.OwningProcess) { $reason += 'peer-owning-pid-changed' }
+        if ($peerProcess.Count -ne 1) { $reason += 'peer-process-missing' }
+        elseif ($peerIdentity -and $peerProcess[0].Identity -ne $peerIdentity) { $reason += 'peer-pid-start-time-changed' }
+        $peerValidationDiagnostics += "attempt=$($attempt + 1):$($reason -join ',')"
+
+        # If the selected tuple disappeared, select a fresh complete tuple
+        # from this snapshot and bind its PID/start-time before retrying.
+        if ($serverMatch.Count -ne 1 -or $peerMatch.Count -ne 1) {
+            $freshServer = @($currentServers | Select-Object -First 1)
+            $freshPeer = @()
+            if ($freshServer.Count -eq 1) {
+                $freshPeer = @($tcpValidationConnections | Where-Object {
+                    $_.OwningProcess -gt 0 -and
+                    $_.OwningProcess -ne $childPid -and
+                    (Normalize-TcpAddress $_.LocalAddress) -eq (Normalize-TcpAddress $freshServer[0].RemoteAddress) -and
+                    $_.LocalPort -eq $freshServer[0].RemotePort -and
+                    (Normalize-TcpAddress $_.RemoteAddress) -eq (Normalize-TcpAddress $freshServer[0].LocalAddress) -and
+                    $_.RemotePort -eq $freshServer[0].LocalPort
+                } | Select-Object -First 1)
+            }
+            $freshProcess = @($connectedTargetSnapshot | Where-Object {
+                $freshPeer.Count -eq 1 -and $_.Id -eq $freshPeer[0].OwningProcess
+            } | Select-Object -First 1)
+            if ($freshServer.Count -eq 1 -and $freshPeer.Count -eq 1 -and $freshProcess.Count -eq 1) {
+                $selectedServerConnection = $freshServer[0]
+                $selectedPeerConnection = $freshPeer[0]
+                $peerIdentity = $freshProcess[0].Identity
+                $upstreamPeerPids = @($selectedPeerConnection.OwningProcess)
+                $peerValidationDiagnostics += "attempt=$($attempt + 1):reselected-peer=$($freshProcess[0].Identity)"
+            }
+        }
         Start-Sleep -Milliseconds 200
     }
-    if ($upstreamPeerTargets.Count -ne $upstreamPeerPids.Count) {
-        throw "WMPF upstream peer is not an identifiable WeChatAppEx process: peer=$($upstreamPeerPids -join ',')"
+    if (-not $peerValidated) {
+        throw "WMPF upstream peer failed TOCTOU validation after 10 attempts: $($peerValidationDiagnostics -join ';')"
     }
     foreach ($item in $connectedTargetSnapshot) {
         $role = if ($item.Id -in $upstreamPeerPids) { 'upstream-peer' } else { '' }
         Write-TargetProcessDetail -Phase connected -Process $item -Roles $role
     }
+
+    $agentOutput = Get-Content $stdout -Raw -ErrorAction SilentlyContinue
+    $postAttachOutput = if ($agentOutput.Length -gt $attachLogOffset) { $agentOutput.Substring($attachLogOffset) } else { '' }
+    $onLoadStartHit = $postAttachOutput -match 'AppletIndexContainer::OnLoadStart onEnter'
+    if (-not $onLoadStartHit) {
+        throw 'WMPF upstream connected without a post-attach AppletIndexContainer::OnLoadStart onEnter event'
+    }
+    Write-Output 'agent-on-load-start=true'
 
     go run scripts/smoke-client.go --url ws://127.0.0.1:62000 --mode matrix
     if ($LASTEXITCODE -ne 0) { throw "live CDP matrix failed with exit $LASTEXITCODE" }
@@ -204,32 +354,79 @@ try {
         $_.Identity -notin $initialTargetIdentities -and $_.MainWindowHandle -ne 0
     })
     $newRendererTargets = @($preShutdownTargetSnapshot | Where-Object {
-        $_.Identity -notin $initialTargetIdentities -and (Test-IsRendererProcess -Process $_)
-    })
-    $newAppletRendererTargets = @($newRendererTargets | Where-Object { Test-IsAppletRendererProcess -Process $_ })
-    if ($newRendererTargets.Count -eq 0) {
-        throw 'no new renderer remained after the CDP checks; opening or reloading the target did not produce a trackable renderer'
-    }
+        $_.ParentId -eq $attachedTargetPid -and
+        $_.Identity -notin $initialTargetIdentities -and
+        (Test-IsRendererProcess -Process $_)
+    } | Sort-Object StartTimeUtcTicks -Descending)
+    $newAppletRendererTargets = @($newRendererTargets |
+        Where-Object {
+            $_.ParentId -eq $attachedTargetPid -and
+            $_.Identity -notin $initialTargetIdentities -and
+            (Test-IsAppletRendererProcess -Process $_)
+        } |
+        Sort-Object StartTimeUtcTicks -Descending |
+        Select-Object -First 1)
     $fallbackAppletRenderer = $false
-    if ($newAppletRendererTargets.Count -eq 0) {
-        $newAppletRendererTargets = @($newRendererTargets | Where-Object { Test-IsAnyAppletRendererProcess -Process $_ })
+    $reusedAppletRenderer = $false
+    if ($newAppletRendererTargets.Count -lt 1) {
+        $newAppletRendererTargets = @($newRendererTargets |
+            Where-Object {
+                $_.ParentId -eq $attachedTargetPid -and
+                $_.Identity -notin $initialTargetIdentities -and
+                (Test-IsAnyAppletRendererProcess -Process $_)
+            } |
+            Sort-Object StartTimeUtcTicks -Descending |
+            Select-Object -First 1)
         if ($newAppletRendererTargets.Count -gt 0) {
             $fallbackAppletRenderer = $true
             $fallbackPids = @($newAppletRendererTargets | Select-Object -ExpandProperty Id -Unique)
             Write-Output "fallback-applet-renderer=true diagnostic=non-preload applet renderer absent; tracking new type=4 renderer with preload-or-other appid pids=$($fallbackPids -join ',')"
         }
     }
-    if ($newAppletRendererTargets.Count -eq 0) {
-        throw 'no new type=4 applet renderer remained after the CDP checks'
+    if ($newAppletRendererTargets.Count -gt 0) {
+        Write-Output "renderer-selection=new pids=$(@($newAppletRendererTargets | Select-Object -ExpandProperty Id) -join ',')"
+    } else {
+        $reusedAppletRendererTargets = @($preShutdownTargetSnapshot |
+            Where-Object { $_.ParentId -eq $attachedTargetPid -and $_.Identity -in $initialTargetIdentities -and (Test-IsAppletRendererProcess -Process $_) } |
+            Sort-Object StartTimeUtcTicks -Descending)
+        if ($reusedAppletRendererTargets.Count -lt 1) {
+            $reusedAppletRendererTargets = @($preShutdownTargetSnapshot |
+                Where-Object { $_.ParentId -eq $attachedTargetPid -and $_.Identity -in $initialTargetIdentities -and (Test-IsAnyAppletRendererProcess -Process $_) } |
+                Sort-Object StartTimeUtcTicks -Descending)
+            if ($reusedAppletRendererTargets.Count -gt 0) {
+                $fallbackAppletRenderer = $true
+            }
+        }
+        if ($reusedAppletRendererTargets.Count -lt 1) {
+            throw 'no type=4 applet renderer correlated with the post-attach load'
+        }
+
+        $newAppletRendererTargets = @($reusedAppletRendererTargets | Select-Object -First 1)
+        $reusedAppletRenderer = $true
+        $reusedIdentity = $newAppletRendererTargets[0].Identity
+        Write-Output "reused-applet-renderer=true pid=$($newAppletRendererTargets[0].Id) identity=$reusedIdentity evidence=onload-start,upstream,cdp-matrix,cdp-link"
+        Write-Output "renderer-selection=reused pid=$($newAppletRendererTargets[0].Id) identity=$reusedIdentity"
     }
+    $selectedAppletRendererTargets = @($newAppletRendererTargets)
+    $selectedAppletRendererIdentities = @($newAppletRendererTargets | Select-Object -ExpandProperty Identity)
+    $attachedHostTargets = @($initialTargetSnapshot | Where-Object { $_.Id -eq $attachedTargetPid })
+    if ($attachedHostTargets.Count -ne 1) {
+        throw "attached Frida host PID $attachedTargetPid was not present with an exact initial PID@StartTime identity"
+    }
+    $attachedHostTarget = $attachedHostTargets[0]
+    $trackedTargetRoles[$attachedHostTarget.Identity] = 'attached-host'
+    $trackedTargetMetadata[$attachedHostTarget.Identity] = $attachedHostTarget
     foreach ($item in @($upstreamPeerTargets)) {
         $trackedTargetRoles[$item.Identity] = 'upstream-peer'
         $trackedTargetMetadata[$item.Identity] = $item
     }
-    foreach ($item in $newRendererTargets) {
+    foreach ($item in @($selectedAppletRendererTargets)) {
         $role = if (Test-IsAnyAppletRendererProcess -Process $item) { 'renderer,applet-renderer' } else { 'renderer' }
-        if ($fallbackAppletRenderer -and (Test-IsAnyAppletRendererProcess -Process $item) -and -not (Test-IsAppletRendererProcess -Process $item)) {
+        if ($fallbackAppletRenderer -and $item.Identity -in $selectedAppletRendererIdentities -and -not (Test-IsAppletRendererProcess -Process $item)) {
             $role += ',fallback-applet-renderer'
+        }
+        if ($reusedAppletRenderer -and $item.Identity -in $selectedAppletRendererIdentities) {
+            $role += ',reused-applet-renderer'
         }
         if ($trackedTargetRoles.ContainsKey($item.Identity)) {
             $trackedTargetRoles[$item.Identity] += ",$role"

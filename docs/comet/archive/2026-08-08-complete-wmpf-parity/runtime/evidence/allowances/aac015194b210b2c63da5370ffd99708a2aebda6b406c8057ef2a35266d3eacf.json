@@ -1,0 +1,13 @@
+{
+  "schema": "comet.native.partial-allowance.v1",
+  "change": "complete-wmpf-parity",
+  "scopeHash": "8f7ae9f003e6bff89d6533c387e0fa64d8c83907abc8a3bc6346ed70549c442d",
+  "scopeIds": [
+    "scope:22719767d6f0d7a04baac51943b3cf84c11c99b0cb79dee06349aaef37732e63"
+  ],
+  "reason": "Exclude only the unchanged vendored zlib archive from Comet text inspection; retain native build and SHA-256 verification.",
+  "confirmedSummary": "确认 partial verification scope：zlib-1.3.1.tar.gz 是当前 HEAD 已固定的 vendored 二进制输入，排除其 scoped-text-safety 扫描；native build receipt 仍以版本和 SHA-256 验证它。其余实现和验收范围完整保留。",
+  "sourceRevision": 31,
+  "confirmedAt": "2026-08-08T19:17:35.418Z",
+  "allowanceHash": "aac015194b210b2c63da5370ffd99708a2aebda6b406c8057ef2a35266d3eacf"
+}

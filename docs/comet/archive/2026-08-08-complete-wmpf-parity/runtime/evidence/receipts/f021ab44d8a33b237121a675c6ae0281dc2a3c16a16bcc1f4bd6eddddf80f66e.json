@@ -1,0 +1,55 @@
+{
+  "schema": "comet.native.verification-receipt.v3",
+  "kind": "automated-check",
+  "role": "acceptance-evidence",
+  "status": "passed",
+  "bindings": {
+    "change": "complete-wmpf-parity",
+    "sourceRevision": 30,
+    "contractHash": "68a4afdc884c6068126dc3c524a96cdf2269e9658f15a8d3b434511b80887b3a",
+    "scopeHash": "14e6e2851872e92bb181b6792dc7c4005de010a164a90ebf53d0bbf151d65b8b",
+    "snapshotHash": "28ddc40cea3eafcf390d15e07724655f98bcc4ae8684758d84de65aa0ca42097",
+    "artifactHash": "b00e4c790bb1b54a87b458ccc90e7c201463dc71efe5588f02f18715bd75685f"
+  },
+  "acceptanceIds": [
+    "acceptance-57ca7c9d743817f8abe630b2c6877d87eac38087b67b22896dd99d836c762eed",
+    "acceptance-5a08b12a267314c48da379aad3c1f7d706b9d9e0af8776c348bbfef2285a7913",
+    "acceptance-8fc22df3cdf7b059bdf074c158b79eebdeca763ce0fe3f0cd5c29b5e3ec056ba",
+    "acceptance-b0f8901c7a7bd76470106a6537cbf7e24560956e7e85f7df8462349b7dff7eee",
+    "acceptance-ea88e62bd0e2c7996e0eec9b16495d7826fb1677cf90fce295fb876a41321ebb"
+  ],
+  "actor": "native-runtime:command:powershell.exe",
+  "issuedAt": "2026-08-08T19:07:20.565Z",
+  "evidence": {
+    "executable": "powershell.exe",
+    "args": [
+      "-NoProfile",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-Command",
+      "$env:PSModulePath = \"$PSHOME\\Modules;$env:PSModulePath\"\n$output = @()\ntry {\n    $output = @(& scripts/smoke-windows.ps1 -UpstreamWaitSeconds 300 2>&1)\n    $code = $LASTEXITCODE\n} catch {\n    $output += $_\n    $code = 1\n}\n$output | ForEach-Object { [string]$_ } | Where-Object { $_ -match '^(listeners:|\\[frida\\] attached|action-required=|upstream-peer-validated=|agent-on-load-start=|live-cdp-matrix:|link-smoke:|renderer-selection=|fallback-applet-renderer=|reused-applet-renderer=|child-exit-status=|child-exit-code=|target-survives-shutdown=|target-process-delta:|ports-released=|force-termination=)' }\nexit $code"
+    ],
+    "cwd": ".",
+    "exitCode": 0,
+    "signal": null,
+    "timedOut": false,
+    "timeoutMs": 480000,
+    "startedAt": "2026-08-08T19:04:10.820Z",
+    "endedAt": "2026-08-08T19:07:20.565Z",
+    "worktree": {
+      "provider": "git",
+      "root": ".",
+      "beforeCommit": "33ccd5f13752bd62cff05b3b31e98aec484a9674",
+      "afterCommit": "33ccd5f13752bd62cff05b3b31e98aec484a9674"
+    },
+    "afterFence": {
+      "snapshotHash": "28ddc40cea3eafcf390d15e07724655f98bcc4ae8684758d84de65aa0ca42097",
+      "scopeHash": "14e6e2851872e92bb181b6792dc7c4005de010a164a90ebf53d0bbf151d65b8b",
+      "matched": true
+    },
+    "outputHash": "bb34bd88a60a690405b2db6dd1168cc106f85a227ceed83bda7e049e0b624652",
+    "outputSummary": "listeners: 9421=true 62000=true owner=61796\r\n[frida] attached pid=43432 version=25297 path=C:\\Users\\follen\\AppData\\Roaming\\Tencent\\xwechat\\XPlugin\\Plugins\\RadiumWMPF\\25297\\extracted\\runtime\\WeChatAppEx.exe\r\naction-required=open-or-reload-miniapp\r\nupstream-peer-validated=true attempt=1 tuple=127.0.0.1:9421<->127.0.0.1:60852 pid=36284 identity=36284@639217982995193088\r\nagent-on-load-start=true\r\nlive-cdp-matrix: domains=Runtime,Debugger,Page,DOM,Network,Console,Performance init=10 objects=true exceptions=true console=true scripts=true pause-resume=true callframes=true long-bytes=491520 concurrent=16 error-response=true contexts=true reconnect=true events=168 receive-order=true order-assertions=44 console-seq=160<161 script-seq=162<163 pause-seq=165<166<168 received=207 reconnect-received=3\r\nlink-smoke: Runtime.enable=true Debugger.enable=true Runtime.evaluate=true events=1\r\nfallback-applet-renderer=true diagnostic=non-preload applet renderer absent; tracking new type=4 renderer with preload-or-other appid pids=56732\r\nrenderer-selection=new pids=56732\r\ntarget-survives-shutdown=true tracked=56732:renderer,applet-renderer,fallback-applet-renderer,43432:attached-host,36284:upstream-peer settle-seconds=5\r\ntarget-process-delta: new=56732 surviving-new=56732 transient-exited=\r\nports-released=true",
+    "outputTruncated": false
+  },
+  "receiptHash": "f021ab44d8a33b237121a675c6ae0281dc2a3c16a16bcc1f4bd6eddddf80f66e"
+}

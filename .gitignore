@@ -1,6 +1,6 @@
 .reference/
 dist/
-third_party/frida/devkit-17.3.2/frida-core.lib
+third_party/frida/devkit-17.3.2/
 third_party/downloads/
 third_party/frida/runtime-17.3.2/*.dll
 third_party/frida/runtime-17.3.2/*.lib

@@ -37,10 +37,26 @@ func LoadFile(path string) (AddressConfig, error) {
 	if err := json.Unmarshal(b, &c); err != nil {
 		return c, fmt.Errorf("decode addresses: %w", err)
 	}
-	if c.Version == 0 || len(c.SceneOffsets) == 0 {
+	if c.Version == 0 || len(c.SceneOffsets) != 6 {
 		return c, errors.New("invalid address config")
 	}
+	if _, err := c.Offset(c.LoadStartHookOffset); err != nil {
+		return c, fmt.Errorf("invalid load-start hook offset: %w", err)
+	}
+	if _, err := c.Offset(c.CDPFilterHookOffset); err != nil {
+		return c, fmt.Errorf("invalid CDP-filter hook offset: %w", err)
+	}
 	return c, nil
+}
+
+func filenameVersion(path string) (int, error) {
+	base := filepath.Base(path)
+	value := strings.TrimSuffix(strings.TrimPrefix(base, "addresses."), ".json")
+	version, err := strconv.Atoi(value)
+	if err != nil || version <= 0 {
+		return 0, fmt.Errorf("invalid address config filename %q", base)
+	}
+	return version, nil
 }
 
 func LoadDir(dir string) (map[int]AddressConfig, error) {
@@ -53,6 +69,13 @@ func LoadDir(dir string) (map[int]AddressConfig, error) {
 		c, e := LoadFile(f)
 		if e != nil {
 			return nil, e
+		}
+		fileVersion, e := filenameVersion(f)
+		if e != nil {
+			return nil, e
+		}
+		if fileVersion != c.Version {
+			return nil, fmt.Errorf("address config version mismatch: file=%d content=%d", fileVersion, c.Version)
 		}
 		result[c.Version] = c
 	}

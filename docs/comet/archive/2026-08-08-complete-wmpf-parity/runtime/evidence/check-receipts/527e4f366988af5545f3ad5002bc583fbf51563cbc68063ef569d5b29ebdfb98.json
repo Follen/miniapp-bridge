@@ -1,0 +1,50 @@
+{
+  "schema": "comet.native.check-receipt.v1",
+  "change": "complete-wmpf-parity",
+  "sourceRevision": 26,
+  "checker": {
+    "policy": "scoped-text-safety",
+    "version": 1,
+    "hash": "859ac9d93d19ac346e5e0c6dfca376112da6b0c9caeb9d7d7aa68393c73e0eaf",
+    "limits": {
+      "maxFiles": 256,
+      "maxFileBytes": 2097152,
+      "maxTotalBytes": 8388608,
+      "maxIssues": 128
+    }
+  },
+  "inputHash": "d9874be24933a9a364c7ec1920d6e275c2ed3865b74049f2f5c1863740dfdbd7",
+  "status": "failed",
+  "startedAt": "2026-08-08T15:58:56.876Z",
+  "endedAt": "2026-08-08T15:58:57.345Z",
+  "contract": {
+    "expectedHash": "68a4afdc884c6068126dc3c524a96cdf2269e9658f15a8d3b434511b80887b3a",
+    "beforeHash": "68a4afdc884c6068126dc3c524a96cdf2269e9658f15a8d3b434511b80887b3a",
+    "afterHash": "68a4afdc884c6068126dc3c524a96cdf2269e9658f15a8d3b434511b80887b3a"
+  },
+  "implementation": {
+    "scopeHash": "e7e6b792b88d7e65cf59cda83dba372c473fa8590cb8688db799d2f5fa538397",
+    "expectedSnapshotHash": "485c8e9612dfb07d85086543c36b053515ff19b91e44b6b8bd23901293d58339",
+    "beforeSnapshotHash": "485c8e9612dfb07d85086543c36b053515ff19b91e44b6b8bd23901293d58339",
+    "afterSnapshotHash": "485c8e9612dfb07d85086543c36b053515ff19b91e44b6b8bd23901293d58339"
+  },
+  "counts": {
+    "filesSelected": 101,
+    "filesScanned": 0,
+    "binaryFilesSkipped": 0,
+    "bytesScanned": 0,
+    "issueCount": 1,
+    "recordedIssueCount": 1
+  },
+  "issues": [
+    {
+      "path": "third_party/frida/devkit-17.3.2/frida-core.h",
+      "line": 1,
+      "kind": "scan-limit"
+    }
+  ],
+  "issuesTruncated": false,
+  "stale": false,
+  "staleReasons": [],
+  "receiptHash": "527e4f366988af5545f3ad5002bc583fbf51563cbc68063ef569d5b29ebdfb98"
+}

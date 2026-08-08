@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -109,5 +110,39 @@ func TestLinkAndMatrixClients(t *testing.T) {
 	}
 	if err := runInteraction(url); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestExpectReceiveOrder(t *testing.T) {
+	c := &client{received: []receivedFrame{
+		{Sequence: 1, Kind: "event", Method: "Runtime.executionContextCreated"},
+		{Sequence: 2, Kind: "response", ID: 7, Method: "Runtime.enable"},
+		{Sequence: 3, Kind: "event", Method: "Debugger.scriptParsed"},
+	}}
+	sequences, err := c.expectReceiveOrder(0,
+		receiveExpectation{Kind: "event", Method: "Runtime.executionContextCreated"},
+		receiveExpectation{Kind: "response", ID: 7, Method: "Runtime.enable"},
+		receiveExpectation{Kind: "event", Method: "Debugger.scriptParsed"},
+	)
+	if err != nil || fmt.Sprint(sequences) != "[1 2 3]" {
+		t.Fatalf("ordered sequence = %v, %v", sequences, err)
+	}
+	for _, test := range []struct {
+		name  string
+		after int
+		want  []receiveExpectation
+	}{
+		{name: "invalid checkpoint", after: 4},
+		{name: "reverse order", want: []receiveExpectation{
+			{Kind: "response", ID: 7, Method: "Runtime.enable"},
+			{Kind: "event", Method: "Runtime.executionContextCreated"},
+		}},
+		{name: "missing frame", want: []receiveExpectation{{Kind: "response", ID: 8, Method: "Runtime.enable"}}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			if _, err := c.expectReceiveOrder(test.after, test.want...); err == nil {
+				t.Fatal("expected receive-order error")
+			}
+		})
 	}
 }

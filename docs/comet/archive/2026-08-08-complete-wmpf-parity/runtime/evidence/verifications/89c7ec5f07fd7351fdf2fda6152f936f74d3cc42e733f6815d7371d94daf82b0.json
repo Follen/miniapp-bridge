@@ -1,0 +1,92 @@
+{
+  "schema": "comet.native.verification-evidence.v2",
+  "change": "complete-wmpf-parity",
+  "sourceRevision": 21,
+  "result": "fail",
+  "freshness": "complete",
+  "contractHash": "68a4afdc884c6068126dc3c524a96cdf2269e9658f15a8d3b434511b80887b3a",
+  "acceptanceCriteriaHash": "eec82d3bc4fc2b950d6334d139db9cf0403d95baef0b5c0b43b7fc7c61cbe61d",
+  "implementationScopeRef": "runtime/evidence/scopes/14184713b1a2aba68dd1629fc8c86b41ef403539addbe7ea62f5ecc8ede35970.json",
+  "implementationScopeHash": "14184713b1a2aba68dd1629fc8c86b41ef403539addbe7ea62f5ecc8ede35970",
+  "reportRef": "verification.md",
+  "reportHash": "34d3426673969512ebf8e2adebb2618a45707f24f7b3d2a2deee2eb45ef959e0",
+  "acceptanceTrace": {
+    "schema": "comet.native.acceptance-trace.v2",
+    "nativeRootRef": "docs/comet",
+    "criteriaHash": "eec82d3bc4fc2b950d6334d139db9cf0403d95baef0b5c0b43b7fc7c61cbe61d",
+    "total": 6,
+    "evidenced": 5,
+    "skipped": 3,
+    "entries": [
+      {
+        "acceptanceId": "acceptance-57ca7c9d743817f8abe630b2c6877d87eac38087b67b22896dd99d836c762eed",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/complete-parity/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/52abc9b82756f0839be356495cea83efe6b8c51254c7eaa410f335e53c64c73f.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-5a08b12a267314c48da379aad3c1f7d706b9d9e0af8776c348bbfef2285a7913",
+        "status": "failed",
+        "kind": "spec-must",
+        "source": "specs/complete-parity/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/9cea941dea4a52b5b26320854b4d35e78e987ef2e5f41d676dd1aaa220800c53.json"
+        ],
+        "skippedReason": "严格 live smoke 因重载复用已有 type=4 renderer 而误判无新 renderer，需修复 harness 后重跑。"
+      },
+      {
+        "acceptanceId": "acceptance-8fc22df3cdf7b059bdf074c158b79eebdeca763ce0fe3f0cd5c29b5e3ec056ba",
+        "status": "failed",
+        "kind": "spec-must",
+        "source": "specs/complete-parity/spec.md",
+        "evidenceRefs": [],
+        "skippedReason": "attach/upstream 成功但 overall smoke 被 renderer 新 PID 断言终止，需修复后重跑。"
+      },
+      {
+        "acceptanceId": "acceptance-b0f8901c7a7bd76470106a6537cbf7e24560956e7e85f7df8462349b7dff7eee",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/complete-parity/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/40695360b3ae2977bb24ea93e1adaa0006563ce7bcff9bcaa1d901661a450d18.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-cded77aeed14a7b3ddf6cfe5bfa819b52f9fc4cec72ea935d9b6347359e51c98",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/complete-parity/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/40695360b3ae2977bb24ea93e1adaa0006563ce7bcff9bcaa1d901661a450d18.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-ea88e62bd0e2c7996e0eec9b16495d7826fb1677cf90fce295fb876a41321ebb",
+        "status": "failed",
+        "kind": "spec-must",
+        "source": "specs/complete-parity/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/9cea941dea4a52b5b26320854b4d35e78e987ef2e5f41d676dd1aaa220800c53.json"
+        ],
+        "skippedReason": "live matrix 完成但 smoke harness 的 renderer 新 PID 断言失败，需修复并重新签发 receipt。"
+      }
+    ],
+    "traceHash": "12d2eabbe8fc8d945377de8bf8d3575287a3c598a4012c055f6983d9105feccb"
+  },
+  "partialAllowanceRef": null,
+  "partialAllowanceHash": null,
+  "requiredReceiptRefs": [],
+  "receiptRefs": [
+    "runtime/evidence/receipts/40695360b3ae2977bb24ea93e1adaa0006563ce7bcff9bcaa1d901661a450d18.json",
+    "runtime/evidence/receipts/52abc9b82756f0839be356495cea83efe6b8c51254c7eaa410f335e53c64c73f.json",
+    "runtime/evidence/receipts/9cea941dea4a52b5b26320854b4d35e78e987ef2e5f41d676dd1aaa220800c53.json"
+  ],
+  "createdAt": "2026-08-08T14:55:01.205Z",
+  "envelopeHash": "89c7ec5f07fd7351fdf2fda6152f936f74d3cc42e733f6815d7371d94daf82b0"
+}

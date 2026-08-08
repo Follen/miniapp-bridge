@@ -1,0 +1,51 @@
+{
+  "schema": "comet.native.verification-receipt.v3",
+  "kind": "automated-check",
+  "role": "acceptance-evidence",
+  "status": "failed",
+  "bindings": {
+    "change": "complete-wmpf-parity",
+    "sourceRevision": 30,
+    "contractHash": "68a4afdc884c6068126dc3c524a96cdf2269e9658f15a8d3b434511b80887b3a",
+    "scopeHash": "14e6e2851872e92bb181b6792dc7c4005de010a164a90ebf53d0bbf151d65b8b",
+    "snapshotHash": "28ddc40cea3eafcf390d15e07724655f98bcc4ae8684758d84de65aa0ca42097",
+    "artifactHash": "b00e4c790bb1b54a87b458ccc90e7c201463dc71efe5588f02f18715bd75685f"
+  },
+  "acceptanceIds": [
+    "acceptance-57ca7c9d743817f8abe630b2c6877d87eac38087b67b22896dd99d836c762eed"
+  ],
+  "actor": "native-runtime:command:powershell.exe",
+  "issuedAt": "2026-08-08T19:02:18.657Z",
+  "evidence": {
+    "executable": "powershell.exe",
+    "args": [
+      "-NoProfile",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-Command",
+      "$output = & scripts/build-windows.ps1 2>&1; $code = $LASTEXITCODE; $output | Select-Object -Last 3; exit $code"
+    ],
+    "cwd": ".",
+    "exitCode": 1,
+    "signal": null,
+    "timedOut": false,
+    "timeoutMs": 1200000,
+    "startedAt": "2026-08-08T19:02:18.428Z",
+    "endedAt": "2026-08-08T19:02:18.657Z",
+    "worktree": {
+      "provider": "git",
+      "root": ".",
+      "beforeCommit": "33ccd5f13752bd62cff05b3b31e98aec484a9674",
+      "afterCommit": "33ccd5f13752bd62cff05b3b31e98aec484a9674"
+    },
+    "afterFence": {
+      "snapshotHash": "28ddc40cea3eafcf390d15e07724655f98bcc4ae8684758d84de65aa0ca42097",
+      "scopeHash": "14e6e2851872e92bb181b6792dc7c4005de010a164a90ebf53d0bbf151d65b8b",
+      "matched": true
+    },
+    "outputHash": "ae45e4a47afa389f9b71bcd2ce5c238a9a9f22bb0db2db003a99e7f6c33186b3",
+    "outputSummary": "Get-FileHash : �޷�����Get-FileHash����ʶ��Ϊ cmdlet���������ű��ļ�������г�������ơ��������Ƶ�ƴд���������·������ȷ\r\n��·����ȷ��Ȼ������һ�Ρ�\r\n����λ�� D:\\Code\\third-partry\\miniapp-bridge\\scripts\\build-zlib.ps1:12 �ַ�: 6\r\n+ if ((Get-FileHash -Algorithm SHA256 -LiteralPath $archive).Hash -ne $ ...\r\n+      ~~~~~~~~~~~~\r\n    + CategoryInfo          : ObjectNotFound: (Get-FileHash:String) [], ParentContainsErrorRecordException\r\n    + FullyQualifiedErrorId : CommandNotFoundException",
+    "outputTruncated": false
+  },
+  "receiptHash": "99493c889da3d5d5bcfa080c0d506aa4f03f9e37327a18106c5c12b5be1db23e"
+}

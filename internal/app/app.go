@@ -31,6 +31,7 @@ type App struct {
 	debugSrv, cdpSrv   *http.Server
 	closeOnce          sync.Once
 	closing            atomic.Bool
+	connMu             sync.RWMutex
 	dispatchMu         sync.Mutex
 	seq                atomic.Uint32
 	listen             func(string, string) (net.Listener, error)
@@ -83,12 +84,15 @@ func (a *App) Start() error {
 		if e != nil {
 			return
 		}
+		a.connMu.RLock()
 		if a.closing.Load() {
+			a.connMu.RUnlock()
 			_ = c.Close()
 			return
 		}
 		x := &wsClient{conn: c, typeID: websocket.BinaryMessage}
 		a.DebugHub.Add(x)
+		a.connMu.RUnlock()
 		a.Log.Info("[miniapp] miniapp client connected")
 		go a.readDebug(x)
 	})}
@@ -97,12 +101,15 @@ func (a *App) Start() error {
 		if e != nil {
 			return
 		}
+		a.connMu.RLock()
 		if a.closing.Load() {
+			a.connMu.RUnlock()
 			_ = c.Close()
 			return
 		}
 		x := &wsClient{conn: c, typeID: websocket.TextMessage}
 		a.CDPHub.Add(x)
+		a.connMu.RUnlock()
 		a.Log.Info("[cdp] CDP client connected")
 		go a.readCDP(x)
 	})}
@@ -273,11 +280,13 @@ func (a *App) Close(ctx context.Context) error {
 	var out error
 	a.closeOnce.Do(func() {
 		a.closing.Store(true)
+		a.connMu.Lock()
 		if a.Recorder != nil {
 			out = a.Recorder.Close()
 		}
 		a.DebugHub.CloseAll()
 		a.CDPHub.CloseAll()
+		a.connMu.Unlock()
 		if a.debugSrv != nil {
 			if err := a.debugSrv.Shutdown(ctx); out == nil {
 				out = err

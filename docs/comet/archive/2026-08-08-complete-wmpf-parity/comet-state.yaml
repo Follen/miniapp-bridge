@@ -1,0 +1,23 @@
+schema: comet.native.v3
+minimum_runtime_version: 3
+revision: 36
+verification_protocol: legacy-v1
+name: complete-wmpf-parity
+language: zh-CN
+phase: archive
+brief: brief.md
+approval: confirmed
+approved_contract_hash: 68a4afdc884c6068126dc3c524a96cdf2269e9658f15a8d3b434511b80887b3a
+spec_changes:
+  - capability: complete-parity
+    operation: create
+    source: specs/complete-parity/spec.md
+    base_hash: null
+verification_result: pass
+verification_report: verification.md
+implementation_scope: runtime/evidence/scopes/b29b38ed3bf3904f84dfa9076a831dfc9bcc6a74897a5ba58b8390f2cf1d2ade.json
+verification_evidence: runtime/evidence/verifications/21db42502c2b1c89204c7fea36328d449535f332bf4fae1e20bd9ac51759c556.json
+partial_allowance: null
+archived: true
+created_at: 2026-08-07
+run_id: c6f12d81-f15b-45fa-b5c5-9471f6dcd1da

@@ -1,5 +1,7 @@
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
+$ensure = Join-Path $PSScriptRoot 'ensure-frida-devkit.ps1'
+& $ensure
 $devkit = Join-Path $root 'third_party\frida\devkit-17.3.2'
 $runtime = Join-Path $root 'third_party\frida\runtime-17.3.2'
 $shim = Join-Path $root 'internal\frida\shim'

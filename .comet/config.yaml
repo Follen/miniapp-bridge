@@ -22,7 +22,7 @@ native:
   # 可选值：automatic | required
   archive_confirmation: automatic
   # 同一份已确认 contract 最多允许的 Verify 失败次数；达到上限后停止完成循环。
-  max_verify_failures: 5
+  max_verify_failures: 8
   # Native 内容快照使用的可审计项目范围与有界工作预算。
   snapshot:
     # Native 快照纳入的项目相对路径；模式使用 /，支持 *、** 和 ?。
@@ -30,6 +30,7 @@ native:
       - "**/*"
     # 从纳入范围中排除路径；新 change 会把排除策略绑定到 baseline。
     exclude:
+      - third_party/zlib/zlib-1.3.1.tar.gz
       - .agents/skills/**
       - .amazonq/skills/**
       - .augment/skills/**

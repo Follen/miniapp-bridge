@@ -1,0 +1,53 @@
+{
+  "schema": "comet.native.verification-receipt.v3",
+  "kind": "automated-check",
+  "role": "acceptance-evidence",
+  "status": "passed",
+  "bindings": {
+    "change": "complete-wmpf-parity",
+    "sourceRevision": 34,
+    "contractHash": "68a4afdc884c6068126dc3c524a96cdf2269e9658f15a8d3b434511b80887b3a",
+    "scopeHash": "b29b38ed3bf3904f84dfa9076a831dfc9bcc6a74897a5ba58b8390f2cf1d2ade",
+    "snapshotHash": "c9649371905529c213f31b568bd072c44399b470b5fc08d504e345ebfb5aad3d",
+    "artifactHash": "632ff5ed3ef02550d2a91768612f33d8bcfbc519394c3028f7e4f7c9f7c3763c"
+  },
+  "acceptanceIds": [
+    "acceptance-57ca7c9d743817f8abe630b2c6877d87eac38087b67b22896dd99d836c762eed",
+    "acceptance-5a08b12a267314c48da379aad3c1f7d706b9d9e0af8776c348bbfef2285a7913"
+  ],
+  "actor": "native-runtime:command:go",
+  "issuedAt": "2026-08-08T20:27:09.975Z",
+  "evidence": {
+    "executable": "go",
+    "args": [
+      "test",
+      "./scripts",
+      "-run",
+      "Zlib",
+      "-count=1",
+      "-v"
+    ],
+    "cwd": ".",
+    "exitCode": 0,
+    "signal": null,
+    "timedOut": false,
+    "timeoutMs": 300000,
+    "startedAt": "2026-08-08T20:27:05.642Z",
+    "endedAt": "2026-08-08T20:27:09.975Z",
+    "worktree": {
+      "provider": "git",
+      "root": ".",
+      "beforeCommit": "33ccd5f13752bd62cff05b3b31e98aec484a9674",
+      "afterCommit": "33ccd5f13752bd62cff05b3b31e98aec484a9674"
+    },
+    "afterFence": {
+      "snapshotHash": "c9649371905529c213f31b568bd072c44399b470b5fc08d504e345ebfb5aad3d",
+      "scopeHash": "b29b38ed3bf3904f84dfa9076a831dfc9bcc6a74897a5ba58b8390f2cf1d2ade",
+      "matched": true
+    },
+    "outputHash": "a50339435a30c3836761628bd09b267447794a3f674935e8bb6e4e1f398b26af",
+    "outputSummary": "=== RUN   TestZlibBuildDownloadsPinnedArchiveIntoIgnoredCache\n--- PASS: TestZlibBuildDownloadsPinnedArchiveIntoIgnoredCache (0.00s)\n=== RUN   TestZlibBuildSupportsVerifiedOfflineCache\n--- PASS: TestZlibBuildSupportsVerifiedOfflineCache (0.00s)\n=== RUN   TestZlibBuildOfflineCacheIntegration\n--- PASS: TestZlibBuildOfflineCacheIntegration (3.76s)\nPASS\nok  \tminiapp-bridge/scripts\t3.807s",
+    "outputTruncated": false
+  },
+  "receiptHash": "09c4beff1a7f4cf746aa5b5fb26e788306a7e999fc2edd42ebae965a9c3409db"
+}

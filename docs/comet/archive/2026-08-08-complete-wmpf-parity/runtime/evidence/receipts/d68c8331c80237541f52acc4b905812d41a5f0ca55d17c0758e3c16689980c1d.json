@@ -1,0 +1,49 @@
+{
+  "schema": "comet.native.verification-receipt.v3",
+  "kind": "automated-check",
+  "role": "acceptance-evidence",
+  "status": "failed",
+  "bindings": {
+    "change": "complete-wmpf-parity",
+    "sourceRevision": 30,
+    "contractHash": "68a4afdc884c6068126dc3c524a96cdf2269e9658f15a8d3b434511b80887b3a",
+    "scopeHash": "14e6e2851872e92bb181b6792dc7c4005de010a164a90ebf53d0bbf151d65b8b",
+    "snapshotHash": "28ddc40cea3eafcf390d15e07724655f98bcc4ae8684758d84de65aa0ca42097",
+    "artifactHash": "b00e4c790bb1b54a87b458ccc90e7c201463dc71efe5588f02f18715bd75685f"
+  },
+  "acceptanceIds": [
+    "acceptance-57ca7c9d743817f8abe630b2c6877d87eac38087b67b22896dd99d836c762eed"
+  ],
+  "actor": "native-runtime:command:cmd.exe",
+  "issuedAt": "2026-08-08T19:01:12.315Z",
+  "evidence": {
+    "executable": "cmd.exe",
+    "args": [
+      "/d",
+      "/c",
+      "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\\build-windows.ps1 >NUL 2>&1 && echo native_build=passed"
+    ],
+    "cwd": ".",
+    "exitCode": 1,
+    "signal": null,
+    "timedOut": false,
+    "timeoutMs": 1200000,
+    "startedAt": "2026-08-08T19:01:12.075Z",
+    "endedAt": "2026-08-08T19:01:12.315Z",
+    "worktree": {
+      "provider": "git",
+      "root": ".",
+      "beforeCommit": "33ccd5f13752bd62cff05b3b31e98aec484a9674",
+      "afterCommit": "33ccd5f13752bd62cff05b3b31e98aec484a9674"
+    },
+    "afterFence": {
+      "snapshotHash": "28ddc40cea3eafcf390d15e07724655f98bcc4ae8684758d84de65aa0ca42097",
+      "scopeHash": "14e6e2851872e92bb181b6792dc7c4005de010a164a90ebf53d0bbf151d65b8b",
+      "matched": true
+    },
+    "outputHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "outputSummary": "(exit 1)",
+    "outputTruncated": false
+  },
+  "receiptHash": "d68c8331c80237541f52acc4b905812d41a5f0ca55d17c0758e3c16689980c1d"
+}

@@ -1,0 +1,2840 @@
+{
+  "schema": "comet.native.implementation-scope.v2",
+  "contractHash": "68a4afdc884c6068126dc3c524a96cdf2269e9658f15a8d3b434511b80887b3a",
+  "baselineProjectionRef": "runtime/evidence/snapshots/047812813b8473c81d998398897e664d6b1b2bb696d94389e52a0399aa58e1c0.json",
+  "baselineProjectionHash": "047812813b8473c81d998398897e664d6b1b2bb696d94389e52a0399aa58e1c0",
+  "currentProjectionRef": "runtime/evidence/snapshots/485c8e9612dfb07d85086543c36b053515ff19b91e44b6b8bd23901293d58339.json",
+  "currentProjectionHash": "485c8e9612dfb07d85086543c36b053515ff19b91e44b6b8bd23901293d58339",
+  "complete": false,
+  "declaredArtifacts": [
+    {
+      "path": ".gitignore",
+      "kind": "file"
+    },
+    {
+      "path": "docs/verification-current.md",
+      "kind": "file"
+    },
+    {
+      "path": "scripts/smoke-windows.ps1",
+      "kind": "file"
+    },
+    {
+      "path": "scripts/smoke_windows_contract_test.go",
+      "kind": "file"
+    }
+  ],
+  "changes": [
+    {
+      "path": ".gitignore",
+      "kind": "modified",
+      "before": {
+        "hash": "340e1b5c6f18bb2555f29e8740ea73854c3c67d05658e88d8a5a3620b4815e4c",
+        "size": 28
+      },
+      "after": {
+        "hash": "ed9795cc81b0b135d0fb2c6e3b9af1669fb11753fc2a050c39ff9e803e8ffbac",
+        "size": 371
+      },
+      "attributedTo": [
+        {
+          "path": ".gitignore",
+          "kind": "file"
+        }
+      ]
+    },
+    {
+      "path": "KNOWN-DIFFERENCES.md",
+      "kind": "modified",
+      "before": {
+        "hash": "2129634125a6b41212c44326c5e0156fd282ae8b4e9a22198050dee758e80a4a",
+        "size": 1072
+      },
+      "after": {
+        "hash": "7b7ce3fd2658c9161fa23a362462133c947e9ff7d6f09b122f06a24cd6994889",
+        "size": 3731
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "README.md",
+      "kind": "modified",
+      "before": {
+        "hash": "77d6012ca0b67471fd08edcb2864be3f5d3f197839a1a15db6abda64ba73270a",
+        "size": 1925
+      },
+      "after": {
+        "hash": "3a319f67a0306df19db718d28d412feb5749437fa8a8a42248755cd54ce01bed",
+        "size": 4891
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES.md",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "fa4e2693487a45c0b9e2e323b506a1acd8b2ebf912d678572f50a8dd9d145dbf",
+        "size": 942
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "cmd/miniapp-bridge/logger_audit_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "b4fc628a013008f91080d172f55d684ce1094d8fcea82f78e87b70d5c72ce3b1",
+        "size": 927
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "cmd/miniapp-bridge/main.go",
+      "kind": "modified",
+      "before": {
+        "hash": "1f657e72f62efea2167b5809dc3a8a3982611e0d475cdd0a4b7a98a64227f526",
+        "size": 1051
+      },
+      "after": {
+        "hash": "9e95ecf2cdb74ffeda5d162fa3db9d5b55e3fce6050cad3dc85201d5486260bd",
+        "size": 1481
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "cmd/miniapp-bridge/native_disabled.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "36dd8037a0c31ce67e36421acd5ba61a51b8b71eb8a5a643f62be9ff7237c4ff",
+        "size": 222
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "cmd/miniapp-bridge/native_windows.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "aac3c553aba55e3ddd0daf0e5a0bfa9b8b30bfcb006559d45fea3b7f3e9b1213",
+        "size": 1378
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "cmd/miniapp-bridge/startup_contract_audit_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "ee8502e1ba62cda219767cb5ef2b6f3def8669bfd762334e021a940c06470d03",
+        "size": 2291
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "docs/behavior-matrix.md",
+      "kind": "modified",
+      "before": {
+        "hash": "425bfd13b7130963a8ad27ecf2e53ce52724d546c4ee675969d59c2d882fa332",
+        "size": 2831
+      },
+      "after": {
+        "hash": "e4e9fa9ec03308881c5ba673aa9db6351d90e3a607eb2b59d34ffb53da8ab0c6",
+        "size": 4553
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "docs/verification-current.md",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "ceea7dd71211f4fa566e0714642e460d93af752037be0c2e92f98d12c3e3c13f",
+        "size": 4680
+      },
+      "attributedTo": [
+        {
+          "path": "docs/verification-current.md",
+          "kind": "file"
+        }
+      ]
+    },
+    {
+      "path": "internal/app/app.go",
+      "kind": "modified",
+      "before": {
+        "hash": "79681f29322f34e6607228a2e319911cc6621b953125ad1f5f263fb4d9fce3a5",
+        "size": 4982
+      },
+      "after": {
+        "hash": "1d105316fdf3fcd1c7b2b5c62f618d39d0402a903b1d245e76fd6b9b93af4333",
+        "size": 7946
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/app/app_test.go",
+      "kind": "modified",
+      "before": {
+        "hash": "3411314f05b05c60b1e1fa061a3e96c72a63e7f0990285414f32b5fe4f744b98",
+        "size": 1863
+      },
+      "after": {
+        "hash": "ad52081617395088ff43d96904ef058ac1a493d009b40d44e2371d48d2375157",
+        "size": 3676
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/app/bridge_audit_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "d8edaa4bba761be4ba6dcee9a00a9b0400f4986fda98208d70c15119f2a2c1b7",
+        "size": 4642
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/app/category_audit_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "477f1a9366ed2525c32879aad91884cc950a873367de0b89d68b5c6e09a5b962",
+        "size": 6793
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/app/cdp_matrix_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "065bf33f3f4f71b3bc04d40884d9f9acb84002e80e8bfed6137f7a2cd9d0dffe",
+        "size": 5852
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/app/coverage_complete_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "964c8b575a56682022f5fae5fca1fdb4fae785ade3b28afb42c9a27738103fa9",
+        "size": 4205
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/app/serial_audit_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "4afe9e4979767de6e7ea44c983d756ef1e9b3656de641ebb640369eafd33ba61",
+        "size": 1902
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/app/startup_audit_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "7457798e11a407406f6054280256a3899dae74b4120b4e40b57edcf032e10e0f",
+        "size": 1627
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/capture/capture.go",
+      "kind": "modified",
+      "before": {
+        "hash": "44d1da90adb1a1407e46abf44a1696f57b3623860a1db348b91b2fa3a634bc3c",
+        "size": 1152
+      },
+      "after": {
+        "hash": "45da3e6ecb6486b5ea5bceb6f77f1762ec0ae41bff74a0ff4040db8ed457a524",
+        "size": 1601
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/capture/capture_audit_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "27bbd5609d28224a2718bf031025edf66d0b9d5082f121972b4c34d59b78fdf4",
+        "size": 1793
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/capture/capture_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "1cf3d39f332423155394a76f30f02d02cd5c86af95aa082e3a8a783e3cf7a8bc",
+        "size": 2196
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/capture/coverage_complete_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "2df60c7668c9ef07d099a44cb406914e183c40a5d12b3fa4d977f2f20b95c2f0",
+        "size": 2105
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/cdp/correlator_audit_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "be8f4ed5f6ba8baec080c2188673de1f08900d99efd04e603b1185342f30278d",
+        "size": 1522
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/cdp/coverage_complete_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "7c74f01ba5dc4ae0d5d05a9fd7af4dbabebeb79b6216cd5a32f60e5de85a1b79",
+        "size": 332
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/config/cli_reference_audit_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "104d420ad97cc1f8198da649e10f56f90c7b75b20024b8aede61bb093ef671cc",
+        "size": 2054
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/config/config.go",
+      "kind": "modified",
+      "before": {
+        "hash": "93413864095b28a8d48bec2c94b7443539643d0b944433ce60c83ea1036a249e",
+        "size": 1865
+      },
+      "after": {
+        "hash": "7226464f8b4db1c670aec1eadf886f56d87a95b8072d5cb0748cff47664dd4cb",
+        "size": 4208
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/config/config_test.go",
+      "kind": "modified",
+      "before": {
+        "hash": "79238ebf94313e4bc20b939a1fcaf6f552dc570b9be9d5a59910652f79068ae5",
+        "size": 599
+      },
+      "after": {
+        "hash": "00bb2fe32259f8352582e6a90ad9e008172938e243074593c123db980efe3cd6",
+        "size": 1097
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/config/coverage_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "87e21e24b62edfc34c3d854ab8c5c893e2ab411c4c428ce88c195a71cc2fa5bb",
+        "size": 1321
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/context/coverage_complete_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "cbb3eb825d5fed5ceeac1c9cee2c1c0dbc4ff625faa3086220ac0d321c57544e",
+        "size": 339
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/context/registry_audit_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "05960b9513ebda268e2e4c2cccf04da7dadbc5b6c5fcba5d3caaabfa35d81466",
+        "size": 1716
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/frida/agent_embed_audit_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "548ba530a6c561bcb52b754e10e6e27b8d8dc52211fb75a159d1e7053650cb08",
+        "size": 3654
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/frida/bootstrap.go",
+      "kind": "modified",
+      "before": {
+        "hash": "83d8199ebdc4d37a5b8306801ad65f11525bbae9ced3925945c71eac95ab0b16",
+        "size": 1612
+      },
+      "after": {
+        "hash": "9700c71a7c63acfc298efa446abe9d7350b4abc138e968229720a2383190307c",
+        "size": 1587
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/frida/bootstrap_audit_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "ed9641882d4147e0c2d7b8d8870a9d67cfd9a7ca5385e0688be6baa863c810e5",
+        "size": 4866
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/frida/cgo_stub.go",
+      "kind": "modified",
+      "before": {
+        "hash": "18c181bb1725b4d017b7eb94e3565512f1b25c36fa3ba84d746a549312bef6e9",
+        "size": 393
+      },
+      "after": {
+        "hash": "2c1afe49bae08878415044f150a359849a4e069ebeec93be9933f3512402e6ef",
+        "size": 179
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/frida/coverage_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "f50244ed2744b1e82f30f3c555f11a24b91fb2334ce80b1c39f2da75964e1a13",
+        "size": 1649
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/frida/native_api_audit_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "f25d701e50f0c8f3a2dc765f1fdfa5aee0b17b1639745b86f5c65a014e2d8c1a",
+        "size": 3058
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/frida/native_windows.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "78269c509e120a7d99feaca83c9ff8e8be3d7f4d63ed087ea8ef969f86a75b92",
+        "size": 7210
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/frida/native_windows_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "b89fc06773b2f2279ddc5e0a090b48439ccf0dad1b0c78789dd07b6747fccd0c",
+        "size": 7971
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/frida/shim/miniapp_frida.c",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "9e1719ae8cc5879ec528b8333d2f0ed01f87c7821e31a3c7566b001d3245c5bc",
+        "size": 6877
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/frida/shim/miniapp_frida.def",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "d2f95807523e2d08b80034cbc6cc2ecc7c67313c241972c60317167b527ef74d",
+        "size": 245
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/frida/shim/miniapp_frida.h",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "feb0bd2a37427a3ee7671a793a248c1a3c1c0bde1d0b45d8f019210a1fde75e2",
+        "size": 1347
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/logging/coverage_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "ec04e0b84b348d348c697bbbd3d48d94bc9d12e0f5e222681618d0d25f4de7d1",
+        "size": 192
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/logging/logger.go",
+      "kind": "modified",
+      "before": {
+        "hash": "527516df0518f4f2b55013df4012239b8dc6649bf4cfd26b6072e62c74401a30",
+        "size": 621
+      },
+      "after": {
+        "hash": "8c9eddaf63c1620897f81173b4bc79d24f7bc1c98d2d97308ad896f515ff101e",
+        "size": 751
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/logging/logger_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "16af7d31074130c0b66850841b022f4719ceec15bd349b67cbc952f1c5dc5349",
+        "size": 875
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/process/coverage_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "0a6fe7d0080b4e5469472cc415e7720268f753dbd308f445ddf8ac7c944653b7",
+        "size": 1619
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/process/discovery.go",
+      "kind": "modified",
+      "before": {
+        "hash": "93a77c14174433430cc6a75be5e199d22c998be335d9ff02dc73b84c745c8e0a",
+        "size": 2139
+      },
+      "after": {
+        "hash": "1a82c89296fd6cbaee33e60ff672b6be067f105868adf42790ce529d76ea52b9",
+        "size": 2333
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/process/discovery_audit_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "ab291b09e0ff1c352d2828f9b8610701b2d61607306fb6f6bf576b49c7ee34aa",
+        "size": 2073
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/process/discovery_test.go",
+      "kind": "modified",
+      "before": {
+        "hash": "022e458ed71b943f9ed0175064e384c66383cd273eefcdcb075b6ec8e3a9f899",
+        "size": 408
+      },
+      "after": {
+        "hash": "89536bfb5b121d3e48a2d59315ebabf1836f3bea185300811797838ce28d615a",
+        "size": 702
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/process/tasklist_windows_coverage_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "d69bbd70144a37565232a11be643b85b9505977494a99acf03b8e5c2b12b1484",
+        "size": 396
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/proxy/coverage_complete_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "54d0a26979c8b31676b1bf0b665f9d06e5e3c75a1e73b456ee067ad8c81df147",
+        "size": 3080
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/proxy/hub.go",
+      "kind": "modified",
+      "before": {
+        "hash": "fc732bd76efaebc9db23eb075a7bd37235f3e8137b4950a7f2f49c4da36ab528",
+        "size": 2596
+      },
+      "after": {
+        "hash": "b6be3deac2465120be33913439b083e403dd63a5eba119c20e7a19a6c2797142",
+        "size": 3062
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/proxy/hub_audit_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "1538903d730e89dfe06b38ed4a6e4a53a87b1bf64c4ace5ab1e670eebc8e5ae4",
+        "size": 3842
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/version/config.go",
+      "kind": "modified",
+      "before": {
+        "hash": "63bf6f0298a37cc5ad7ee3df5800b0d543b130c77501c741baed0139e13388c7",
+        "size": 1636
+      },
+      "after": {
+        "hash": "afa3738c091795dc51ee831bb962cc82aec5425d1c2e974282ce414fce868495",
+        "size": 2431
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/version/config_audit_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "07722be5421a858da1354107adc664083fa8e915821ebf16b30e92959b87c56c",
+        "size": 2510
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/version/coverage_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "d7e42752211a4155d46df8fa4e6d484c1f7187de18ec959f865daabdd0ceea25",
+        "size": 2771
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/wmpf/coverage_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "5aeb83480435220b28822c5c6c608a783529a78b8af3ef1945a49fac4e4c2140",
+        "size": 8062
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/wmpf/coverage_windows_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "9a452d46241d242277e28d8e873e45178c337d3c95376ffb46c723ce1b68dcca",
+        "size": 667
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/wmpf/generic.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "ee25f207caa7472c050fd69e19e962053fa953d095e5484669764bd4651aae5b",
+        "size": 2324
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/wmpf/generic_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "c19d32218d67e5a006f636ea2c9dfb2da070dbf36ed11ac8a4c28055275c44f4",
+        "size": 881
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/wmpf/messages.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "0cb8784e6d4f6c70b0ac2fba25dfe6af8b365f1bfe60a6c0b9dbd029f91c63ff",
+        "size": 12551
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/wmpf/messages_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "1fa61b7e379323d3e5ae55155a53334c8ce762e7824aef5b56ac4feb4e1015ee",
+        "size": 2683
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/wmpf/protobuf_audit_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "1012780724f6cb9520f98ae42785b42886db6fd0bf3befea0621fab025c636a8",
+        "size": 3926
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/wmpf/protocol.go",
+      "kind": "modified",
+      "before": {
+        "hash": "b4cded01296d3be1bb64d145c67cd9e907d7679b7195bd33520ece3c39124826",
+        "size": 7520
+      },
+      "after": {
+        "hash": "877ced6adc1ba4a5d573013018cdead2846ea8316f81851a9d8f940f3830d889",
+        "size": 14026
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/wmpf/protocol_test.go",
+      "kind": "modified",
+      "before": {
+        "hash": "ecf82154f0490250e0ff069388e5e4711d28da86bf69d4a69bce5871beaee0ba",
+        "size": 1379
+      },
+      "after": {
+        "hash": "58d2b1812f07643a279f6ad1afcc884f625ee9addebbb320eac9d7a861e2237c",
+        "size": 3008
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/wmpf/reference_codex_differential_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "cf4eab1fa63ef4aee8f64db02aa6182c436d1588eb8fa18a74f18f3fcbbb55b3",
+        "size": 18164
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/wmpf/reference_golden_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "f8c2db564ef292a14cf352541cf10572433fc48cdd33953ab623d26757ce6ea1",
+        "size": 5106
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/wmpf/registry.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "f56c1c5c913d6e605ef53bf98dc722252ba4488686a150c7aac059c49447254f",
+        "size": 4926
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/wmpf/schema.proto",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "fe4aac8509c68862aaf53a617bdbc9dd060713c025498f24aa2c89879759ea52",
+        "size": 6445
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/wmpf/transport.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "52cdab56b720a0d2af8ee7ab833cfe8d21aeacf44e0bb54c307fb6774397bf78",
+        "size": 12912
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/wmpf/transport_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "5afca6d65cdd35e9d00c461f3a705a0d81bc932beb557e369a483256a0a7553a",
+        "size": 4713
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/wmpf/unknown_fields_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "d3f36aea1df2d954b6e07e8d28116a17e020896f1a2ba63604f1966469b95399",
+        "size": 1254
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/wmpf/zlib_fallback.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "a8b3672a555c339cf2e0d6c17b025e92ffc0898e618bae3935757b481d1d4a04",
+        "size": 607
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/wmpf/zlib_windows_cgo.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "91861b86b2f1aeb2dce17566fa632404493d5c63d16e45a401cc62a3b4ee6892",
+        "size": 1560
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "proto/wmpf_remote_debug.proto",
+      "kind": "modified",
+      "before": {
+        "hash": "acbd1a09392f1423a47bbdf59bf88fd7d7d02a753892921c9339f8b5a20dc083",
+        "size": 6031
+      },
+      "after": {
+        "hash": "c08dd87290bc965535c3b3efb68b3a86d70eda564767af3ff36e2e7a9594672e",
+        "size": 6440
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "scripts/build-frida-shim.ps1",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "9c12c48eed0d1be5805ce968606ccf39e0b6fb0291727b4e38bbbd03fce99c53",
+        "size": 1439
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "scripts/build-windows.ps1",
+      "kind": "modified",
+      "before": {
+        "hash": "0e1172025db27c4d2b5254e4f935af9b56b65ed7b4428112c90bb0972fb988ae",
+        "size": 383
+      },
+      "after": {
+        "hash": "f6fa74ff4358409ab94bedf8f54ab6959a356b78aea3350ce6bf945f4fd87f92",
+        "size": 738
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "scripts/build-zlib.ps1",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "7019fe827e93ad2ff53a909b0b6f40b1936156598d18c56cbe68b2294a332e7c",
+        "size": 2597
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "scripts/build_zlib_contract_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "0d713a821735c865aee256626e36e2c5f866560719c86dab4ac744363f53f795",
+        "size": 1777
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "scripts/coverage-gate.ps1",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "23f7a6a5d6b5a2293a21d7c21436741671ace433e00e925949376dda8ab3fd0d",
+        "size": 4190
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "scripts/generate-reference-codex-fixtures.js",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "31fb692d50ebcfbfe52db91f1a7a8a6b0d35bfcade2c39af537f02460cf00fd4",
+        "size": 17746
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "scripts/generate-reference-fixtures.js",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "43a55e8e2349e78fca679f88334e70d09d760a6466f683101c6a707fb1118581",
+        "size": 5206
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "scripts/smoke-client.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "219d9d5fab786be1555581d60d448fcd702ec8afdd4d8cea64826705c52ce83f",
+        "size": 17238
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "scripts/smoke-client_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "9c6bf61f2d682c94cabc132aa016dbb015a726146ce09e5978d4909bacddcfed",
+        "size": 4132
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "scripts/smoke-process-runner/main.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "1e775872bb67403d9620a5f8c078aafae15940ee7a9a6113d327a59a1b5edb30",
+        "size": 1053
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "scripts/smoke-process-runner/platform_other.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "df61cc5c4ee9f70194c5115ce2240ea90dfcbad94c94fa6a7af1e7c80c522ab9",
+        "size": 377
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "scripts/smoke-process-runner/platform_windows.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "853ef99abc8a08039ee36df910bc99d6b6a1bc30695121b3d65e4ec2a89e7cbe",
+        "size": 1585
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "scripts/smoke-process-runner/platform_windows_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "357ea9e1980ffeb920368b28547b50ebfc6f8de573ce86d874fd45e5b00246ac",
+        "size": 3635
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "scripts/smoke-process-runner/runner.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "9fcf691f1665998040ce6bd3f47a1919673235f9cfd9348da36f3d5ef750c451",
+        "size": 3366
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "scripts/smoke-process-runner/runner_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "a8c8f03707b6740f98114daa665d9ebf81cc65eb72d75fe4a32f1dc866e6c34b",
+        "size": 7854
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "scripts/smoke-windows.ps1",
+      "kind": "modified",
+      "before": {
+        "hash": "bc51539a6a2bc73d855857d8000cb2b2e10125c1caadfeb88264d3912d8456ef",
+        "size": 802
+      },
+      "after": {
+        "hash": "78518b2e69e5c59e03cbc99101edeffdd5c2c7ab1b02cad4d812a53107f26341",
+        "size": 22613
+      },
+      "attributedTo": [
+        {
+          "path": "scripts/smoke-windows.ps1",
+          "kind": "file"
+        }
+      ]
+    },
+    {
+      "path": "scripts/smoke_windows_contract_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "5f4ba3bef9888278d57e9134f65c509c3c48019bad5bc836b13ac6a8b710b57c",
+        "size": 8419
+      },
+      "attributedTo": [
+        {
+          "path": "scripts/smoke_windows_contract_test.go",
+          "kind": "file"
+        }
+      ]
+    },
+    {
+      "path": "testdata/golden/reference_codex.json",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "0521439bf59cde70658c2d4cea899753a0f32891fe9874e98f4182827860bad1",
+        "size": 38770
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "testdata/golden/reference_messages.json",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "6808e365cf1ea5b2aa3588bba29e4b3e87fae48a7534137589ceaa3cd8d517f1",
+        "size": 84545
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "third_party/frida/devkit-17.3.2/frida-core-example.c",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "38c6d8420c1b98a9e7b81c3b183c942104f42f18b9421f2f9132f827abfb0e15",
+        "size": 5073
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "third_party/frida/devkit-17.3.2/frida-core-example.sln",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "1d26c2151942c32557ef0b15c20cbb8c76ba449858070ea83f50051182b5ef3a",
+        "size": 1317
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "third_party/frida/devkit-17.3.2/frida-core-example.vcxproj",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "7b37af0c0fb390e6c4b663f10cff04da677a2def3e32f1577578edbfb3e9d2ff",
+        "size": 7566
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "third_party/frida/devkit-17.3.2/frida-core-example.vcxproj.filters",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "940f09e5f6062cd405327e6f4c750e3eec3b1f5d69f49d5f844e5ab23f2478bc",
+        "size": 1094
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "third_party/frida/devkit-17.3.2/frida-core.gir",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "7dfce516adf601191ae830a969c131945945312d629baf5439b33a19b01215d4",
+        "size": 366464
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "third_party/frida/devkit-17.3.2/frida-core.h",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "6b4dee14c19bdb03caa4a25be51564aa249bc1167aa8ded26f562e238d0b3462",
+        "size": 2583878
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "third_party/zlib/zlib-1.3.1.tar.gz",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "9a93b2b7dfdac77ceba5a558a580e74667dd6fede4585b91eefb60f03b72df23",
+        "size": 1512791
+      },
+      "attributedTo": []
+    }
+  ],
+  "unattributed": [
+    {
+      "path": "KNOWN-DIFFERENCES.md",
+      "kind": "modified",
+      "before": {
+        "hash": "2129634125a6b41212c44326c5e0156fd282ae8b4e9a22198050dee758e80a4a",
+        "size": 1072
+      },
+      "after": {
+        "hash": "7b7ce3fd2658c9161fa23a362462133c947e9ff7d6f09b122f06a24cd6994889",
+        "size": 3731
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "README.md",
+      "kind": "modified",
+      "before": {
+        "hash": "77d6012ca0b67471fd08edcb2864be3f5d3f197839a1a15db6abda64ba73270a",
+        "size": 1925
+      },
+      "after": {
+        "hash": "3a319f67a0306df19db718d28d412feb5749437fa8a8a42248755cd54ce01bed",
+        "size": 4891
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES.md",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "fa4e2693487a45c0b9e2e323b506a1acd8b2ebf912d678572f50a8dd9d145dbf",
+        "size": 942
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "cmd/miniapp-bridge/logger_audit_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "b4fc628a013008f91080d172f55d684ce1094d8fcea82f78e87b70d5c72ce3b1",
+        "size": 927
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "cmd/miniapp-bridge/main.go",
+      "kind": "modified",
+      "before": {
+        "hash": "1f657e72f62efea2167b5809dc3a8a3982611e0d475cdd0a4b7a98a64227f526",
+        "size": 1051
+      },
+      "after": {
+        "hash": "9e95ecf2cdb74ffeda5d162fa3db9d5b55e3fce6050cad3dc85201d5486260bd",
+        "size": 1481
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "cmd/miniapp-bridge/native_disabled.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "36dd8037a0c31ce67e36421acd5ba61a51b8b71eb8a5a643f62be9ff7237c4ff",
+        "size": 222
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "cmd/miniapp-bridge/native_windows.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "aac3c553aba55e3ddd0daf0e5a0bfa9b8b30bfcb006559d45fea3b7f3e9b1213",
+        "size": 1378
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "cmd/miniapp-bridge/startup_contract_audit_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "ee8502e1ba62cda219767cb5ef2b6f3def8669bfd762334e021a940c06470d03",
+        "size": 2291
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "docs/behavior-matrix.md",
+      "kind": "modified",
+      "before": {
+        "hash": "425bfd13b7130963a8ad27ecf2e53ce52724d546c4ee675969d59c2d882fa332",
+        "size": 2831
+      },
+      "after": {
+        "hash": "e4e9fa9ec03308881c5ba673aa9db6351d90e3a607eb2b59d34ffb53da8ab0c6",
+        "size": 4553
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/app/app.go",
+      "kind": "modified",
+      "before": {
+        "hash": "79681f29322f34e6607228a2e319911cc6621b953125ad1f5f263fb4d9fce3a5",
+        "size": 4982
+      },
+      "after": {
+        "hash": "1d105316fdf3fcd1c7b2b5c62f618d39d0402a903b1d245e76fd6b9b93af4333",
+        "size": 7946
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/app/app_test.go",
+      "kind": "modified",
+      "before": {
+        "hash": "3411314f05b05c60b1e1fa061a3e96c72a63e7f0990285414f32b5fe4f744b98",
+        "size": 1863
+      },
+      "after": {
+        "hash": "ad52081617395088ff43d96904ef058ac1a493d009b40d44e2371d48d2375157",
+        "size": 3676
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/app/bridge_audit_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "d8edaa4bba761be4ba6dcee9a00a9b0400f4986fda98208d70c15119f2a2c1b7",
+        "size": 4642
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/app/category_audit_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "477f1a9366ed2525c32879aad91884cc950a873367de0b89d68b5c6e09a5b962",
+        "size": 6793
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/app/cdp_matrix_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "065bf33f3f4f71b3bc04d40884d9f9acb84002e80e8bfed6137f7a2cd9d0dffe",
+        "size": 5852
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/app/coverage_complete_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "964c8b575a56682022f5fae5fca1fdb4fae785ade3b28afb42c9a27738103fa9",
+        "size": 4205
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/app/serial_audit_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "4afe9e4979767de6e7ea44c983d756ef1e9b3656de641ebb640369eafd33ba61",
+        "size": 1902
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/app/startup_audit_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "7457798e11a407406f6054280256a3899dae74b4120b4e40b57edcf032e10e0f",
+        "size": 1627
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/capture/capture.go",
+      "kind": "modified",
+      "before": {
+        "hash": "44d1da90adb1a1407e46abf44a1696f57b3623860a1db348b91b2fa3a634bc3c",
+        "size": 1152
+      },
+      "after": {
+        "hash": "45da3e6ecb6486b5ea5bceb6f77f1762ec0ae41bff74a0ff4040db8ed457a524",
+        "size": 1601
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/capture/capture_audit_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "27bbd5609d28224a2718bf031025edf66d0b9d5082f121972b4c34d59b78fdf4",
+        "size": 1793
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/capture/capture_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "1cf3d39f332423155394a76f30f02d02cd5c86af95aa082e3a8a783e3cf7a8bc",
+        "size": 2196
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/capture/coverage_complete_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "2df60c7668c9ef07d099a44cb406914e183c40a5d12b3fa4d977f2f20b95c2f0",
+        "size": 2105
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/cdp/correlator_audit_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "be8f4ed5f6ba8baec080c2188673de1f08900d99efd04e603b1185342f30278d",
+        "size": 1522
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/cdp/coverage_complete_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "7c74f01ba5dc4ae0d5d05a9fd7af4dbabebeb79b6216cd5a32f60e5de85a1b79",
+        "size": 332
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/config/cli_reference_audit_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "104d420ad97cc1f8198da649e10f56f90c7b75b20024b8aede61bb093ef671cc",
+        "size": 2054
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/config/config.go",
+      "kind": "modified",
+      "before": {
+        "hash": "93413864095b28a8d48bec2c94b7443539643d0b944433ce60c83ea1036a249e",
+        "size": 1865
+      },
+      "after": {
+        "hash": "7226464f8b4db1c670aec1eadf886f56d87a95b8072d5cb0748cff47664dd4cb",
+        "size": 4208
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/config/config_test.go",
+      "kind": "modified",
+      "before": {
+        "hash": "79238ebf94313e4bc20b939a1fcaf6f552dc570b9be9d5a59910652f79068ae5",
+        "size": 599
+      },
+      "after": {
+        "hash": "00bb2fe32259f8352582e6a90ad9e008172938e243074593c123db980efe3cd6",
+        "size": 1097
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/config/coverage_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "87e21e24b62edfc34c3d854ab8c5c893e2ab411c4c428ce88c195a71cc2fa5bb",
+        "size": 1321
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/context/coverage_complete_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "cbb3eb825d5fed5ceeac1c9cee2c1c0dbc4ff625faa3086220ac0d321c57544e",
+        "size": 339
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/context/registry_audit_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "05960b9513ebda268e2e4c2cccf04da7dadbc5b6c5fcba5d3caaabfa35d81466",
+        "size": 1716
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/frida/agent_embed_audit_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "548ba530a6c561bcb52b754e10e6e27b8d8dc52211fb75a159d1e7053650cb08",
+        "size": 3654
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/frida/bootstrap.go",
+      "kind": "modified",
+      "before": {
+        "hash": "83d8199ebdc4d37a5b8306801ad65f11525bbae9ced3925945c71eac95ab0b16",
+        "size": 1612
+      },
+      "after": {
+        "hash": "9700c71a7c63acfc298efa446abe9d7350b4abc138e968229720a2383190307c",
+        "size": 1587
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/frida/bootstrap_audit_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "ed9641882d4147e0c2d7b8d8870a9d67cfd9a7ca5385e0688be6baa863c810e5",
+        "size": 4866
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/frida/cgo_stub.go",
+      "kind": "modified",
+      "before": {
+        "hash": "18c181bb1725b4d017b7eb94e3565512f1b25c36fa3ba84d746a549312bef6e9",
+        "size": 393
+      },
+      "after": {
+        "hash": "2c1afe49bae08878415044f150a359849a4e069ebeec93be9933f3512402e6ef",
+        "size": 179
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/frida/coverage_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "f50244ed2744b1e82f30f3c555f11a24b91fb2334ce80b1c39f2da75964e1a13",
+        "size": 1649
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/frida/native_api_audit_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "f25d701e50f0c8f3a2dc765f1fdfa5aee0b17b1639745b86f5c65a014e2d8c1a",
+        "size": 3058
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/frida/native_windows.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "78269c509e120a7d99feaca83c9ff8e8be3d7f4d63ed087ea8ef969f86a75b92",
+        "size": 7210
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/frida/native_windows_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "b89fc06773b2f2279ddc5e0a090b48439ccf0dad1b0c78789dd07b6747fccd0c",
+        "size": 7971
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/frida/shim/miniapp_frida.c",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "9e1719ae8cc5879ec528b8333d2f0ed01f87c7821e31a3c7566b001d3245c5bc",
+        "size": 6877
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/frida/shim/miniapp_frida.def",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "d2f95807523e2d08b80034cbc6cc2ecc7c67313c241972c60317167b527ef74d",
+        "size": 245
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/frida/shim/miniapp_frida.h",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "feb0bd2a37427a3ee7671a793a248c1a3c1c0bde1d0b45d8f019210a1fde75e2",
+        "size": 1347
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/logging/coverage_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "ec04e0b84b348d348c697bbbd3d48d94bc9d12e0f5e222681618d0d25f4de7d1",
+        "size": 192
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/logging/logger.go",
+      "kind": "modified",
+      "before": {
+        "hash": "527516df0518f4f2b55013df4012239b8dc6649bf4cfd26b6072e62c74401a30",
+        "size": 621
+      },
+      "after": {
+        "hash": "8c9eddaf63c1620897f81173b4bc79d24f7bc1c98d2d97308ad896f515ff101e",
+        "size": 751
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/logging/logger_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "16af7d31074130c0b66850841b022f4719ceec15bd349b67cbc952f1c5dc5349",
+        "size": 875
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/process/coverage_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "0a6fe7d0080b4e5469472cc415e7720268f753dbd308f445ddf8ac7c944653b7",
+        "size": 1619
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/process/discovery.go",
+      "kind": "modified",
+      "before": {
+        "hash": "93a77c14174433430cc6a75be5e199d22c998be335d9ff02dc73b84c745c8e0a",
+        "size": 2139
+      },
+      "after": {
+        "hash": "1a82c89296fd6cbaee33e60ff672b6be067f105868adf42790ce529d76ea52b9",
+        "size": 2333
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/process/discovery_audit_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "ab291b09e0ff1c352d2828f9b8610701b2d61607306fb6f6bf576b49c7ee34aa",
+        "size": 2073
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/process/discovery_test.go",
+      "kind": "modified",
+      "before": {
+        "hash": "022e458ed71b943f9ed0175064e384c66383cd273eefcdcb075b6ec8e3a9f899",
+        "size": 408
+      },
+      "after": {
+        "hash": "89536bfb5b121d3e48a2d59315ebabf1836f3bea185300811797838ce28d615a",
+        "size": 702
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/process/tasklist_windows_coverage_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "d69bbd70144a37565232a11be643b85b9505977494a99acf03b8e5c2b12b1484",
+        "size": 396
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/proxy/coverage_complete_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "54d0a26979c8b31676b1bf0b665f9d06e5e3c75a1e73b456ee067ad8c81df147",
+        "size": 3080
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/proxy/hub.go",
+      "kind": "modified",
+      "before": {
+        "hash": "fc732bd76efaebc9db23eb075a7bd37235f3e8137b4950a7f2f49c4da36ab528",
+        "size": 2596
+      },
+      "after": {
+        "hash": "b6be3deac2465120be33913439b083e403dd63a5eba119c20e7a19a6c2797142",
+        "size": 3062
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/proxy/hub_audit_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "1538903d730e89dfe06b38ed4a6e4a53a87b1bf64c4ace5ab1e670eebc8e5ae4",
+        "size": 3842
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/version/config.go",
+      "kind": "modified",
+      "before": {
+        "hash": "63bf6f0298a37cc5ad7ee3df5800b0d543b130c77501c741baed0139e13388c7",
+        "size": 1636
+      },
+      "after": {
+        "hash": "afa3738c091795dc51ee831bb962cc82aec5425d1c2e974282ce414fce868495",
+        "size": 2431
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/version/config_audit_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "07722be5421a858da1354107adc664083fa8e915821ebf16b30e92959b87c56c",
+        "size": 2510
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/version/coverage_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "d7e42752211a4155d46df8fa4e6d484c1f7187de18ec959f865daabdd0ceea25",
+        "size": 2771
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/wmpf/coverage_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "5aeb83480435220b28822c5c6c608a783529a78b8af3ef1945a49fac4e4c2140",
+        "size": 8062
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/wmpf/coverage_windows_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "9a452d46241d242277e28d8e873e45178c337d3c95376ffb46c723ce1b68dcca",
+        "size": 667
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/wmpf/generic.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "ee25f207caa7472c050fd69e19e962053fa953d095e5484669764bd4651aae5b",
+        "size": 2324
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/wmpf/generic_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "c19d32218d67e5a006f636ea2c9dfb2da070dbf36ed11ac8a4c28055275c44f4",
+        "size": 881
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/wmpf/messages.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "0cb8784e6d4f6c70b0ac2fba25dfe6af8b365f1bfe60a6c0b9dbd029f91c63ff",
+        "size": 12551
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/wmpf/messages_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "1fa61b7e379323d3e5ae55155a53334c8ce762e7824aef5b56ac4feb4e1015ee",
+        "size": 2683
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/wmpf/protobuf_audit_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "1012780724f6cb9520f98ae42785b42886db6fd0bf3befea0621fab025c636a8",
+        "size": 3926
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/wmpf/protocol.go",
+      "kind": "modified",
+      "before": {
+        "hash": "b4cded01296d3be1bb64d145c67cd9e907d7679b7195bd33520ece3c39124826",
+        "size": 7520
+      },
+      "after": {
+        "hash": "877ced6adc1ba4a5d573013018cdead2846ea8316f81851a9d8f940f3830d889",
+        "size": 14026
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/wmpf/protocol_test.go",
+      "kind": "modified",
+      "before": {
+        "hash": "ecf82154f0490250e0ff069388e5e4711d28da86bf69d4a69bce5871beaee0ba",
+        "size": 1379
+      },
+      "after": {
+        "hash": "58d2b1812f07643a279f6ad1afcc884f625ee9addebbb320eac9d7a861e2237c",
+        "size": 3008
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/wmpf/reference_codex_differential_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "cf4eab1fa63ef4aee8f64db02aa6182c436d1588eb8fa18a74f18f3fcbbb55b3",
+        "size": 18164
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/wmpf/reference_golden_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "f8c2db564ef292a14cf352541cf10572433fc48cdd33953ab623d26757ce6ea1",
+        "size": 5106
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/wmpf/registry.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "f56c1c5c913d6e605ef53bf98dc722252ba4488686a150c7aac059c49447254f",
+        "size": 4926
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/wmpf/schema.proto",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "fe4aac8509c68862aaf53a617bdbc9dd060713c025498f24aa2c89879759ea52",
+        "size": 6445
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/wmpf/transport.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "52cdab56b720a0d2af8ee7ab833cfe8d21aeacf44e0bb54c307fb6774397bf78",
+        "size": 12912
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/wmpf/transport_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "5afca6d65cdd35e9d00c461f3a705a0d81bc932beb557e369a483256a0a7553a",
+        "size": 4713
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/wmpf/unknown_fields_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "d3f36aea1df2d954b6e07e8d28116a17e020896f1a2ba63604f1966469b95399",
+        "size": 1254
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/wmpf/zlib_fallback.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "a8b3672a555c339cf2e0d6c17b025e92ffc0898e618bae3935757b481d1d4a04",
+        "size": 607
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "internal/wmpf/zlib_windows_cgo.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "91861b86b2f1aeb2dce17566fa632404493d5c63d16e45a401cc62a3b4ee6892",
+        "size": 1560
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "proto/wmpf_remote_debug.proto",
+      "kind": "modified",
+      "before": {
+        "hash": "acbd1a09392f1423a47bbdf59bf88fd7d7d02a753892921c9339f8b5a20dc083",
+        "size": 6031
+      },
+      "after": {
+        "hash": "c08dd87290bc965535c3b3efb68b3a86d70eda564767af3ff36e2e7a9594672e",
+        "size": 6440
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "scripts/build-frida-shim.ps1",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "9c12c48eed0d1be5805ce968606ccf39e0b6fb0291727b4e38bbbd03fce99c53",
+        "size": 1439
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "scripts/build-windows.ps1",
+      "kind": "modified",
+      "before": {
+        "hash": "0e1172025db27c4d2b5254e4f935af9b56b65ed7b4428112c90bb0972fb988ae",
+        "size": 383
+      },
+      "after": {
+        "hash": "f6fa74ff4358409ab94bedf8f54ab6959a356b78aea3350ce6bf945f4fd87f92",
+        "size": 738
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "scripts/build-zlib.ps1",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "7019fe827e93ad2ff53a909b0b6f40b1936156598d18c56cbe68b2294a332e7c",
+        "size": 2597
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "scripts/build_zlib_contract_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "0d713a821735c865aee256626e36e2c5f866560719c86dab4ac744363f53f795",
+        "size": 1777
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "scripts/coverage-gate.ps1",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "23f7a6a5d6b5a2293a21d7c21436741671ace433e00e925949376dda8ab3fd0d",
+        "size": 4190
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "scripts/generate-reference-codex-fixtures.js",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "31fb692d50ebcfbfe52db91f1a7a8a6b0d35bfcade2c39af537f02460cf00fd4",
+        "size": 17746
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "scripts/generate-reference-fixtures.js",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "43a55e8e2349e78fca679f88334e70d09d760a6466f683101c6a707fb1118581",
+        "size": 5206
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "scripts/smoke-client.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "219d9d5fab786be1555581d60d448fcd702ec8afdd4d8cea64826705c52ce83f",
+        "size": 17238
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "scripts/smoke-client_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "9c6bf61f2d682c94cabc132aa016dbb015a726146ce09e5978d4909bacddcfed",
+        "size": 4132
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "scripts/smoke-process-runner/main.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "1e775872bb67403d9620a5f8c078aafae15940ee7a9a6113d327a59a1b5edb30",
+        "size": 1053
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "scripts/smoke-process-runner/platform_other.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "df61cc5c4ee9f70194c5115ce2240ea90dfcbad94c94fa6a7af1e7c80c522ab9",
+        "size": 377
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "scripts/smoke-process-runner/platform_windows.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "853ef99abc8a08039ee36df910bc99d6b6a1bc30695121b3d65e4ec2a89e7cbe",
+        "size": 1585
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "scripts/smoke-process-runner/platform_windows_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "357ea9e1980ffeb920368b28547b50ebfc6f8de573ce86d874fd45e5b00246ac",
+        "size": 3635
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "scripts/smoke-process-runner/runner.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "9fcf691f1665998040ce6bd3f47a1919673235f9cfd9348da36f3d5ef750c451",
+        "size": 3366
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "scripts/smoke-process-runner/runner_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "a8c8f03707b6740f98114daa665d9ebf81cc65eb72d75fe4a32f1dc866e6c34b",
+        "size": 7854
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "testdata/golden/reference_codex.json",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "0521439bf59cde70658c2d4cea899753a0f32891fe9874e98f4182827860bad1",
+        "size": 38770
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "testdata/golden/reference_messages.json",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "6808e365cf1ea5b2aa3588bba29e4b3e87fae48a7534137589ceaa3cd8d517f1",
+        "size": 84545
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "third_party/frida/devkit-17.3.2/frida-core-example.c",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "38c6d8420c1b98a9e7b81c3b183c942104f42f18b9421f2f9132f827abfb0e15",
+        "size": 5073
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "third_party/frida/devkit-17.3.2/frida-core-example.sln",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "1d26c2151942c32557ef0b15c20cbb8c76ba449858070ea83f50051182b5ef3a",
+        "size": 1317
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "third_party/frida/devkit-17.3.2/frida-core-example.vcxproj",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "7b37af0c0fb390e6c4b663f10cff04da677a2def3e32f1577578edbfb3e9d2ff",
+        "size": 7566
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "third_party/frida/devkit-17.3.2/frida-core-example.vcxproj.filters",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "940f09e5f6062cd405327e6f4c750e3eec3b1f5d69f49d5f844e5ab23f2478bc",
+        "size": 1094
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "third_party/frida/devkit-17.3.2/frida-core.gir",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "7dfce516adf601191ae830a969c131945945312d629baf5439b33a19b01215d4",
+        "size": 366464
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "third_party/frida/devkit-17.3.2/frida-core.h",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "6b4dee14c19bdb03caa4a25be51564aa249bc1167aa8ded26f562e238d0b3462",
+        "size": 2583878
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "third_party/zlib/zlib-1.3.1.tar.gz",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "9a93b2b7dfdac77ceba5a558a580e74667dd6fede4585b91eefb60f03b72df23",
+        "size": 1512791
+      },
+      "attributedTo": []
+    }
+  ],
+  "unresolvedScopes": [
+    {
+      "id": "scope:2914798210e97740d1174d24eef5c3fb117e593955e592ab08345a06d8482bd6",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "KNOWN-DIFFERENCES.md",
+      "reason": "Changed path is not covered by a declared artifact: KNOWN-DIFFERENCES.md"
+    },
+    {
+      "id": "scope:94f3a4114a6a6deb8a266ab23cd6f621fc763f44c9b7f5e0f086c642a03a5fac",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "README.md",
+      "reason": "Changed path is not covered by a declared artifact: README.md"
+    },
+    {
+      "id": "scope:9b5545ee63d63482bb94083344c00ffe850c44fa6b0ec5737cd6609b70885231",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "THIRD_PARTY_NOTICES.md",
+      "reason": "Changed path is not covered by a declared artifact: THIRD_PARTY_NOTICES.md"
+    },
+    {
+      "id": "scope:4edc8879911602b3c96517308bda9c85ef7fb7a84f85f6d90e5d4c376146a8e3",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "cmd/miniapp-bridge/logger_audit_test.go",
+      "reason": "Changed path is not covered by a declared artifact: cmd/miniapp-bridge/logger_audit_test.go"
+    },
+    {
+      "id": "scope:edd3cd561b84c70dbf8dc3bf73e1d99a29290926837274494120b0b59c6af378",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "cmd/miniapp-bridge/main.go",
+      "reason": "Changed path is not covered by a declared artifact: cmd/miniapp-bridge/main.go"
+    },
+    {
+      "id": "scope:9416140e9318bf851a454d296eb657591bbb69805a97ac2675165956a10570d2",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "cmd/miniapp-bridge/native_disabled.go",
+      "reason": "Changed path is not covered by a declared artifact: cmd/miniapp-bridge/native_disabled.go"
+    },
+    {
+      "id": "scope:f9a7979adf980756422691f05f4aecd82e6777d1c31f46668ede2d589f9c6b7e",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "cmd/miniapp-bridge/native_windows.go",
+      "reason": "Changed path is not covered by a declared artifact: cmd/miniapp-bridge/native_windows.go"
+    },
+    {
+      "id": "scope:c69be0e54a50e20dc2d540bc8d3b2d63cdc2953824d7fd69c8251e16cf8c70e7",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "cmd/miniapp-bridge/startup_contract_audit_test.go",
+      "reason": "Changed path is not covered by a declared artifact: cmd/miniapp-bridge/startup_contract_audit_test.go"
+    },
+    {
+      "id": "scope:34205545580e50f70b0e91c7ccc4a323ab2d368170a2a5e314c312eeb56a0797",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "docs/behavior-matrix.md",
+      "reason": "Changed path is not covered by a declared artifact: docs/behavior-matrix.md"
+    },
+    {
+      "id": "scope:4c09de9a70919683c1aa8be40ee1c0cc20d02e8b7b1ca43dbf230962e5e526cb",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/app/app.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/app/app.go"
+    },
+    {
+      "id": "scope:a3b59ae03ceab0d86d4a797ef119b3fd9abe9eb32b09c52f538df32e40e387e7",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/app/app_test.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/app/app_test.go"
+    },
+    {
+      "id": "scope:6a77bacc48f3ec6ec7a38594291790068cf8b040b75f490ebe681254af2d0f68",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/app/bridge_audit_test.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/app/bridge_audit_test.go"
+    },
+    {
+      "id": "scope:0c5ea6a83a5e40e8aa86fef56ab7d85b5b1850cca1caefcf9330634d5a1bb254",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/app/category_audit_test.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/app/category_audit_test.go"
+    },
+    {
+      "id": "scope:0b4db7b0496cda125ee1f2c5c65eba91a38e2ada27dd5ef587ae2fed4103f999",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/app/cdp_matrix_test.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/app/cdp_matrix_test.go"
+    },
+    {
+      "id": "scope:223b5cf9fa6305958554bcdbe20d7aba591c946d0b2df2c1e300219debd51504",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/app/coverage_complete_test.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/app/coverage_complete_test.go"
+    },
+    {
+      "id": "scope:2647e4d358e62ecb37ec71eda562c141114392ef8332aaf83372bb5414b18919",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/app/serial_audit_test.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/app/serial_audit_test.go"
+    },
+    {
+      "id": "scope:65bca5621126ec9b232aac802971f0b92baec15358931162ccdda5446fb835ba",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/app/startup_audit_test.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/app/startup_audit_test.go"
+    },
+    {
+      "id": "scope:39fec018fffc6770112b09624f3b02e27afad09219d96118dee3f48e30130d6e",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/capture/capture.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/capture/capture.go"
+    },
+    {
+      "id": "scope:9e6c0a269fc619000dd6d4e843fdcd83bb010554cdfea1cddd3f70f51318affd",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/capture/capture_audit_test.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/capture/capture_audit_test.go"
+    },
+    {
+      "id": "scope:56ed6070b26409dd16948a273bbee6fa938d2cb213810ccff85b03b3c6080683",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/capture/capture_test.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/capture/capture_test.go"
+    },
+    {
+      "id": "scope:be0f06698e67fdecb1cbf79b9c9d7fb82556700e5a866a8abf8c6f9a15b9254f",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/capture/coverage_complete_test.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/capture/coverage_complete_test.go"
+    },
+    {
+      "id": "scope:283005ecd4affff29a4d529f1a7c81c50d5166ebd1e68479641165af20447a7c",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/cdp/correlator_audit_test.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/cdp/correlator_audit_test.go"
+    },
+    {
+      "id": "scope:adad57e2140b7161c818f7a2ec9c8eee889e96e2fcd1d39cc78d77777092f7d2",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/cdp/coverage_complete_test.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/cdp/coverage_complete_test.go"
+    },
+    {
+      "id": "scope:45984f67b5c8ca17de96dbf5f3ada205174160fa31cb732d7e8bd8855f951cfa",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/config/cli_reference_audit_test.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/config/cli_reference_audit_test.go"
+    },
+    {
+      "id": "scope:4f138c14759f86abef9474fc66510190bca31078955a047c9ac5230c45ca5a52",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/config/config.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/config/config.go"
+    },
+    {
+      "id": "scope:b74ed6c3c8c8a2f0bd8d1ee78ebdab9228c7e60a8016edfed57696643342d231",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/config/config_test.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/config/config_test.go"
+    },
+    {
+      "id": "scope:02ccd0e75653f69a32b219d5e714a0e96ef58e50b8622c22840fb4614236bd12",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/config/coverage_test.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/config/coverage_test.go"
+    },
+    {
+      "id": "scope:4726058bf7869232c6e9b7649cb89c13b231381d2eed542340e5f98179a03175",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/context/coverage_complete_test.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/context/coverage_complete_test.go"
+    },
+    {
+      "id": "scope:eae9ff2622f76a39b25b1384ffd4ef62b0b9a54a0eb07640ef00bc48fc0df116",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/context/registry_audit_test.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/context/registry_audit_test.go"
+    },
+    {
+      "id": "scope:0d7f11fd92bb233f504fe8173494881b6eccc44591efdce5b2a881acefdeea1f",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/frida/agent_embed_audit_test.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/frida/agent_embed_audit_test.go"
+    },
+    {
+      "id": "scope:20865d281fb5110ada7e69055ce387712cea7500f2b124c1a4d1e10a28a93416",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/frida/bootstrap.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/frida/bootstrap.go"
+    },
+    {
+      "id": "scope:33d66f079ab844691132cd740748131997e9adcbec4ecee42244967a063269d8",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/frida/bootstrap_audit_test.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/frida/bootstrap_audit_test.go"
+    },
+    {
+      "id": "scope:516efd410650e754b5c3888dfa213b670a4174445cdbfcbbab7a353f9dc25251",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/frida/cgo_stub.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/frida/cgo_stub.go"
+    },
+    {
+      "id": "scope:1969f483988bfb9a5ee458c3979467e51220c6453b24c8367aaa7b7c7d818f19",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/frida/coverage_test.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/frida/coverage_test.go"
+    },
+    {
+      "id": "scope:98653a146f51eb5bd2eba40bc0bb350f0e5c618529a2cffbb334a734fdd2b2fe",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/frida/native_api_audit_test.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/frida/native_api_audit_test.go"
+    },
+    {
+      "id": "scope:54e35195b643689f25275982045803ecf65b0783198503a4de4377199430dc5f",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/frida/native_windows.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/frida/native_windows.go"
+    },
+    {
+      "id": "scope:15855620a6ba8530100e30b59f2621b1631b79c313c868a88aa8e20658d2850d",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/frida/native_windows_test.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/frida/native_windows_test.go"
+    },
+    {
+      "id": "scope:347253727425c224c316971ffe600cd1be0ee3d19180cb7b70ac5d2901a93e52",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/frida/shim/miniapp_frida.c",
+      "reason": "Changed path is not covered by a declared artifact: internal/frida/shim/miniapp_frida.c"
+    },
+    {
+      "id": "scope:4c375e1bee7a028035265af9357fa8f1e12e6182b5662d17e17f903bd32787d6",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/frida/shim/miniapp_frida.def",
+      "reason": "Changed path is not covered by a declared artifact: internal/frida/shim/miniapp_frida.def"
+    },
+    {
+      "id": "scope:3944925593e567d7b5eb0bd2c2c499724ee46d44b83cba4b0b573c398e8bf613",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/frida/shim/miniapp_frida.h",
+      "reason": "Changed path is not covered by a declared artifact: internal/frida/shim/miniapp_frida.h"
+    },
+    {
+      "id": "scope:98dd58d20721e97dff1d3f39ed13f8c89ced800ed84ac4b9bd44b8a329fd8183",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/logging/coverage_test.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/logging/coverage_test.go"
+    },
+    {
+      "id": "scope:e635ff2d0dc13a061a4cd6fd6f9e9e03502990b3909e8f5d2e62eb9075c3b87a",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/logging/logger.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/logging/logger.go"
+    },
+    {
+      "id": "scope:432f406f1ffd4b4140cdbd49196882b43bf29735fdd7a4bc3163c367b154f4ef",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/logging/logger_test.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/logging/logger_test.go"
+    },
+    {
+      "id": "scope:bd3e7d2b4a4ae04fa444b1925ce14177178cb4028ee2d6548934154a106cfa64",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/process/coverage_test.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/process/coverage_test.go"
+    },
+    {
+      "id": "scope:5849a07d5991a7968ea9cc28b36f55dba3ac2d5ef72b534df4fddd1b11f26a27",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/process/discovery.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/process/discovery.go"
+    },
+    {
+      "id": "scope:b7de550179be7a34532718111055715b65fd92016dd532053405eb6be1496c72",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/process/discovery_audit_test.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/process/discovery_audit_test.go"
+    },
+    {
+      "id": "scope:f8a1b2f4b6a0f8f56e8e439e7a4e37e35f5098b51298148f6d3b9f2cb8a1fc98",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/process/discovery_test.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/process/discovery_test.go"
+    },
+    {
+      "id": "scope:4e0487599108bd40e19ba3464ab28627b6af9902765071fa5c8caa9104ea65ef",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/process/tasklist_windows_coverage_test.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/process/tasklist_windows_coverage_test.go"
+    },
+    {
+      "id": "scope:888d6d6f523dcaa1ff8e5c2c762acc24cf5edbbc151723245cee95a8a6899476",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/proxy/coverage_complete_test.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/proxy/coverage_complete_test.go"
+    },
+    {
+      "id": "scope:8a8e14c21c1feca84f2dd49e4c137492578e7e71272475f720b0b9fc8d9f3109",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/proxy/hub.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/proxy/hub.go"
+    },
+    {
+      "id": "scope:157dc801d8f28c24422f9977fd265b982c695947b6b9dbd0b7e63e1a7862c998",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/proxy/hub_audit_test.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/proxy/hub_audit_test.go"
+    },
+    {
+      "id": "scope:19880ff3fda08bd9d95c4b972ab3fb55f254b21790737b5406d1193848d88856",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/version/config.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/version/config.go"
+    },
+    {
+      "id": "scope:1a3da1c0524da210f809e730f7f400871e660770789a58e31d5326550805617b",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/version/config_audit_test.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/version/config_audit_test.go"
+    },
+    {
+      "id": "scope:5543ebebb95e0ebde94fd819ffe8deadf3874dc6265fc8e798cefa5bdde99ee8",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/version/coverage_test.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/version/coverage_test.go"
+    },
+    {
+      "id": "scope:46aa3260e11da2d75d18b4e3f5f4c89ca3701390cf8948597f4251b54c242045",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/wmpf/coverage_test.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/wmpf/coverage_test.go"
+    },
+    {
+      "id": "scope:b20dde9f9334479bbe8043f73748368fad34f4e35528d631bb2b835a0824746e",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/wmpf/coverage_windows_test.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/wmpf/coverage_windows_test.go"
+    },
+    {
+      "id": "scope:ef7a000063603b31c109beeb4e603398b564d30854149344df8f7de25b32ac8e",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/wmpf/generic.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/wmpf/generic.go"
+    },
+    {
+      "id": "scope:1928870f8b358e589017d23cc0d78137f8c1ba3ed1306db461b0aecaa09a0c66",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/wmpf/generic_test.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/wmpf/generic_test.go"
+    },
+    {
+      "id": "scope:30341c683081c2e13c38d555d1c7062173310da4dea7015f99b9d8e1a8cf0d16",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/wmpf/messages.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/wmpf/messages.go"
+    },
+    {
+      "id": "scope:8f9180ce9dc65d1c1c5874659f668b130ab20ba5a591769117671bfaa1c0c787",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/wmpf/messages_test.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/wmpf/messages_test.go"
+    },
+    {
+      "id": "scope:e2326d5d563ecb22cc70258b3f2266d5b53ce264c55c31dfcbbc8ccb0d5bc318",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/wmpf/protobuf_audit_test.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/wmpf/protobuf_audit_test.go"
+    },
+    {
+      "id": "scope:0d795dc523aebee536d7bc7ab6975ab952df3e9498a9bce242e23cc05a6cc3ae",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/wmpf/protocol.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/wmpf/protocol.go"
+    },
+    {
+      "id": "scope:501f5b82c2b22dcc0fb3cc5e84fefc4a1df9c762bcb2de524965eaa78a9e5be4",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/wmpf/protocol_test.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/wmpf/protocol_test.go"
+    },
+    {
+      "id": "scope:c3898605da8b8e15960ea5d0a92a938facefc734422ef1a83c19fbc83f53e569",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/wmpf/reference_codex_differential_test.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/wmpf/reference_codex_differential_test.go"
+    },
+    {
+      "id": "scope:5c603c04a2442eee7b3593a2e3e5eaa6eaf759f303ccbf6e65cee6853d96f75e",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/wmpf/reference_golden_test.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/wmpf/reference_golden_test.go"
+    },
+    {
+      "id": "scope:5a6b1dab6b913a562d8771a70ec73daffcb11a1d9b473eb62bf74ff0eabbd64b",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/wmpf/registry.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/wmpf/registry.go"
+    },
+    {
+      "id": "scope:26b1f5a91e71da2b51079556a43061b6818f094335ab72b7b6aee1928ef0042c",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/wmpf/schema.proto",
+      "reason": "Changed path is not covered by a declared artifact: internal/wmpf/schema.proto"
+    },
+    {
+      "id": "scope:4d13aa5373739e7f7c46aae7b6d0d48b210817faf0ad64463ae2061c3ae61a3f",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/wmpf/transport.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/wmpf/transport.go"
+    },
+    {
+      "id": "scope:4816ea9afe34e26bb8d993d7e5d1880ec466e3228064505f3d1d1028ba3e46e6",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/wmpf/transport_test.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/wmpf/transport_test.go"
+    },
+    {
+      "id": "scope:818e794623852adc694292c295f9fe0b2fb7f3a166381e5f46e885dc8356c508",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/wmpf/unknown_fields_test.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/wmpf/unknown_fields_test.go"
+    },
+    {
+      "id": "scope:e821522a300b213d2e6e91672fa59ea2c5894406cadff7287b5837e58a54d6c2",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/wmpf/zlib_fallback.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/wmpf/zlib_fallback.go"
+    },
+    {
+      "id": "scope:f6b3ee3fe4d1404a6cae6ed8b30dbc0e189ddd3edfdc60ce590a2283fcda7c66",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "internal/wmpf/zlib_windows_cgo.go",
+      "reason": "Changed path is not covered by a declared artifact: internal/wmpf/zlib_windows_cgo.go"
+    },
+    {
+      "id": "scope:09a266f068fa26651f3c3f9259aee13e55112384ecc06177ac4d4bd196b40693",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "proto/wmpf_remote_debug.proto",
+      "reason": "Changed path is not covered by a declared artifact: proto/wmpf_remote_debug.proto"
+    },
+    {
+      "id": "scope:adb703d905162cb34d7ade1e83dcb4a9e21dc7d8b203523289c67d5783a3a66e",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "scripts/build-frida-shim.ps1",
+      "reason": "Changed path is not covered by a declared artifact: scripts/build-frida-shim.ps1"
+    },
+    {
+      "id": "scope:cca42975f5cbcec1122c8b7c9744d99d843f4e8fff67eaea13a025d4563270d2",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "scripts/build-windows.ps1",
+      "reason": "Changed path is not covered by a declared artifact: scripts/build-windows.ps1"
+    },
+    {
+      "id": "scope:7dc0c52610f8334ebeb8c8fea9a7d724b3dc9dcd3c7ac47a6a09697e947428f2",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "scripts/build-zlib.ps1",
+      "reason": "Changed path is not covered by a declared artifact: scripts/build-zlib.ps1"
+    },
+    {
+      "id": "scope:987cf0ffce901d803fd1bfa2c4cfdcf6d45676a48cf77e7df15d5261d8524007",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "scripts/build_zlib_contract_test.go",
+      "reason": "Changed path is not covered by a declared artifact: scripts/build_zlib_contract_test.go"
+    },
+    {
+      "id": "scope:dcf71edc1f415949cc4c32d92be3d4f9fcf300210828930d94bf9377e12e34a8",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "scripts/coverage-gate.ps1",
+      "reason": "Changed path is not covered by a declared artifact: scripts/coverage-gate.ps1"
+    },
+    {
+      "id": "scope:d66ecd17df19fea56e3b623bac1594aacffea19b7ba92b44e8c6c730026cd8c9",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "scripts/generate-reference-codex-fixtures.js",
+      "reason": "Changed path is not covered by a declared artifact: scripts/generate-reference-codex-fixtures.js"
+    },
+    {
+      "id": "scope:490c1edcdfd3aa101d1387c4b857ca098c69b3920955558dfd14d14428033f3a",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "scripts/generate-reference-fixtures.js",
+      "reason": "Changed path is not covered by a declared artifact: scripts/generate-reference-fixtures.js"
+    },
+    {
+      "id": "scope:7de75cdc105cd7127e5b4f2ff2f18748757aae499b4face09feba089418abdf5",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "scripts/smoke-client.go",
+      "reason": "Changed path is not covered by a declared artifact: scripts/smoke-client.go"
+    },
+    {
+      "id": "scope:0e9580fce2f10ea6c22ac7b41c10d26639edf2379e6a36c24d46b08caa38c43b",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "scripts/smoke-client_test.go",
+      "reason": "Changed path is not covered by a declared artifact: scripts/smoke-client_test.go"
+    },
+    {
+      "id": "scope:817720d9ec0e7bf4e2b6a2c35b419191cd1a5875f95c8f00813e593682045cbd",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "scripts/smoke-process-runner/main.go",
+      "reason": "Changed path is not covered by a declared artifact: scripts/smoke-process-runner/main.go"
+    },
+    {
+      "id": "scope:17a64e3c9c6aa78d5866729649e9df13472eac8d52168ebc1f4f449c613436ca",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "scripts/smoke-process-runner/platform_other.go",
+      "reason": "Changed path is not covered by a declared artifact: scripts/smoke-process-runner/platform_other.go"
+    },
+    {
+      "id": "scope:3bb645d9b44964c5f9534c01d798c6f3c5b343d22ee5f5cb7842c18fc2f94d6c",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "scripts/smoke-process-runner/platform_windows.go",
+      "reason": "Changed path is not covered by a declared artifact: scripts/smoke-process-runner/platform_windows.go"
+    },
+    {
+      "id": "scope:d60bd8558040c523a166adbe3c2553aa283c87f250b35c8dc6d333a444e16c54",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "scripts/smoke-process-runner/platform_windows_test.go",
+      "reason": "Changed path is not covered by a declared artifact: scripts/smoke-process-runner/platform_windows_test.go"
+    },
+    {
+      "id": "scope:a732c7077823bc92020305ac91b639a51a6641f521d09297dfdb4b237db7724d",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "scripts/smoke-process-runner/runner.go",
+      "reason": "Changed path is not covered by a declared artifact: scripts/smoke-process-runner/runner.go"
+    },
+    {
+      "id": "scope:837275d9ff191289c3eee62ad6198621018f7f3f9b8a8fe45fa29d27502448e6",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "scripts/smoke-process-runner/runner_test.go",
+      "reason": "Changed path is not covered by a declared artifact: scripts/smoke-process-runner/runner_test.go"
+    },
+    {
+      "id": "scope:326abcfe5522a4a57f6cc2445f42dfb43f9a8b4c66832e3f031ac57729694c3b",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "testdata/golden/reference_codex.json",
+      "reason": "Changed path is not covered by a declared artifact: testdata/golden/reference_codex.json"
+    },
+    {
+      "id": "scope:c04c12552368a1ca50c7691297350620aabe8d843b4a98e4fa69ccb9e073159a",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "testdata/golden/reference_messages.json",
+      "reason": "Changed path is not covered by a declared artifact: testdata/golden/reference_messages.json"
+    },
+    {
+      "id": "scope:f638f4f4ae0e4c4a28498014885b6899a62bcb7b05d5bbaf2f6c30dfde979280",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "third_party/frida/devkit-17.3.2/frida-core-example.c",
+      "reason": "Changed path is not covered by a declared artifact: third_party/frida/devkit-17.3.2/frida-core-example.c"
+    },
+    {
+      "id": "scope:eeca1359ac5fd551338620024fd01a273effed826eed03f46a80ee37d7716804",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "third_party/frida/devkit-17.3.2/frida-core-example.sln",
+      "reason": "Changed path is not covered by a declared artifact: third_party/frida/devkit-17.3.2/frida-core-example.sln"
+    },
+    {
+      "id": "scope:a8a52a9d138f0127da16a1b7e9eea3333d21c3b13b394c498114f1d76c534484",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "third_party/frida/devkit-17.3.2/frida-core-example.vcxproj",
+      "reason": "Changed path is not covered by a declared artifact: third_party/frida/devkit-17.3.2/frida-core-example.vcxproj"
+    },
+    {
+      "id": "scope:5bb6fa089e91eebf93edce31bda42f1a56e770b13351f0d30e73563a7e74b6a4",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "third_party/frida/devkit-17.3.2/frida-core-example.vcxproj.filters",
+      "reason": "Changed path is not covered by a declared artifact: third_party/frida/devkit-17.3.2/frida-core-example.vcxproj.filters"
+    },
+    {
+      "id": "scope:5e8ba1b8ec47d50c14b15f56e234d4924d6c21627960f560c31eebe8c1501ad7",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "third_party/frida/devkit-17.3.2/frida-core.gir",
+      "reason": "Changed path is not covered by a declared artifact: third_party/frida/devkit-17.3.2/frida-core.gir"
+    },
+    {
+      "id": "scope:a765c721417212e70ff7cd25252d8707f3fa3c1411468c8146ede0b26086c28a",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "third_party/frida/devkit-17.3.2/frida-core.h",
+      "reason": "Changed path is not covered by a declared artifact: third_party/frida/devkit-17.3.2/frida-core.h"
+    },
+    {
+      "id": "scope:22719767d6f0d7a04baac51943b3cf84c11c99b0cb79dee06349aaef37732e63",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "third_party/zlib/zlib-1.3.1.tar.gz",
+      "reason": "Changed path is not covered by a declared artifact: third_party/zlib/zlib-1.3.1.tar.gz"
+    }
+  ],
+  "noCodeReason": null,
+  "scopeHash": "5d8f591c7811f77e5e733166cd6289306e07672a21fd7c86569e3cfd5e95a32f"
+}

@@ -1,13 +1,36 @@
+param(
+    [switch]$Offline
+)
+
 $ErrorActionPreference = 'Stop'
 
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
-$archive = Join-Path $repo 'third_party\zlib\zlib-1.3.1.tar.gz'
+$archiveURL = 'https://zlib.net/fossils/zlib-1.3.1.tar.gz'
+$cache = Join-Path $repo 'third_party\downloads\cache'
+$archive = Join-Path $cache 'zlib-1.3.1.tar.gz'
+$partialArchive = "$archive.partial"
 $source = Join-Path $repo 'third_party\zlib\src-1.3.1'
 $output = Join-Path $repo 'third_party\zlib\lib\windows-x86_64'
 $expectedArchiveHash = '9A93B2B7DFDAC77CEBA5A558A580E74667DD6FEDE4585B91EEFB60F03B72DF23'
 
-if (!(Test-Path -LiteralPath $archive)) {
-    throw "missing pinned zlib archive: $archive"
+New-Item -ItemType Directory -Force -Path $cache | Out-Null
+$archiveIsValid = (Test-Path -LiteralPath $archive) -and
+    ((Get-FileHash -Algorithm SHA256 -LiteralPath $archive).Hash -eq $expectedArchiveHash)
+if (!$archiveIsValid) {
+    if ($Offline) {
+        throw "zlib archive cache is unavailable or invalid in offline mode (zlib 1.3.1): $archive"
+    }
+    Remove-Item -LiteralPath $partialArchive -Force -ErrorAction SilentlyContinue
+    try {
+        Invoke-WebRequest -Uri $archiveURL -OutFile $partialArchive -UseBasicParsing
+        if ((Get-FileHash -Algorithm SHA256 -LiteralPath $partialArchive).Hash -ne $expectedArchiveHash) {
+            throw 'downloaded zlib 1.3.1 archive hash mismatch'
+        }
+        Move-Item -LiteralPath $partialArchive -Destination $archive -Force
+    }
+    finally {
+        Remove-Item -LiteralPath $partialArchive -Force -ErrorAction SilentlyContinue
+    }
 }
 if ((Get-FileHash -Algorithm SHA256 -LiteralPath $archive).Hash -ne $expectedArchiveHash) {
     throw "zlib 1.3.1 archive hash mismatch"

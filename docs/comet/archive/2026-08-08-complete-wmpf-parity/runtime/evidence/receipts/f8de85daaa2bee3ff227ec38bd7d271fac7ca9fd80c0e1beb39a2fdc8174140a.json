@@ -1,0 +1,53 @@
+{
+  "schema": "comet.native.verification-receipt.v3",
+  "kind": "automated-check",
+  "role": "acceptance-evidence",
+  "status": "failed",
+  "bindings": {
+    "change": "complete-wmpf-parity",
+    "sourceRevision": 23,
+    "contractHash": "68a4afdc884c6068126dc3c524a96cdf2269e9658f15a8d3b434511b80887b3a",
+    "scopeHash": "13ebd62889df6dc19629fdbbed76cfa7eeda0c4cffc2c5b86ef3c0a11a76f81b",
+    "snapshotHash": "dab5973561ade1790c4f10a5ad402d12fd8d198d34695163954d7e6ef86e0e7c",
+    "artifactHash": "20cfd395a56d4f0ea7c8223b21a02c2316dc5fb3869786d5890037e041f9cc05"
+  },
+  "acceptanceIds": [
+    "acceptance-57ca7c9d743817f8abe630b2c6877d87eac38087b67b22896dd99d836c762eed",
+    "acceptance-5a08b12a267314c48da379aad3c1f7d706b9d9e0af8776c348bbfef2285a7913",
+    "acceptance-8fc22df3cdf7b059bdf074c158b79eebdeca763ce0fe3f0cd5c29b5e3ec056ba",
+    "acceptance-b0f8901c7a7bd76470106a6537cbf7e24560956e7e85f7df8462349b7dff7eee",
+    "acceptance-ea88e62bd0e2c7996e0eec9b16495d7826fb1677cf90fce295fb876a41321ebb"
+  ],
+  "actor": "native-runtime:command:pwsh.exe",
+  "issuedAt": "2026-08-08T15:13:06.829Z",
+  "evidence": {
+    "executable": "pwsh.exe",
+    "args": [
+      "-NoProfile",
+      "-Command",
+      "$output = & ./scripts/smoke-windows.ps1 -UpstreamWaitSeconds 300 -ShutdownTimeoutSeconds 20 2>&1; $code = $LASTEXITCODE; $key = $output | Where-Object { $_ -match '^(listeners:|\\[frida\\] attached|agent-on-load-start=|renderer-selection=|reused-applet-renderer=|live-cdp-matrix:|link-smoke:|target-survives-shutdown=|target-process-delta:|ports-released=)' }; if ($key) { $key } else { $output | Select-Object -Last 20 }; exit $code"
+    ],
+    "cwd": ".",
+    "exitCode": 1,
+    "signal": null,
+    "timedOut": false,
+    "timeoutMs": 360000,
+    "startedAt": "2026-08-08T15:08:00.231Z",
+    "endedAt": "2026-08-08T15:13:06.829Z",
+    "worktree": {
+      "provider": "git",
+      "root": ".",
+      "beforeCommit": "33ccd5f13752bd62cff05b3b31e98aec484a9674",
+      "afterCommit": "33ccd5f13752bd62cff05b3b31e98aec484a9674"
+    },
+    "afterFence": {
+      "snapshotHash": "dab5973561ade1790c4f10a5ad402d12fd8d198d34695163954d7e6ef86e0e7c",
+      "scopeHash": "13ebd62889df6dc19629fdbbed76cfa7eeda0c4cffc2c5b86ef3c0a11a76f81b",
+      "matched": true
+    },
+    "outputHash": "fc887ebab519e5269ff713f2a76411c8b570165770de324d2391ec6ffdaf3697",
+    "outputSummary": "\u001b[31;1mException: \u001b[0mD:\\Code\\third-partry\\miniapp-bridge\\scripts\\smoke-windows.ps1:168\u001b[0m\r\n\u001b[31;1m\u001b[0m\u001b[36;1mLine |\u001b[0m\r\n\u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m 168 | \u001b[0m         \u001b[36;1mthrow \"WMPF upstream connection on 9421 was not established b\u001b[0m ��\u001b[0m\r\n\u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[0m\u001b[36;1m     | \u001b[31;1m         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\u001b[0m\r\n\u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[31;1m\u001b[31;1m\u001b[36;1m     | \u001b[31;1mWMPF upstream connection on 9421 was not established by pid 34656 within 300s; observed-new-target-pids=;\u001b[0m\r\n\u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[31;1m\u001b[31;1m\u001b[36;1m\u001b[31;1m\u001b[36;1m     | \u001b[31;1mexited-target-pids=; agent-log=child-pid=34656 [server] debug server running on ws://127.0.0.1:9421 [server]\u001b[0m\r\n\u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[31;1m\u001b[31;1m\u001b[36;1m\u001b[31;1m\u001b[36;1m\u001b[31;1m\u001b[36;1m     | \u001b[31;1mdebug server waiting for miniapp to connect... [server] proxy server running on ws://127.0.0.1:62000 [server]\u001b[0m\r\n\u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[31;1m\u001b[31;1m\u001b[36;1m\u001b[31;1m\u001b[36;1m\u001b[31;1m\u001b[36;1m\u001b[31;1m\u001b[36;1m     | \u001b[31;1mlink: devtools://devtools/bundled/inspector.html?ws=127.0.0.1:62000 [frida] attached pid=43432 version=25297\u001b[0m\r\n\u001b[31;1m\u001b[0m\u001b[36;1m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[0m\u001b[36;1m\u001b[31;1m\u001b[31;1m\u001b[36;1m\u001b[31;1m\u001b[36;1m\u001b[31;1m\u001b[36;1m\u001b[31;1m\u001b[36;1m\u001b[31;1m\u001b[36;1m     | \u001b[31;1mpath=C:\\Users\\follen\\AppData\\Roaming\\Tencent\\xwechat\\XPlugin\\Plugins\\RadiumWMPF\\25297\\extracted\\runtime\\WeChatAppEx.exe\u001b[0m",
+    "outputTruncated": false
+  },
+  "receiptHash": "f8de85daaa2bee3ff227ec38bd7d271fac7ca9fd80c0e1beb39a2fdc8174140a"
+}

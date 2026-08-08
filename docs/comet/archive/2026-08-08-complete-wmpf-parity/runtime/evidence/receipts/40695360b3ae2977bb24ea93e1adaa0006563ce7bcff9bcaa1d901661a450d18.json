@@ -1,0 +1,52 @@
+{
+  "schema": "comet.native.verification-receipt.v3",
+  "kind": "automated-check",
+  "role": "acceptance-evidence",
+  "status": "passed",
+  "bindings": {
+    "change": "complete-wmpf-parity",
+    "sourceRevision": 21,
+    "contractHash": "68a4afdc884c6068126dc3c524a96cdf2269e9658f15a8d3b434511b80887b3a",
+    "scopeHash": "14184713b1a2aba68dd1629fc8c86b41ef403539addbe7ea62f5ecc8ede35970",
+    "snapshotHash": "97881f3c08b1142f00c65d78ff020dc0c9c81ce802323fe2417fb78f92f532dd",
+    "artifactHash": "20cfd395a56d4f0ea7c8223b21a02c2316dc5fb3869786d5890037e041f9cc05"
+  },
+  "acceptanceIds": [
+    "acceptance-5a08b12a267314c48da379aad3c1f7d706b9d9e0af8776c348bbfef2285a7913",
+    "acceptance-b0f8901c7a7bd76470106a6537cbf7e24560956e7e85f7df8462349b7dff7eee",
+    "acceptance-cded77aeed14a7b3ddf6cfe5bfa819b52f9fc4cec72ea935d9b6347359e51c98",
+    "acceptance-ea88e62bd0e2c7996e0eec9b16495d7826fb1677cf90fce295fb876a41321ebb"
+  ],
+  "actor": "native-runtime:command:powershell.exe",
+  "issuedAt": "2026-08-08T14:36:20.267Z",
+  "evidence": {
+    "executable": "powershell.exe",
+    "args": [
+      "-NoProfile",
+      "-Command",
+      "$output = & powershell.exe -ExecutionPolicy Bypass -File scripts/coverage-gate.ps1 2>&1; $code = $LASTEXITCODE; $summary = $output | Where-Object { $_ -match '^coverage_gate=' } | Select-Object -Last 1; if ($summary) { Write-Output $summary } else { $output | Select-Object -Last 20 }; exit $code"
+    ],
+    "cwd": ".",
+    "exitCode": 0,
+    "signal": null,
+    "timedOut": false,
+    "timeoutMs": 180000,
+    "startedAt": "2026-08-08T14:36:07.526Z",
+    "endedAt": "2026-08-08T14:36:20.267Z",
+    "worktree": {
+      "provider": "git",
+      "root": ".",
+      "beforeCommit": "33ccd5f13752bd62cff05b3b31e98aec484a9674",
+      "afterCommit": "33ccd5f13752bd62cff05b3b31e98aec484a9674"
+    },
+    "afterFence": {
+      "snapshotHash": "97881f3c08b1142f00c65d78ff020dc0c9c81ce802323fe2417fb78f92f532dd",
+      "scopeHash": "14184713b1a2aba68dd1629fc8c86b41ef403539addbe7ea62f5ecc8ede35970",
+      "matched": true
+    },
+    "outputHash": "8174d8dd484fabcee34eeb9c8315ba6bce7232eb08cd0c46f7306905d6f7b7b4",
+    "outputSummary": "coverage_gate=100% reference behaviors; internal_go_statements=100.0%; smoke_runner_go_statements=100.0%; unit/race/vet=passed",
+    "outputTruncated": false
+  },
+  "receiptHash": "40695360b3ae2977bb24ea93e1adaa0006563ce7bcff9bcaa1d901661a450d18"
+}

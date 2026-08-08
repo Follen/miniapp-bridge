@@ -1,0 +1,99 @@
+{
+  "schema": "comet.native.verification-evidence.v2",
+  "change": "complete-wmpf-parity",
+  "sourceRevision": 32,
+  "result": "fail",
+  "freshness": "partial",
+  "contractHash": "68a4afdc884c6068126dc3c524a96cdf2269e9658f15a8d3b434511b80887b3a",
+  "acceptanceCriteriaHash": "eec82d3bc4fc2b950d6334d139db9cf0403d95baef0b5c0b43b7fc7c61cbe61d",
+  "implementationScopeRef": "runtime/evidence/scopes/8f7ae9f003e6bff89d6533c387e0fa64d8c83907abc8a3bc6346ed70549c442d.json",
+  "implementationScopeHash": "8f7ae9f003e6bff89d6533c387e0fa64d8c83907abc8a3bc6346ed70549c442d",
+  "reportRef": "verification.md",
+  "reportHash": "f30b92a95dbcb03e38e2bf1ddc5b59b6478577b3272c46c8919868ca527b9824",
+  "acceptanceTrace": {
+    "schema": "comet.native.acceptance-trace.v2",
+    "nativeRootRef": "docs/comet",
+    "criteriaHash": "eec82d3bc4fc2b950d6334d139db9cf0403d95baef0b5c0b43b7fc7c61cbe61d",
+    "total": 6,
+    "evidenced": 6,
+    "skipped": 0,
+    "entries": [
+      {
+        "acceptanceId": "acceptance-57ca7c9d743817f8abe630b2c6877d87eac38087b67b22896dd99d836c762eed",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/complete-parity/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/a6a90a836a5a60ef4ae397a513467b0a4df55959d38712c4b670864d4d11c7c2.json",
+          "runtime/evidence/receipts/bb353b43b750d2ba00947bd6193e593a4522f43b9ad353f465a8f4e5c7e48a8e.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-5a08b12a267314c48da379aad3c1f7d706b9d9e0af8776c348bbfef2285a7913",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/complete-parity/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/713215671d634b553a7d39df2183e8b4d87536647f22c4805eb4c3dfeb33000c.json",
+          "runtime/evidence/receipts/a6a90a836a5a60ef4ae397a513467b0a4df55959d38712c4b670864d4d11c7c2.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-8fc22df3cdf7b059bdf074c158b79eebdeca763ce0fe3f0cd5c29b5e3ec056ba",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/complete-parity/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/a6a90a836a5a60ef4ae397a513467b0a4df55959d38712c4b670864d4d11c7c2.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-b0f8901c7a7bd76470106a6537cbf7e24560956e7e85f7df8462349b7dff7eee",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/complete-parity/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/74c2a23d4bcdfd32ce7ab35ed016c9ebc3b9c5b90f68b8ef724e08adeada9579.json",
+          "runtime/evidence/receipts/a6a90a836a5a60ef4ae397a513467b0a4df55959d38712c4b670864d4d11c7c2.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-cded77aeed14a7b3ddf6cfe5bfa819b52f9fc4cec72ea935d9b6347359e51c98",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/complete-parity/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/74c2a23d4bcdfd32ce7ab35ed016c9ebc3b9c5b90f68b8ef724e08adeada9579.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-ea88e62bd0e2c7996e0eec9b16495d7826fb1677cf90fce295fb876a41321ebb",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/complete-parity/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/74c2a23d4bcdfd32ce7ab35ed016c9ebc3b9c5b90f68b8ef724e08adeada9579.json",
+          "runtime/evidence/receipts/a6a90a836a5a60ef4ae397a513467b0a4df55959d38712c4b670864d4d11c7c2.json"
+        ],
+        "skippedReason": null
+      }
+    ],
+    "traceHash": "8eb73b1e719fee38f6b587f41a54e20e53af4003da1f4fd468e602b588584986"
+  },
+  "partialAllowanceRef": "runtime/evidence/allowances/aac015194b210b2c63da5370ffd99708a2aebda6b406c8057ef2a35266d3eacf.json",
+  "partialAllowanceHash": "aac015194b210b2c63da5370ffd99708a2aebda6b406c8057ef2a35266d3eacf",
+  "requiredReceiptRefs": [],
+  "receiptRefs": [
+    "runtime/evidence/receipts/713215671d634b553a7d39df2183e8b4d87536647f22c4805eb4c3dfeb33000c.json",
+    "runtime/evidence/receipts/74c2a23d4bcdfd32ce7ab35ed016c9ebc3b9c5b90f68b8ef724e08adeada9579.json",
+    "runtime/evidence/receipts/a6a90a836a5a60ef4ae397a513467b0a4df55959d38712c4b670864d4d11c7c2.json",
+    "runtime/evidence/receipts/bb353b43b750d2ba00947bd6193e593a4522f43b9ad353f465a8f4e5c7e48a8e.json"
+  ],
+  "createdAt": "2026-08-08T19:35:05.623Z",
+  "envelopeHash": "c8175940f03301505ed9ca9cb240281b7611ff76c484a55cc91571cfe86b792d"
+}

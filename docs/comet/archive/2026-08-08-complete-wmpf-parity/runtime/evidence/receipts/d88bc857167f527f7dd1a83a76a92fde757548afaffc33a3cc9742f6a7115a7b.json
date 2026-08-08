@@ -1,0 +1,51 @@
+{
+  "schema": "comet.native.verification-receipt.v3",
+  "kind": "automated-check",
+  "role": "acceptance-evidence",
+  "status": "passed",
+  "bindings": {
+    "change": "complete-wmpf-parity",
+    "sourceRevision": 23,
+    "contractHash": "68a4afdc884c6068126dc3c524a96cdf2269e9658f15a8d3b434511b80887b3a",
+    "scopeHash": "13ebd62889df6dc19629fdbbed76cfa7eeda0c4cffc2c5b86ef3c0a11a76f81b",
+    "snapshotHash": "dab5973561ade1790c4f10a5ad402d12fd8d198d34695163954d7e6ef86e0e7c",
+    "artifactHash": "20cfd395a56d4f0ea7c8223b21a02c2316dc5fb3869786d5890037e041f9cc05"
+  },
+  "acceptanceIds": [
+    "acceptance-57ca7c9d743817f8abe630b2c6877d87eac38087b67b22896dd99d836c762eed",
+    "acceptance-5a08b12a267314c48da379aad3c1f7d706b9d9e0af8776c348bbfef2285a7913",
+    "acceptance-8fc22df3cdf7b059bdf074c158b79eebdeca763ce0fe3f0cd5c29b5e3ec056ba"
+  ],
+  "actor": "native-runtime:command:pwsh.exe",
+  "issuedAt": "2026-08-08T15:07:42.671Z",
+  "evidence": {
+    "executable": "pwsh.exe",
+    "args": [
+      "-NoProfile",
+      "-Command",
+      "$output = & ./scripts/build-windows.ps1 2>&1; $code = $LASTEXITCODE; $output | Select-Object -Last 12; exit $code"
+    ],
+    "cwd": ".",
+    "exitCode": 0,
+    "signal": null,
+    "timedOut": false,
+    "timeoutMs": 240000,
+    "startedAt": "2026-08-08T15:07:37.050Z",
+    "endedAt": "2026-08-08T15:07:42.671Z",
+    "worktree": {
+      "provider": "git",
+      "root": ".",
+      "beforeCommit": "33ccd5f13752bd62cff05b3b31e98aec484a9674",
+      "afterCommit": "33ccd5f13752bd62cff05b3b31e98aec484a9674"
+    },
+    "afterFence": {
+      "snapshotHash": "dab5973561ade1790c4f10a5ad402d12fd8d198d34695163954d7e6ef86e0e7c",
+      "scopeHash": "13ebd62889df6dc19629fdbbed76cfa7eeda0c4cffc2c5b86ef3c0a11a76f81b",
+      "matched": true
+    },
+    "outputHash": "8f0e9158fdf61388fb34589cf6f7e681433e5e2f99f7dcc6947a2f0b1746c912",
+    "outputSummary": "ok  \tminiapp-bridge/internal/config\t(cached)\r\nok  \tminiapp-bridge/internal/context\t(cached)\r\nok  \tminiapp-bridge/internal/frida\t(cached)\r\nok  \tminiapp-bridge/internal/logging\t(cached)\r\nok  \tminiapp-bridge/internal/process\t(cached)\r\nok  \tminiapp-bridge/internal/proxy\t(cached)\r\nok  \tminiapp-bridge/internal/version\t(cached)\r\nok  \tminiapp-bridge/internal/wmpf\t(cached)\r\nok  \tminiapp-bridge/scripts\t(cached)\r\nok  \tminiapp-bridge/scripts/smoke-process-runner\t(cached)\r\n\r\n\u001b[32;1mAlgorithm      \u001b[0m\u001b[32;1m Hash                                                                  \u001b[0m\u001b[32;1m Path\u001b[0m\r\n\u001b[32;1m---------      \u001b[0m \u001b[32;1m----                                                                  \u001b[0m \u001b[32;1m----\u001b[0m\r\nSHA256          16EA442BE91180837407C014E863B489DB30B6C3CBC065EB9509D6B0CC83766F       D:\\Code\\third-partry\\miniapp-br��\r\nSHA256          EBBA08E33735094D597CEC1E2A978D98D9B790FAA3BE56570746777A1848967A       D:\\Code\\third-partry\\miniapp-br��",
+    "outputTruncated": false
+  },
+  "receiptHash": "d88bc857167f527f7dd1a83a76a92fde757548afaffc33a3cc9742f6a7115a7b"
+}
