@@ -1,0 +1,51 @@
+{
+  "schema": "comet.native.verification-receipt.v3",
+  "kind": "automated-check",
+  "role": "acceptance-evidence",
+  "status": "blocked",
+  "bindings": {
+    "change": "complete-wmpf-parity",
+    "sourceRevision": 13,
+    "contractHash": "59fffcb3030f7c89d0ea4034e8a2fa042d5f2623726bf108bc392f6b988846be",
+    "scopeHash": "824c839096cb0109daafc29f7b9eecc177b20d486b1276d929994223a620567f",
+    "snapshotHash": "66bf6a433c46355fa27926de2222cdb740780224a0844904df225da4d176b9ef",
+    "artifactHash": "6c7b5c1bec5c2f1cace4eaa8e2dae51b8fba54acc2d908174331d5069b8c7847"
+  },
+  "acceptanceIds": [
+    "acceptance-5a08b12a267314c48da379aad3c1f7d706b9d9e0af8776c348bbfef2285a7913"
+  ],
+  "actor": "native-runtime:command:pwsh.exe",
+  "issuedAt": "2026-08-08T05:23:33.125Z",
+  "evidence": {
+    "executable": "pwsh.exe",
+    "args": [
+      "-NoProfile",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-File",
+      "C:\\Users\\follen\\AppData\\Local\\Temp\\miniapp-bridge-receipt-coverage.ps1"
+    ],
+    "cwd": ".",
+    "exitCode": 0,
+    "signal": null,
+    "timedOut": false,
+    "timeoutMs": 300000,
+    "startedAt": "2026-08-08T05:23:20.832Z",
+    "endedAt": "2026-08-08T05:23:33.125Z",
+    "worktree": {
+      "provider": "none",
+      "root": ".",
+      "beforeCommit": null,
+      "afterCommit": null
+    },
+    "afterFence": {
+      "snapshotHash": "66bf6a433c46355fa27926de2222cdb740780224a0844904df225da4d176b9ef",
+      "scopeHash": "824c839096cb0109daafc29f7b9eecc177b20d486b1276d929994223a620567f",
+      "matched": false
+    },
+    "outputHash": "068ce597d6d17d195ad7504f07aefbf8dc03ffe942e8e4a2b040bfe0241b977c",
+    "outputSummary": "coverage_gate=passed; reference_fixtures=passed; default_statements=100.0%; tagged_statements=100.0%; unit=passed; race=passed; vet=passed",
+    "outputTruncated": false
+  },
+  "receiptHash": "d0d4454ba5e483a6072b0fc7e3c6dfb81e69dbbfa83a0fb4f27836536a057dc0"
+}

@@ -1,0 +1,28 @@
+{
+  "schema": "comet.native.verification-receipt.v3",
+  "kind": "manual-evidence",
+  "role": "acceptance-evidence",
+  "status": "passed",
+  "bindings": {
+    "change": "complete-wmpf-parity",
+    "sourceRevision": 9,
+    "contractHash": "febb014a24c851bad6df86ec162c7e420eafca5c2faada82d8cf67530226f764",
+    "scopeHash": "eb23d0cbe77760b301d3ccc8fb0a0e2fa9913ac772f514a0c6ef2faa7a5f55ad",
+    "snapshotHash": "bc089b29e4ded1f42d735004594ae9924759c612787e450b01d0c0aae9a7d29b",
+    "artifactHash": "bbdcea95d394b93191a119014961dd8b8930b9f12c7382c13f857e1c34661bc4"
+  },
+  "acceptanceIds": [
+    "acceptance-b0f8901c7a7bd76470106a6537cbf7e24560956e7e85f7df8462349b7dff7eee"
+  ],
+  "actor": "native-runtime:manual-evidence",
+  "issuedAt": "2026-08-08T01:14:28.643Z",
+  "evidence": {
+    "steps": [
+      "go test -race ./internal/app ./internal/cdp ./internal/context ./internal/proxy ./internal/capture -count=1"
+    ],
+    "observations": [
+      "Exited 0. Category routes, request correlation, jscontext add/remove/connect/select, serial dispatch, multi-client broadcast, reconnect, corrupt frame and capture replay tests passed under race detector."
+    ]
+  },
+  "receiptHash": "5fb4695120be6eedd6172aff1aab695759154e106c4ec32da2dc1d10cd70cadc"
+}

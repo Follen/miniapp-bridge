@@ -1,0 +1,15 @@
+{
+  "schema": "comet.native.progress-checkpoint.v1",
+  "id": "6f402fc1-f8ac-4e45-9adb-2872468e000c",
+  "change": "complete-wmpf-parity",
+  "phase": "build",
+  "previousRevision": 3,
+  "stateRevision": 4,
+  "summary": "三组并行对齐审计新增 11 个 audit 测试，修复版本末数字组、WebSocket 优雅关闭、Frida metadata scope/显式 runtime shutdown、protobuf 显式零字段、singular message 替换、CallInterface schema、client unwrap 白名单、capture 错误传播与无 ID pending；unit/race/tagged/tagged-race/vet/reference fixtures/Windows build 全通过。最终 EXE 989FB732...D806、DLL E78B026B...FC20。最终构建 strict smoke 120s 与 180s 均监听和 attach 成功但无 attach 后 miniapp load，9421 upstream 未建立。",
+  "nextAction": "启动 scripts/smoke-windows.ps1 -UpstreamWaitSeconds 180，确认 attach 日志后彻底关闭并重新打开小程序；只有 upstream 及 Runtime.enable、Debugger.enable、Runtime.evaluate 全部返回才进入 Verify。",
+  "inputHash": "a1b7cccfe8bb2337ce9ed52b341153304be7894e4258c7a745b7c158ed92dcbf",
+  "manifestHash": "90f2ff4e0cee9bc3ca5f229c2d126dc549310fd0a91a3c16c694d4228c430c87",
+  "manifestRef": "runtime/checkpoints/manifests/90f2ff4e0cee9bc3ca5f229c2d126dc549310fd0a91a3c16c694d4228c430c87.json",
+  "artifactCount": 1,
+  "createdAt": "2026-08-07T21:21:31.168Z"
+}

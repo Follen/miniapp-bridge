@@ -1,0 +1,85 @@
+{
+  "schema": "comet.native.verification-evidence.v2",
+  "change": "complete-wmpf-parity",
+  "sourceRevision": 9,
+  "result": "fail",
+  "freshness": "partial",
+  "contractHash": "febb014a24c851bad6df86ec162c7e420eafca5c2faada82d8cf67530226f764",
+  "acceptanceCriteriaHash": "d6ac962c912a9f52d64a7799a48da959077aa10d861488cf2d8822e9ba68f48b",
+  "implementationScopeRef": "runtime/evidence/scopes/eb23d0cbe77760b301d3ccc8fb0a0e2fa9913ac772f514a0c6ef2faa7a5f55ad.json",
+  "implementationScopeHash": "eb23d0cbe77760b301d3ccc8fb0a0e2fa9913ac772f514a0c6ef2faa7a5f55ad",
+  "reportRef": "verification.md",
+  "reportHash": "078c2cd7b2cfba4bbc836784bea57c459e45f6764c5249a99d03fe2568f1bd14",
+  "acceptanceTrace": {
+    "schema": "comet.native.acceptance-trace.v2",
+    "nativeRootRef": "docs/comet",
+    "criteriaHash": "d6ac962c912a9f52d64a7799a48da959077aa10d861488cf2d8822e9ba68f48b",
+    "total": 5,
+    "evidenced": 5,
+    "skipped": 2,
+    "entries": [
+      {
+        "acceptanceId": "acceptance-57ca7c9d743817f8abe630b2c6877d87eac38087b67b22896dd99d836c762eed",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/complete-parity/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/82783509d6d15c53b5496b5218b42d0d70385509b2a13bac24ee56d5e93d68e0.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-6a700f3df1e43a190d215f96f3c1de1400407c207f07de14532042dfa67041de",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/complete-parity/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/29ba093b75da2f5a448ee598c97247453e2894ab012ae67cc35e77e204848049.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-8fc22df3cdf7b059bdf074c158b79eebdeca763ce0fe3f0cd5c29b5e3ec056ba",
+        "status": "failed",
+        "kind": "spec-must",
+        "source": "specs/complete-parity/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/17eefd0887642f60f56c7c8ef75e05e70d771e5a3fd870d326e8c3cc55003a78.json"
+        ],
+        "skippedReason": "Target did not establish WMPF upstream within 180s."
+      },
+      {
+        "acceptanceId": "acceptance-b0f8901c7a7bd76470106a6537cbf7e24560956e7e85f7df8462349b7dff7eee",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/complete-parity/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/5fb4695120be6eedd6172aff1aab695759154e106c4ec32da2dc1d10cd70cadc.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-e2d4c3c9a3f8cd4f2fc254e9543b635c32447e9761a9546533bcda115c34e84f",
+        "status": "failed",
+        "kind": "spec-must",
+        "source": "specs/complete-parity/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/17eefd0887642f60f56c7c8ef75e05e70d771e5a3fd870d326e8c3cc55003a78.json"
+        ],
+        "skippedReason": "All automated gates passed; final live smoke failed due missing upstream."
+      }
+    ],
+    "traceHash": "61f27854203795e7a05f0ae8089f08c8f07e761143bb8341aadc9cc6a6326699"
+  },
+  "partialAllowanceRef": "runtime/evidence/allowances/2eb2d0eddc786c0a41b089d0a6957189db39baf87cf982ad4a96b7459ce77b17.json",
+  "partialAllowanceHash": "2eb2d0eddc786c0a41b089d0a6957189db39baf87cf982ad4a96b7459ce77b17",
+  "requiredReceiptRefs": [],
+  "receiptRefs": [
+    "runtime/evidence/receipts/17eefd0887642f60f56c7c8ef75e05e70d771e5a3fd870d326e8c3cc55003a78.json",
+    "runtime/evidence/receipts/29ba093b75da2f5a448ee598c97247453e2894ab012ae67cc35e77e204848049.json",
+    "runtime/evidence/receipts/5fb4695120be6eedd6172aff1aab695759154e106c4ec32da2dc1d10cd70cadc.json",
+    "runtime/evidence/receipts/82783509d6d15c53b5496b5218b42d0d70385509b2a13bac24ee56d5e93d68e0.json"
+  ],
+  "createdAt": "2026-08-08T01:18:01.972Z",
+  "envelopeHash": "02b5ef0b20568ab03b4f78219fe6bd6b3f031c60606e5c50d450ca484aef6a41"
+}

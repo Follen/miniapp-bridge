@@ -1,0 +1,13 @@
+{
+  "schema": "comet.native.partial-allowance.v1",
+  "change": "complete-wmpf-parity",
+  "scopeHash": "44ce0ee0ac1a0fd75761bf4b4e900ec5694d409bd2492670e50c3152ed90440f",
+  "scopeIds": [
+    "scope:f3b2eacc94c547ca4e410deb0bb2ecd9641179c264fa0db962d8f2c79834321b"
+  ],
+  "reason": "完整源码与文档路径均已提供且 scope 0 未归因；仅因 201 条文件明细超过 Native 展示预算接受有界摘要，不缩小实现范围。",
+  "confirmedSummary": "Build rev6 complete: full reference behavior matrix is executable (55 protobuf types/131 fields/55 zero/6 corrupt; 19 categories; all command directions; Frida/CLI/process/config/logger; CDP/context/proxy/capture state machines). coverage-gate passed unit/race/vet; tagged native and Windows build passed. Live smoke reached listeners, attach and CDP connect but target did not open 9421 upstream within 180s; preserve as real failed evidence for Verify.",
+  "sourceRevision": 6,
+  "confirmedAt": "2026-08-08T01:07:59.795Z",
+  "allowanceHash": "6882ac192a309c5848a30a74fdc95292626354bac23e0e617cdf565c154731db"
+}

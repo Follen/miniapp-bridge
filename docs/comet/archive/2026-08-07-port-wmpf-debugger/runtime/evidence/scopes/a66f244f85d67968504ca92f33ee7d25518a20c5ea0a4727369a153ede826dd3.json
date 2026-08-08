@@ -1,0 +1,1328 @@
+{
+  "schema": "comet.native.implementation-scope.v2",
+  "contractHash": "a3c8475e143da1b0f7685a22507d65b250688fc48cdc51df64f6897912b822a6",
+  "baselineProjectionRef": "runtime/evidence/snapshots/64e5f0f8db945b259063ec40e83c6672dde40c371c242cc296015a329e6a7523.json",
+  "baselineProjectionHash": "64e5f0f8db945b259063ec40e83c6672dde40c371c242cc296015a329e6a7523",
+  "currentProjectionRef": "runtime/evidence/snapshots/1069e883da90aafc84a67cd417f95020526d4c045b700698d0ad912987d3520f.json",
+  "currentProjectionHash": "1069e883da90aafc84a67cd417f95020526d4c045b700698d0ad912987d3520f",
+  "complete": false,
+  "declaredArtifacts": [
+    {
+      "path": "KNOWN-DIFFERENCES.md",
+      "kind": "file"
+    },
+    {
+      "path": "LICENSE",
+      "kind": "file"
+    },
+    {
+      "path": "README.md",
+      "kind": "file"
+    },
+    {
+      "path": "cmd",
+      "kind": "directory"
+    },
+    {
+      "path": "configs",
+      "kind": "directory"
+    },
+    {
+      "path": "docs/behavior-matrix.md",
+      "kind": "file"
+    },
+    {
+      "path": "frida",
+      "kind": "directory"
+    },
+    {
+      "path": "go.mod",
+      "kind": "file"
+    },
+    {
+      "path": "go.sum",
+      "kind": "file"
+    },
+    {
+      "path": "internal",
+      "kind": "directory"
+    },
+    {
+      "path": "proto",
+      "kind": "directory"
+    },
+    {
+      "path": "scripts",
+      "kind": "directory"
+    },
+    {
+      "path": "testdata",
+      "kind": "directory"
+    }
+  ],
+  "changes": [
+    {
+      "path": ".gitignore",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "340e1b5c6f18bb2555f29e8740ea73854c3c67d05658e88d8a5a3620b4815e4c",
+        "size": 28
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "KNOWN-DIFFERENCES.md",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "2129634125a6b41212c44326c5e0156fd282ae8b4e9a22198050dee758e80a4a",
+        "size": 1072
+      },
+      "attributedTo": [
+        {
+          "path": "KNOWN-DIFFERENCES.md",
+          "kind": "file"
+        }
+      ]
+    },
+    {
+      "path": "LICENSE",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "498d32907f132c2cd7d3ae269f304aed87156293f63e724b83d9f62ed787d55a",
+        "size": 18322
+      },
+      "attributedTo": [
+        {
+          "path": "LICENSE",
+          "kind": "file"
+        }
+      ]
+    },
+    {
+      "path": "README.md",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "77d6012ca0b67471fd08edcb2864be3f5d3f197839a1a15db6abda64ba73270a",
+        "size": 1925
+      },
+      "attributedTo": [
+        {
+          "path": "README.md",
+          "kind": "file"
+        }
+      ]
+    },
+    {
+      "path": "cmd/miniapp-bridge/main.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "1f657e72f62efea2167b5809dc3a8a3982611e0d475cdd0a4b7a98a64227f526",
+        "size": 1051
+      },
+      "attributedTo": [
+        {
+          "path": "cmd",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "configs/addresses/addresses.11581.json",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "ce43c6e5ab5ebf32169c6364ff5f2ecebf0fb22a1cc957d547b03be41a6f8bc3",
+        "size": 161
+      },
+      "attributedTo": [
+        {
+          "path": "configs",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "configs/addresses/addresses.11633.json",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "ed494ee1f79d012101e1a3c3f8ef2619452d71b4ed6ab10a30dca4009cfe5948",
+        "size": 161
+      },
+      "attributedTo": [
+        {
+          "path": "configs",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "configs/addresses/addresses.13331.json",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "fc6a6523e46dc0ddc80349170b4a6c3713b38dfdc756d4086583197fce8c6383",
+        "size": 161
+      },
+      "attributedTo": [
+        {
+          "path": "configs",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "configs/addresses/addresses.13341.json",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "26a30baba439305ee747a268b878c0f1d40aef4477290fc66e3400e91dcd6b0b",
+        "size": 161
+      },
+      "attributedTo": [
+        {
+          "path": "configs",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "configs/addresses/addresses.13487.json",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "295df8d90a54d6fef2d5f8abf3cb3ccae723067ee69611f8fb4cfd65aaa4abda",
+        "size": 161
+      },
+      "attributedTo": [
+        {
+          "path": "configs",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "configs/addresses/addresses.13639.json",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "5553b9860d88c5bf66e7635ebd7ace00ba9039de868f9fbf1a44c762a4a7c0f6",
+        "size": 161
+      },
+      "attributedTo": [
+        {
+          "path": "configs",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "configs/addresses/addresses.13655.json",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "f4d30a1b0e653413567c26b92b9a11e9e5a25bbe1f36ca975e626ebf72c838e2",
+        "size": 161
+      },
+      "attributedTo": [
+        {
+          "path": "configs",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "configs/addresses/addresses.13871.json",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "8ba55a85f1851f804c24cc9949b35f815dcb15f71985d4fa9778debaf28cf792",
+        "size": 161
+      },
+      "attributedTo": [
+        {
+          "path": "configs",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "configs/addresses/addresses.13909.json",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "769cab36615b90aa905cbe9f5078321ba47906f4f8f1b2a2c2709668d668983a",
+        "size": 161
+      },
+      "attributedTo": [
+        {
+          "path": "configs",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "configs/addresses/addresses.14161.json",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "27fb89a852b7df1dcad185f2729bfe2ad2e54cf7d8893454f22d73732878f49f",
+        "size": 161
+      },
+      "attributedTo": [
+        {
+          "path": "configs",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "configs/addresses/addresses.14199.json",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "4e25cf7f7325381fde8419c56e9ebe1d0be675c11964b75275effceb85872b21",
+        "size": 161
+      },
+      "attributedTo": [
+        {
+          "path": "configs",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "configs/addresses/addresses.14315.json",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "e6f849afc4ce8a77a6e3d0f276533145b79e77d184b38f3885a6052560f386ba",
+        "size": 161
+      },
+      "attributedTo": [
+        {
+          "path": "configs",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "configs/addresses/addresses.16133.json",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "8177e4b4b845cc0ce3f1739303e64b07c343fc9285fe183b02f7537e00c2fed8",
+        "size": 161
+      },
+      "attributedTo": [
+        {
+          "path": "configs",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "configs/addresses/addresses.16203.json",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "57d10774836e3162fe455c3d00c3d00e805fc6c4e2d8117de3803af971b11033",
+        "size": 161
+      },
+      "attributedTo": [
+        {
+          "path": "configs",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "configs/addresses/addresses.16389.json",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "46689f60bdb98d4a78e331960df77f3325ccf79614500272e4db0cbefc56fa0c",
+        "size": 161
+      },
+      "attributedTo": [
+        {
+          "path": "configs",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "configs/addresses/addresses.16467.json",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "5586232b88457a9f04aeb5228d07ff5fec1859651a55b103e9753d889a597ffb",
+        "size": 161
+      },
+      "attributedTo": [
+        {
+          "path": "configs",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "configs/addresses/addresses.16771.json",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "e117bc7731eaec8d257ff6a20075836a921f76c5c687bbd63ea99d22a40c76aa",
+        "size": 161
+      },
+      "attributedTo": [
+        {
+          "path": "configs",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "configs/addresses/addresses.16815.json",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "b00174cd08d5f77375f8a9d6234bdfbdcc2d39f43ec36410cc5e9dd5545e4a09",
+        "size": 161
+      },
+      "attributedTo": [
+        {
+          "path": "configs",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "configs/addresses/addresses.16965.json",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "86bd8ad8937525f35a5ef6d946c2959688bbb3c16bba0c1c209a191dd717fa01",
+        "size": 161
+      },
+      "attributedTo": [
+        {
+          "path": "configs",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "configs/addresses/addresses.17037.json",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "44b63968663a9ea0faf00754b26d3c0175f71511cb395c8f0c4649049de42513",
+        "size": 161
+      },
+      "attributedTo": [
+        {
+          "path": "configs",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "configs/addresses/addresses.17071.json",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "94f690238e1243f2bc907394529e1995df68f831a70d0c52b9720140f7efabcf",
+        "size": 161
+      },
+      "attributedTo": [
+        {
+          "path": "configs",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "configs/addresses/addresses.17127.json",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "f192f78d200a3c2e4a8bf1cf22ff605120e22d0e8ebe4ce06159fd3591483c0f",
+        "size": 161
+      },
+      "attributedTo": [
+        {
+          "path": "configs",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "configs/addresses/addresses.18055.json",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "1e9b815b4a84d6d391058c7b19262d7f740ac3cb1e3d8b0b8f3dbe81cdd4849b",
+        "size": 161
+      },
+      "attributedTo": [
+        {
+          "path": "configs",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "configs/addresses/addresses.18151.json",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "8522901ed56721bcda09edea6b9c74efb31db5c883c5313a824c16577f9af15e",
+        "size": 161
+      },
+      "attributedTo": [
+        {
+          "path": "configs",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "configs/addresses/addresses.18787.json",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "e1f963580cc7657862bb9624341a762fb95b1f3f4214131b6de05b5fd6b0181c",
+        "size": 161
+      },
+      "attributedTo": [
+        {
+          "path": "configs",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "configs/addresses/addresses.18891.json",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "810097b0ffd0ff99990f0e21648d11788627284482ab980a1fbd58b3f1814ffa",
+        "size": 161
+      },
+      "attributedTo": [
+        {
+          "path": "configs",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "configs/addresses/addresses.18955.json",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "bceb8a0f0b76311d275d187a6264390a20da18f7668fdd70ae0ac8b49319a137",
+        "size": 161
+      },
+      "attributedTo": [
+        {
+          "path": "configs",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "configs/addresses/addresses.19027.json",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "6a48beb02571befcbbaf54a7627db40b35afcfbfd138a454b69dbc3bdf25c5d2",
+        "size": 161
+      },
+      "attributedTo": [
+        {
+          "path": "configs",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "configs/addresses/addresses.19201.json",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "1fec2aea3424aab57318bf8e2f70bdcaec56c2ad0da583534b9e7422a4723448",
+        "size": 161
+      },
+      "attributedTo": [
+        {
+          "path": "configs",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "configs/addresses/addresses.19339.json",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "ef3d0fb6233128035ff820774f7756690c2c5fac8236bb397269777176c2a662",
+        "size": 161
+      },
+      "attributedTo": [
+        {
+          "path": "configs",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "configs/addresses/addresses.19459.json",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "2909858378ab12ba600dcb29ab3c1885768e0c32d031b180b7c67603b7202591",
+        "size": 161
+      },
+      "attributedTo": [
+        {
+          "path": "configs",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "configs/addresses/addresses.19481.json",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "57942000e2ffefab941a655adbace196425052e7ed6b3eadac96164b08115edf",
+        "size": 161
+      },
+      "attributedTo": [
+        {
+          "path": "configs",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "configs/addresses/addresses.19749.json",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "33c2039fc87137227dcae10ce7c178ac70d23078782b9e3815e74b95c54b8eca",
+        "size": 161
+      },
+      "attributedTo": [
+        {
+          "path": "configs",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "configs/addresses/addresses.19769.json",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "620cb63fad6d692e8a0d98b50cf70046e339e875b41319e7a0893d08dc58475f",
+        "size": 161
+      },
+      "attributedTo": [
+        {
+          "path": "configs",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "configs/addresses/addresses.19823.json",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "2312ad403a27d84aa61442045fe2b8b45af59ca7535da856f515de2ee14255ff",
+        "size": 161
+      },
+      "attributedTo": [
+        {
+          "path": "configs",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "configs/addresses/addresses.19841.json",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "8ff3a7f6c4ffb0881250a9c92a920475eb28662d16d7a31f676b4bc0f568df14",
+        "size": 161
+      },
+      "attributedTo": [
+        {
+          "path": "configs",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "configs/addresses/addresses.19871.json",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "5aaa9d8ef95848f7ebc434245902cfa669826b361e94c8dc93c60a5203cb5ff1",
+        "size": 161
+      },
+      "attributedTo": [
+        {
+          "path": "configs",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "configs/addresses/addresses.19881.json",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "7aa22049d909e558153cae4aa5b4144a42c0f2eba91dfb0200509557f81a2911",
+        "size": 161
+      },
+      "attributedTo": [
+        {
+          "path": "configs",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "configs/addresses/addresses.19899.json",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "e5983bfd505dc4b0e6f0b23430d5178999e62b35a1b25b39995e95d8226024b8",
+        "size": 161
+      },
+      "attributedTo": [
+        {
+          "path": "configs",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "configs/addresses/addresses.19921.json",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "3f9a55e61375a2af9ac39d80a58f9359306d9685c12a27fd04b4e8c4a3b54d97",
+        "size": 161
+      },
+      "attributedTo": [
+        {
+          "path": "configs",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "configs/addresses/addresses.19977.json",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "29f3d475e4dfff2beb77d473e398b66596e7b70f4b894ea947477737b8370497",
+        "size": 161
+      },
+      "attributedTo": [
+        {
+          "path": "configs",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "configs/addresses/addresses.20001.json",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "b5713d9ca2b32cb200752ba44ed6df5b47d4e84be1dc419e595cf7edb4f8fd27",
+        "size": 161
+      },
+      "attributedTo": [
+        {
+          "path": "configs",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "configs/addresses/addresses.20005.json",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "7d81254b1cc8556686bc491f794a266c761a8855a65bf96ed6994da6438cd911",
+        "size": 161
+      },
+      "attributedTo": [
+        {
+          "path": "configs",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "configs/addresses/addresses.20079.json",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "956a2894b519c55a77d44ddf157c28265b38a67aef0ced66e55455c311e829a0",
+        "size": 161
+      },
+      "attributedTo": [
+        {
+          "path": "configs",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "configs/addresses/addresses.20089.json",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "44ad15f1b4a4d970a0e109e0e41fde89c7cb1e95168d3a89f91c6375ed8b15ab",
+        "size": 161
+      },
+      "attributedTo": [
+        {
+          "path": "configs",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "configs/addresses/addresses.25268.json",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "d474e1c87426a4d6579afa7cd9dfbde262c0f56e5e4c074099a14e5f815ecb60",
+        "size": 220
+      },
+      "attributedTo": [
+        {
+          "path": "configs",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "configs/addresses/addresses.25297.json",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "285120e0b0cafd5564175c535d0866888d08a2bb774213b63db50be745cf69a0",
+        "size": 161
+      },
+      "attributedTo": [
+        {
+          "path": "configs",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "docs/behavior-matrix.md",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "425bfd13b7130963a8ad27ecf2e53ce52724d546c4ee675969d59c2d882fa332",
+        "size": 2831
+      },
+      "attributedTo": [
+        {
+          "path": "docs/behavior-matrix.md",
+          "kind": "file"
+        }
+      ]
+    },
+    {
+      "path": "frida/agent.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "f4d746d6f9b228d805a9fbd13f67a144b546ae1cb4042ff7e59ce301c4f0de0e",
+        "size": 291
+      },
+      "attributedTo": [
+        {
+          "path": "frida",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "frida/hook.js",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "3278db6cce182619d87a19756c83f1081f237859ff214560df1b1758e67c53d5",
+        "size": 4132
+      },
+      "attributedTo": [
+        {
+          "path": "frida",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "go.mod",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "746e69056676fff827726399c73a144421bfcb13bceba0db46569e7325acbce7",
+        "size": 76
+      },
+      "attributedTo": [
+        {
+          "path": "go.mod",
+          "kind": "file"
+        }
+      ]
+    },
+    {
+      "path": "go.sum",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "1737d5523b7264df09b253e86e29f96af295a7bd18e0aaa4373c6099317e065f",
+        "size": 175
+      },
+      "attributedTo": [
+        {
+          "path": "go.sum",
+          "kind": "file"
+        }
+      ]
+    },
+    {
+      "path": "internal/app/app.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "79681f29322f34e6607228a2e319911cc6621b953125ad1f5f263fb4d9fce3a5",
+        "size": 4982
+      },
+      "attributedTo": [
+        {
+          "path": "internal",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "internal/app/app_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "3411314f05b05c60b1e1fa061a3e96c72a63e7f0990285414f32b5fe4f744b98",
+        "size": 1863
+      },
+      "attributedTo": [
+        {
+          "path": "internal",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "internal/capture/capture.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "44d1da90adb1a1407e46abf44a1696f57b3623860a1db348b91b2fa3a634bc3c",
+        "size": 1152
+      },
+      "attributedTo": [
+        {
+          "path": "internal",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "internal/cdp/correlator.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "64def8c497531156bd7254200c8f52c867711488199c056f51a640d835638cfe",
+        "size": 1400
+      },
+      "attributedTo": [
+        {
+          "path": "internal",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "internal/cdp/correlator_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "7cf01349bdd1335a43a6e8ec70d8b1e8f2e96007107d425f2cd6601a826af8e8",
+        "size": 380
+      },
+      "attributedTo": [
+        {
+          "path": "internal",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "internal/config/config.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "93413864095b28a8d48bec2c94b7443539643d0b944433ce60c83ea1036a249e",
+        "size": 1865
+      },
+      "attributedTo": [
+        {
+          "path": "internal",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "internal/config/config_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "79238ebf94313e4bc20b939a1fcaf6f552dc570b9be9d5a59910652f79068ae5",
+        "size": 599
+      },
+      "attributedTo": [
+        {
+          "path": "internal",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "internal/context/registry.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "4bae41b1b94856cb2b6e816cd1be6cd501f08fbadadb56c95a6d31956857686f",
+        "size": 1451
+      },
+      "attributedTo": [
+        {
+          "path": "internal",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "internal/context/registry_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "b5abe61a3d238168b05ad73757f15fedf0dabb6307fb3bd9fa0cfa610363ef2f",
+        "size": 310
+      },
+      "attributedTo": [
+        {
+          "path": "internal",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "internal/frida/bootstrap.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "83d8199ebdc4d37a5b8306801ad65f11525bbae9ced3925945c71eac95ab0b16",
+        "size": 1612
+      },
+      "attributedTo": [
+        {
+          "path": "internal",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "internal/frida/bootstrap_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "1c6135b85e304caed72016dacbc31dd76e058376ea4f690eb68925bc99dccfc4",
+        "size": 1367
+      },
+      "attributedTo": [
+        {
+          "path": "internal",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "internal/frida/cgo_stub.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "18c181bb1725b4d017b7eb94e3565512f1b25c36fa3ba84d746a549312bef6e9",
+        "size": 393
+      },
+      "attributedTo": [
+        {
+          "path": "internal",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "internal/frida/session.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "db25d2bc39309cf21e4d638a131a203b50427f2555702da4d9400e51dcb52ebb",
+        "size": 1510
+      },
+      "attributedTo": [
+        {
+          "path": "internal",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "internal/logging/logger.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "527516df0518f4f2b55013df4012239b8dc6649bf4cfd26b6072e62c74401a30",
+        "size": 621
+      },
+      "attributedTo": [
+        {
+          "path": "internal",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "internal/process/discovery.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "93a77c14174433430cc6a75be5e199d22c998be335d9ff02dc73b84c745c8e0a",
+        "size": 2139
+      },
+      "attributedTo": [
+        {
+          "path": "internal",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "internal/process/discovery_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "022e458ed71b943f9ed0175064e384c66383cd273eefcdcb075b6ec8e3a9f899",
+        "size": 408
+      },
+      "attributedTo": [
+        {
+          "path": "internal",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "internal/proxy/hub.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "fc732bd76efaebc9db23eb075a7bd37235f3e8137b4950a7f2f49c4da36ab528",
+        "size": 2596
+      },
+      "attributedTo": [
+        {
+          "path": "internal",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "internal/proxy/hub_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "7912dc81efd59f5a88645abd474d12cb16b0bb3b5634f49f4e6165912878345a",
+        "size": 735
+      },
+      "attributedTo": [
+        {
+          "path": "internal",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "internal/version/config.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "63bf6f0298a37cc5ad7ee3df5800b0d543b130c77501c741baed0139e13388c7",
+        "size": 1636
+      },
+      "attributedTo": [
+        {
+          "path": "internal",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "internal/version/config_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "233759f2505a9b60beec4d18f7972f9423423c292de29e027acc64e7f1d8169b",
+        "size": 427
+      },
+      "attributedTo": [
+        {
+          "path": "internal",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "internal/wmpf/protocol.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "b4cded01296d3be1bb64d145c67cd9e907d7679b7195bd33520ece3c39124826",
+        "size": 7520
+      },
+      "attributedTo": [
+        {
+          "path": "internal",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "internal/wmpf/protocol_test.go",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "ecf82154f0490250e0ff069388e5e4711d28da86bf69d4a69bce5871beaee0ba",
+        "size": 1379
+      },
+      "attributedTo": [
+        {
+          "path": "internal",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "proto/wmpf_remote_debug.proto",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "acbd1a09392f1423a47bbdf59bf88fd7d7d02a753892921c9339f8b5a20dc083",
+        "size": 6031
+      },
+      "attributedTo": [
+        {
+          "path": "proto",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "scripts/build-windows.ps1",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "0e1172025db27c4d2b5254e4f935af9b56b65ed7b4428112c90bb0972fb988ae",
+        "size": 383
+      },
+      "attributedTo": [
+        {
+          "path": "scripts",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "scripts/smoke-windows.ps1",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "bc51539a6a2bc73d855857d8000cb2b2e10125c1caadfeb88264d3912d8456ef",
+        "size": 802
+      },
+      "attributedTo": [
+        {
+          "path": "scripts",
+          "kind": "directory"
+        }
+      ]
+    },
+    {
+      "path": "testdata/golden/chrome_devtools.json",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "78b3c1185aa0e7958a574598d2233fdc8c6c97a38caac3ffa41acc9f66aab6a3",
+        "size": 182
+      },
+      "attributedTo": [
+        {
+          "path": "testdata",
+          "kind": "directory"
+        }
+      ]
+    }
+  ],
+  "unattributed": [
+    {
+      "path": ".gitignore",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "340e1b5c6f18bb2555f29e8740ea73854c3c67d05658e88d8a5a3620b4815e4c",
+        "size": 28
+      },
+      "attributedTo": []
+    }
+  ],
+  "unresolvedScopes": [
+    {
+      "id": "scope:c3f8be1862047ff4a4df915443f04b1f226da2ebc5629cc5d23a5fbffeffb5bb",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": ".gitignore",
+      "reason": "Changed path is not covered by a declared artifact: .gitignore"
+    }
+  ],
+  "noCodeReason": null,
+  "scopeHash": "a66f244f85d67968504ca92f33ee7d25518a20c5ea0a4727369a153ede826dd3"
+}

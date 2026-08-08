@@ -1,0 +1,23 @@
+schema: comet.native.v3
+minimum_runtime_version: 3
+revision: 5
+verification_protocol: legacy-v1
+name: port-wmpf-debugger
+language: zh-CN
+phase: archive
+brief: brief.md
+approval: confirmed
+approved_contract_hash: a3c8475e143da1b0f7685a22507d65b250688fc48cdc51df64f6897912b822a6
+spec_changes:
+  - capability: miniapp-bridge
+    operation: create
+    source: specs/miniapp-bridge/spec.md
+    base_hash: null
+verification_result: pass
+verification_report: verification.md
+implementation_scope: runtime/evidence/scopes/096e5f06308de9ac92312f25a87bfb907f1f46d39c0ab3bdebb9caa2d63f250c.json
+verification_evidence: runtime/evidence/verifications/405c30242ea16a9ec0159a7d4b7581a5ed41345e3a2facb9737177fcb14d4c31.json
+partial_allowance: null
+archived: true
+created_at: 2026-08-07
+run_id: cdaaee09-da9d-477a-9cee-8f0ed2a21513

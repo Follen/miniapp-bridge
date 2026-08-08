@@ -1,0 +1,28 @@
+{
+  "schema": "comet.native.verification-receipt.v3",
+  "kind": "manual-evidence",
+  "role": "acceptance-evidence",
+  "status": "passed",
+  "bindings": {
+    "change": "port-wmpf-debugger",
+    "sourceRevision": 3,
+    "contractHash": "a3c8475e143da1b0f7685a22507d65b250688fc48cdc51df64f6897912b822a6",
+    "scopeHash": "096e5f06308de9ac92312f25a87bfb907f1f46d39c0ab3bdebb9caa2d63f250c",
+    "snapshotHash": "1069e883da90aafc84a67cd417f95020526d4c045b700698d0ad912987d3520f",
+    "artifactHash": "3753fecdfe3ee4f5d6205834f127dd7ad80ce73d6aad7066bbee050c0d31b36f"
+  },
+  "acceptanceIds": [
+    "acceptance-ba06c2d11157eebc7d500b12a8b91db4775102f44ae190fb9a8bf248b01d5738"
+  ],
+  "actor": "native-runtime:manual-evidence",
+  "issuedAt": "2026-08-07T17:56:40.648Z",
+  "evidence": {
+    "steps": [
+      "WindowsSmoke"
+    ],
+    "observations": [
+      "Listeners9421And62000Ready"
+    ]
+  },
+  "receiptHash": "30cf180b0c34325828ca833e97c6cefdbcf3f1967bff7cea462e1b45efe9fba0"
+}

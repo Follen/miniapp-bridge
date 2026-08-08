@@ -1,0 +1,70 @@
+{
+  "schema": "comet.native.verification-evidence.v2",
+  "change": "complete-wmpf-parity",
+  "sourceRevision": 5,
+  "result": "fail",
+  "freshness": "partial",
+  "contractHash": "febb014a24c851bad6df86ec162c7e420eafca5c2faada82d8cf67530226f764",
+  "acceptanceCriteriaHash": "d6ac962c912a9f52d64a7799a48da959077aa10d861488cf2d8822e9ba68f48b",
+  "implementationScopeRef": "runtime/evidence/scopes/0120b22e4a0da34c621e77198cec1dc3835e519b7675625b46fbaf4b0dc41dbf.json",
+  "implementationScopeHash": "0120b22e4a0da34c621e77198cec1dc3835e519b7675625b46fbaf4b0dc41dbf",
+  "reportRef": "verification.md",
+  "reportHash": "a2eed08a5a7092e1fa419dc7468dff2a14bc9820733a47a990a0b18d3c3af2ff",
+  "acceptanceTrace": {
+    "schema": "comet.native.acceptance-trace.v2",
+    "nativeRootRef": "docs/comet",
+    "criteriaHash": "d6ac962c912a9f52d64a7799a48da959077aa10d861488cf2d8822e9ba68f48b",
+    "total": 5,
+    "evidenced": 0,
+    "skipped": 5,
+    "entries": [
+      {
+        "acceptanceId": "acceptance-57ca7c9d743817f8abe630b2c6877d87eac38087b67b22896dd99d836c762eed",
+        "status": "failed",
+        "kind": "spec-must",
+        "source": "specs/complete-parity/spec.md",
+        "evidenceRefs": [],
+        "skippedReason": "Full observable-behavior coverage is incomplete; return to Build and expand differential tests."
+      },
+      {
+        "acceptanceId": "acceptance-6a700f3df1e43a190d215f96f3c1de1400407c207f07de14532042dfa67041de",
+        "status": "failed",
+        "kind": "spec-must",
+        "source": "specs/complete-parity/spec.md",
+        "evidenceRefs": [],
+        "skippedReason": "Full observable-behavior coverage is incomplete; return to Build and expand differential tests."
+      },
+      {
+        "acceptanceId": "acceptance-8fc22df3cdf7b059bdf074c158b79eebdeca763ce0fe3f0cd5c29b5e3ec056ba",
+        "status": "failed",
+        "kind": "spec-must",
+        "source": "specs/complete-parity/spec.md",
+        "evidenceRefs": [],
+        "skippedReason": "Full observable-behavior coverage is incomplete; return to Build and expand differential tests."
+      },
+      {
+        "acceptanceId": "acceptance-b0f8901c7a7bd76470106a6537cbf7e24560956e7e85f7df8462349b7dff7eee",
+        "status": "failed",
+        "kind": "spec-must",
+        "source": "specs/complete-parity/spec.md",
+        "evidenceRefs": [],
+        "skippedReason": "Full observable-behavior coverage is incomplete; return to Build and expand differential tests."
+      },
+      {
+        "acceptanceId": "acceptance-e2d4c3c9a3f8cd4f2fc254e9543b635c32447e9761a9546533bcda115c34e84f",
+        "status": "failed",
+        "kind": "spec-must",
+        "source": "specs/complete-parity/spec.md",
+        "evidenceRefs": [],
+        "skippedReason": "Full observable-behavior coverage is incomplete; return to Build and expand differential tests."
+      }
+    ],
+    "traceHash": "75619bddd12782359dd5d257126522b1d5619fae66f216b49e8e2aff7bdd9376"
+  },
+  "partialAllowanceRef": "runtime/evidence/allowances/f4fe1c510ce90dae68d8f08e464316aff7f6df278793d62202e90226a2476efd.json",
+  "partialAllowanceHash": "f4fe1c510ce90dae68d8f08e464316aff7f6df278793d62202e90226a2476efd",
+  "requiredReceiptRefs": [],
+  "receiptRefs": [],
+  "createdAt": "2026-08-08T00:27:06.005Z",
+  "envelopeHash": "cd4d97e0b26d11ba74aa294f6470e3c5faaec3a5f0bea45317abb0220851676e"
+}

@@ -1,0 +1,99 @@
+{
+  "schema": "comet.native.verification-evidence.v2",
+  "change": "port-wmpf-debugger",
+  "sourceRevision": 3,
+  "result": "pass",
+  "freshness": "complete",
+  "contractHash": "a3c8475e143da1b0f7685a22507d65b250688fc48cdc51df64f6897912b822a6",
+  "acceptanceCriteriaHash": "6a777775c63c49368f2248be7ac6fc9e2fa0ae21cdd45fd95cea606c270e5713",
+  "implementationScopeRef": "runtime/evidence/scopes/096e5f06308de9ac92312f25a87bfb907f1f46d39c0ab3bdebb9caa2d63f250c.json",
+  "implementationScopeHash": "096e5f06308de9ac92312f25a87bfb907f1f46d39c0ab3bdebb9caa2d63f250c",
+  "reportRef": "verification.md",
+  "reportHash": "8cbfbf93bdbb49951fbdbbff64822493cbf0b1610d099445d162f688420c555b",
+  "acceptanceTrace": {
+    "schema": "comet.native.acceptance-trace.v2",
+    "nativeRootRef": "docs/comet",
+    "criteriaHash": "6a777775c63c49368f2248be7ac6fc9e2fa0ae21cdd45fd95cea606c270e5713",
+    "total": 6,
+    "evidenced": 6,
+    "skipped": 0,
+    "entries": [
+      {
+        "acceptanceId": "acceptance-1ca4a0d9b5c337b582460cf486daf7b71d0280e846de492c6a625e10586480fe",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/miniapp-bridge/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/7b710bc2e09107173e68887e66294166e33f89edf42dd96cbdbaf4766956efe1.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-3c71936f8859f1c6008462a03c5e7e104741204217e592d37d67a9997545d173",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/miniapp-bridge/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/320fe742134bc8bb7d9f158622d40893655f53d990a3714293a33aa2574d574f.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-734d1318f3d82ae0f7387dc3b202ccda27bd326559814eea80c81bca18ac5197",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/miniapp-bridge/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/a4d19b71a71d974a0754927828111fd2acd0bbbc7468670b4db37dcb3b014a5b.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-ba06c2d11157eebc7d500b12a8b91db4775102f44ae190fb9a8bf248b01d5738",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/miniapp-bridge/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/30cf180b0c34325828ca833e97c6cefdbcf3f1967bff7cea462e1b45efe9fba0.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-bc21b3837d32d52c0b53f0be2f07e063e792114696eb893043203df1e4d35f7d",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/miniapp-bridge/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/ac4cb9dac351df9303b0e04bc534449af6a099fe07ae14495a3247c985145cb1.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-cdf4662e7792451e9f98fe80bdba71183d6b8cddb0efbd50d34bf85997744c23",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/miniapp-bridge/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/3cafc8c2da365553b2e1fe6a8886273fa48f6993c030c10a249fb265811b300c.json"
+        ],
+        "skippedReason": null
+      }
+    ],
+    "traceHash": "a8aaf2e9ebdf283051c409bcba607be6353265e800ef8de34839e1c038c5d594"
+  },
+  "partialAllowanceRef": null,
+  "partialAllowanceHash": null,
+  "requiredReceiptRefs": [
+    "runtime/evidence/receipts/e63d950fdd325a6b54c99c74147fda346a0c8d199eecf476fdc7c900addc9a8e.json"
+  ],
+  "receiptRefs": [
+    "runtime/evidence/receipts/30cf180b0c34325828ca833e97c6cefdbcf3f1967bff7cea462e1b45efe9fba0.json",
+    "runtime/evidence/receipts/320fe742134bc8bb7d9f158622d40893655f53d990a3714293a33aa2574d574f.json",
+    "runtime/evidence/receipts/3cafc8c2da365553b2e1fe6a8886273fa48f6993c030c10a249fb265811b300c.json",
+    "runtime/evidence/receipts/7b710bc2e09107173e68887e66294166e33f89edf42dd96cbdbaf4766956efe1.json",
+    "runtime/evidence/receipts/a4d19b71a71d974a0754927828111fd2acd0bbbc7468670b4db37dcb3b014a5b.json",
+    "runtime/evidence/receipts/ac4cb9dac351df9303b0e04bc534449af6a099fe07ae14495a3247c985145cb1.json"
+  ],
+  "createdAt": "2026-08-07T17:59:51.302Z",
+  "envelopeHash": "405c30242ea16a9ec0159a7d4b7581a5ed41345e3a2facb9737177fcb14d4c31"
+}

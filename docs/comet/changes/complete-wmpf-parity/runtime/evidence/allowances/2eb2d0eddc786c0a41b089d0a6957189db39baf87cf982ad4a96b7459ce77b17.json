@@ -1,0 +1,13 @@
+{
+  "schema": "comet.native.partial-allowance.v1",
+  "change": "complete-wmpf-parity",
+  "scopeHash": "eb23d0cbe77760b301d3ccc8fb0a0e2fa9913ac772f514a0c6ef2faa7a5f55ad",
+  "scopeIds": [
+    "scope:f3b2eacc94c547ca4e410deb0bb2ecd9641179c264fa0db962d8f2c79834321b"
+  ],
+  "reason": "完整源码与文档路径均已提供且 scope 0 未归因；仅接受 201 条文件明细展示溢出，不缩小实现范围。",
+  "confirmedSummary": "Build rev8: corrected read-only coverage gate; all implementation and reference fixtures are stable. Unit/race/tagged/vet/build passed; live smoke recorded listener+attach success but no target upstream. Prepare Verify receipts without commands that mutate artifacts.",
+  "sourceRevision": 8,
+  "confirmedAt": "2026-08-08T01:12:21.292Z",
+  "allowanceHash": "2eb2d0eddc786c0a41b089d0a6957189db39baf87cf982ad4a96b7459ce77b17"
+}

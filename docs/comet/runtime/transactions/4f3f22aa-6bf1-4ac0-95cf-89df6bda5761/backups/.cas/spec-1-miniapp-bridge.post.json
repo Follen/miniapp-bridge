@@ -1,0 +1,11 @@
+{
+  "schema": "comet.native.archive-cas.v1",
+  "operationId": "spec-1-miniapp-bridge",
+  "role": "post",
+  "hash": "9e8ac5c7b09265b0eb3d96c95d725a77b51ff9e438f229bada1a59a010cd6508",
+  "identity": {
+    "dev": 2421791372,
+    "ino": 3659174697939675,
+    "birthtimeMs": 1786125613262.334
+  }
+}

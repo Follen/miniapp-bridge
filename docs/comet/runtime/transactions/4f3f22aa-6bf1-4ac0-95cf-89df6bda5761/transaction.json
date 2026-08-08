@@ -1,0 +1,27 @@
+{
+  "schema": "comet.native.transaction.v2",
+  "id": "4f3f22aa-6bf1-4ac0-95cf-89df6bda5761",
+  "kind": "archive",
+  "status": "committed",
+  "change": "port-wmpf-debugger",
+  "createdAt": "2026-08-07T18:00:11.138Z",
+  "preflightHash": "b909f86286dfef2f53e71785f9dffb11328e7e53835198457ac82f5ce506babb",
+  "operations": [
+    {
+      "id": "spec-1-miniapp-bridge",
+      "type": "write",
+      "target": "specs/miniapp-bridge/spec.md",
+      "staged": "runtime/transactions/4f3f22aa-6bf1-4ac0-95cf-89df6bda5761/staged/specs/miniapp-bridge/spec.md",
+      "expectedTargetHash": null,
+      "stagedHash": "9e8ac5c7b09265b0eb3d96c95d725a77b51ff9e438f229bada1a59a010cd6508"
+    },
+    {
+      "id": "archive-change",
+      "type": "move",
+      "source": "changes/port-wmpf-debugger",
+      "target": "archive/2026-08-07-port-wmpf-debugger",
+      "expectedSourceHash": "0bee2fe8d9521792beb09bb799882f2ab9375377d538857ba3a05d7d7d7079de",
+      "expectedTargetHash": null
+    }
+  ]
+}

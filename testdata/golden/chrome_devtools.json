@@ -1,0 +1,9 @@
+{
+  "category": "chromeDevtools",
+  "protobuf_hex": "080112077b226964223a317d1a03637478",
+  "decoded": {
+    "op_id": 1,
+    "payload": "{\"id\":1}",
+    "jscontext_id": "ctx"
+  }
+}

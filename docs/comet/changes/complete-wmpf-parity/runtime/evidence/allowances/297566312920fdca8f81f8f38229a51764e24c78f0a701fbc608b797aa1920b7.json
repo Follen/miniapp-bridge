@@ -1,0 +1,13 @@
+{
+  "schema": "comet.native.partial-allowance.v1",
+  "change": "complete-wmpf-parity",
+  "scopeHash": "f490bb7e7f63cca24550c0e71ea640156cce9e1b320997413fb022e28428bec1",
+  "scopeIds": [
+    "scope:f3b2eacc94c547ca4e410deb0bb2ecd9641179c264fa0db962d8f2c79834321b"
+  ],
+  "reason": "完整源码与文档路径均已提供且 scope 0 未归因；仅接受 201 条明细展示溢出。",
+  "confirmedSummary": "Final Build: deterministic reference gate 100%, all unit/race/tagged/vet/build checks passed, and manual post-attach smoke now established WMPF upstream and returned Runtime.enable/Debugger.enable/Runtime.evaluate with 246 events; shutdown released both ports. Enter final Verify.",
+  "sourceRevision": 10,
+  "confirmedAt": "2026-08-08T03:54:31.530Z",
+  "allowanceHash": "297566312920fdca8f81f8f38229a51764e24c78f0a701fbc608b797aa1920b7"
+}

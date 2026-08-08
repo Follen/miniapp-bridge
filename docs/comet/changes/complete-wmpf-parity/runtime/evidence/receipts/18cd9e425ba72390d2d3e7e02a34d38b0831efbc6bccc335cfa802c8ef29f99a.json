@@ -1,0 +1,30 @@
+{
+  "schema": "comet.native.verification-receipt.v3",
+  "kind": "manual-evidence",
+  "role": "acceptance-evidence",
+  "status": "passed",
+  "bindings": {
+    "change": "complete-wmpf-parity",
+    "sourceRevision": 17,
+    "contractHash": "59fffcb3030f7c89d0ea4034e8a2fa042d5f2623726bf108bc392f6b988846be",
+    "scopeHash": "39c692cc84a1d6b656a81f78eb30aca25da8760b0a2161125a9f9e7c72e197d3",
+    "snapshotHash": "fac433db17f2b9d8eda56511fe271945082176abd7be3a6c81e97980c06db2c5",
+    "artifactHash": "bb49e1e234b0a379728e6a05a347012fb3fa86141bf8094b926302a33cb5b8d4"
+  },
+  "acceptanceIds": [
+    "acceptance-57ca7c9d743817f8abe630b2c6877d87eac38087b67b22896dd99d836c762eed",
+    "acceptance-5a08b12a267314c48da379aad3c1f7d706b9d9e0af8776c348bbfef2285a7913",
+    "acceptance-8fc22df3cdf7b059bdf074c158b79eebdeca763ce0fe3f0cd5c29b5e3ec056ba"
+  ],
+  "actor": "native-runtime:manual-evidence",
+  "issuedAt": "2026-08-08T08:28:45.594Z",
+  "evidence": {
+    "steps": [
+      "执行 powershell -ExecutionPolicy Bypass -File scripts\\build-windows.ps1；构建 zlib 1.3.1、frida-core 17.3.2 shim，运行 -tags frida 全包测试并打包 EXE/DLL。"
+    ],
+    "observations": [
+      "退出状态 0。zlib archive SHA256=9A93B2B7DFDAC77CEBA5A558A580E74667DD6FEDE4585B91EEFB60F03B72DF23，libz.a SHA256=9DE45B674DA1FC9F11D3E1833CFC6FA98AE27468D5F0E222556E65FC9B950D2A；tagged tests 全通过；dist/miniapp-bridge.exe SHA256=68A6367C4C8EED44CAFF7AF9E2DDC8910F3F6E8EDE1274C45E993AAAE9BAC480，dist/miniapp-frida.dll SHA256=BE79569BC2C764F72A37888A06635F7E6312C5155838D35F64C49BFAFBE42B90。"
+    ]
+  },
+  "receiptHash": "18cd9e425ba72390d2d3e7e02a34d38b0831efbc6bccc335cfa802c8ef29f99a"
+}

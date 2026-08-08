@@ -1,0 +1,43 @@
+package frida
+
+import (
+	"context"
+	"miniapp-bridge/internal/process"
+	"testing"
+)
+
+type fakeDevice struct {
+	processes []process.Process
+	attached  uint32
+	source    string
+}
+
+func (d *fakeDevice) Enumerate(context.Context) ([]process.Process, error) { return d.processes, nil }
+func (d *fakeDevice) Attach(pid uint32) (Session, error) {
+	d.attached = pid
+	return &fakeSession{owner: d}, nil
+}
+
+type fakeSession struct{ owner *fakeDevice }
+
+func (s *fakeSession) LoadScript(src string) (Script, error) {
+	s.owner.source = src
+	return &fakeScript{}, nil
+}
+func (s *fakeSession) Detach() error { return nil }
+
+type fakeScript struct{}
+
+func (*fakeScript) Unload() error     { return nil }
+func (*fakeScript) Post([]byte) error { return nil }
+func TestBootstrapRequiresExactConfig(t *testing.T) {
+	d := &fakeDevice{processes: []process.Process{{PID: 10, ParentPID: 99, Name: "WeChatAppEx.exe", Version: 25297}, {PID: 11, ParentPID: 99, Name: "WeChatAppEx.exe", Version: 25297}, {PID: 99, Name: "host", Version: 25297}}}
+	b := Bootstrap{Device: d, ConfigDir: "../../configs/addresses"}
+	s, script, target, e := b.Attach(context.Background())
+	if e != nil || s == nil || script == nil || target.PID != 99 {
+		t.Fatalf("attach target=%+v err=%v", target, e)
+	}
+	if d.attached != 99 || d.source == "" {
+		t.Fatalf("attach pid=%d source=%d", d.attached, len(d.source))
+	}
+}

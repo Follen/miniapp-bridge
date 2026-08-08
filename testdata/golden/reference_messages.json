@@ -1,0 +1,3582 @@
+{
+  "reference_commit": "2b90b77fc6f13dd18480cd07d7dd9c052cc26c9d",
+  "fixtures": [
+    {
+      "type": "WARemoteDebug_AddJsContext",
+      "input": {
+        "jscontextId": "jscontextId-value",
+        "jscontextName": "jscontextName-value"
+      },
+      "protobuf_hex": "0a116a73636f6e7465787449642d76616c756512136a73636f6e746578744e616d652d76616c7565",
+      "decoded": {
+        "jscontextId": "jscontextId-value",
+        "jscontextName": "jscontextName-value"
+      },
+      "explicit_zero": {
+        "input": {
+          "jscontextId": "",
+          "jscontextName": ""
+        },
+        "protobuf_hex": "0a001200",
+        "decoded": {
+          "jscontextId": "",
+          "jscontextName": ""
+        }
+      },
+      "fields": [
+        {
+          "field": "jscontextId",
+          "input": {
+            "jscontextId": "jscontextId-value"
+          },
+          "protobuf_hex": "0a116a73636f6e7465787449642d76616c7565",
+          "decoded": {
+            "jscontextId": "jscontextId-value",
+            "jscontextName": ""
+          }
+        },
+        {
+          "field": "jscontextName",
+          "input": {
+            "jscontextName": "jscontextName-value"
+          },
+          "protobuf_hex": "12136a73636f6e746578744e616d652d76616c7565",
+          "decoded": {
+            "jscontextId": "",
+            "jscontextName": "jscontextName-value"
+          }
+        }
+      ]
+    },
+    {
+      "type": "WARemoteDebug_BaseReq",
+      "input": {
+        "clientVersion": 7
+      },
+      "protobuf_hex": "0807",
+      "decoded": {
+        "clientVersion": 7
+      },
+      "explicit_zero": {
+        "input": {
+          "clientVersion": 0
+        },
+        "protobuf_hex": "0800",
+        "decoded": {
+          "clientVersion": 0
+        }
+      },
+      "fields": [
+        {
+          "field": "clientVersion",
+          "input": {
+            "clientVersion": 7
+          },
+          "protobuf_hex": "0807",
+          "decoded": {
+            "clientVersion": 7
+          }
+        }
+      ]
+    },
+    {
+      "type": "WARemoteDebug_BaseResp",
+      "input": {
+        "errcode": 7,
+        "errmsg": "errmsg-value"
+      },
+      "protobuf_hex": "0807120c6572726d73672d76616c7565",
+      "decoded": {
+        "errcode": 7,
+        "errmsg": "errmsg-value"
+      },
+      "explicit_zero": {
+        "input": {
+          "errcode": 0,
+          "errmsg": ""
+        },
+        "protobuf_hex": "08001200",
+        "decoded": {
+          "errcode": 0,
+          "errmsg": ""
+        }
+      },
+      "fields": [
+        {
+          "field": "errcode",
+          "input": {
+            "errcode": 7
+          },
+          "protobuf_hex": "0807",
+          "decoded": {
+            "errcode": 7,
+            "errmsg": ""
+          }
+        },
+        {
+          "field": "errmsg",
+          "input": {
+            "errmsg": "errmsg-value"
+          },
+          "protobuf_hex": "120c6572726d73672d76616c7565",
+          "decoded": {
+            "errcode": 0,
+            "errmsg": "errmsg-value"
+          }
+        }
+      ]
+    },
+    {
+      "type": "WARemoteDebug_Breakpoint",
+      "input": {
+        "isHit": true
+      },
+      "protobuf_hex": "0801",
+      "decoded": {
+        "isHit": true
+      },
+      "explicit_zero": {
+        "input": {
+          "isHit": false
+        },
+        "protobuf_hex": "0800",
+        "decoded": {
+          "isHit": false
+        }
+      },
+      "fields": [
+        {
+          "field": "isHit",
+          "input": {
+            "isHit": true
+          },
+          "protobuf_hex": "0801",
+          "decoded": {
+            "isHit": true
+          }
+        }
+      ]
+    },
+    {
+      "type": "WARemoteDebug_CallInterface",
+      "input": {
+        "methodArgList": [
+          "methodArgList-value",
+          "methodArgList-value-2"
+        ],
+        "objName": "objName-value",
+        "methodName": "methodName-value",
+        "callId": 7
+      },
+      "protobuf_hex": "0a0d6f626a4e616d652d76616c756512106d6574686f644e616d652d76616c75651a136d6574686f644172674c6973742d76616c75651a156d6574686f644172674c6973742d76616c75652d322007",
+      "decoded": {
+        "methodArgList": [
+          "methodArgList-value",
+          "methodArgList-value-2"
+        ],
+        "objName": "objName-value",
+        "methodName": "methodName-value",
+        "callId": 7
+      },
+      "explicit_zero": {
+        "input": {
+          "methodArgList": [],
+          "objName": "",
+          "methodName": "",
+          "callId": 0
+        },
+        "protobuf_hex": "0a0012002000",
+        "decoded": {
+          "methodArgList": [],
+          "objName": "",
+          "methodName": "",
+          "callId": 0
+        }
+      },
+      "fields": [
+        {
+          "field": "methodArgList",
+          "input": {
+            "methodArgList": [
+              "methodArgList-value",
+              "methodArgList-value-2"
+            ]
+          },
+          "protobuf_hex": "1a136d6574686f644172674c6973742d76616c75651a156d6574686f644172674c6973742d76616c75652d32",
+          "decoded": {
+            "methodArgList": [
+              "methodArgList-value",
+              "methodArgList-value-2"
+            ],
+            "objName": "",
+            "methodName": "",
+            "callId": 0
+          }
+        },
+        {
+          "field": "objName",
+          "input": {
+            "objName": "objName-value"
+          },
+          "protobuf_hex": "0a0d6f626a4e616d652d76616c7565",
+          "decoded": {
+            "methodArgList": [],
+            "objName": "objName-value",
+            "methodName": "",
+            "callId": 0
+          }
+        },
+        {
+          "field": "methodName",
+          "input": {
+            "methodName": "methodName-value"
+          },
+          "protobuf_hex": "12106d6574686f644e616d652d76616c7565",
+          "decoded": {
+            "methodArgList": [],
+            "objName": "",
+            "methodName": "methodName-value",
+            "callId": 0
+          }
+        },
+        {
+          "field": "callId",
+          "input": {
+            "callId": 7
+          },
+          "protobuf_hex": "2007",
+          "decoded": {
+            "methodArgList": [],
+            "objName": "",
+            "methodName": "",
+            "callId": 7
+          }
+        }
+      ]
+    },
+    {
+      "type": "WARemoteDebug_CallInterfaceResult",
+      "input": {
+        "ret": "ret-value",
+        "callId": 7,
+        "debugInfo": "debugInfo-value"
+      },
+      "protobuf_hex": "0a097265742d76616c756510071a0f6465627567496e666f2d76616c7565",
+      "decoded": {
+        "ret": "ret-value",
+        "callId": 7,
+        "debugInfo": "debugInfo-value"
+      },
+      "explicit_zero": {
+        "input": {
+          "ret": "",
+          "callId": 0,
+          "debugInfo": ""
+        },
+        "protobuf_hex": "0a0010001a00",
+        "decoded": {
+          "ret": "",
+          "callId": 0,
+          "debugInfo": ""
+        }
+      },
+      "fields": [
+        {
+          "field": "ret",
+          "input": {
+            "ret": "ret-value"
+          },
+          "protobuf_hex": "0a097265742d76616c7565",
+          "decoded": {
+            "ret": "ret-value",
+            "callId": 0,
+            "debugInfo": ""
+          }
+        },
+        {
+          "field": "callId",
+          "input": {
+            "callId": 7
+          },
+          "protobuf_hex": "1007",
+          "decoded": {
+            "ret": "",
+            "callId": 7,
+            "debugInfo": ""
+          }
+        },
+        {
+          "field": "debugInfo",
+          "input": {
+            "debugInfo": "debugInfo-value"
+          },
+          "protobuf_hex": "1a0f6465627567496e666f2d76616c7565",
+          "decoded": {
+            "ret": "",
+            "callId": 0,
+            "debugInfo": "debugInfo-value"
+          }
+        }
+      ]
+    },
+    {
+      "type": "WARemoteDebug_ChromeDevtools",
+      "input": {
+        "opId": 7,
+        "payload": "payload-value",
+        "jscontextId": "jscontextId-value"
+      },
+      "protobuf_hex": "0807120d7061796c6f61642d76616c75651a116a73636f6e7465787449642d76616c7565",
+      "decoded": {
+        "opId": "7",
+        "payload": "payload-value",
+        "jscontextId": "jscontextId-value"
+      },
+      "explicit_zero": {
+        "input": {
+          "opId": 0,
+          "payload": "",
+          "jscontextId": ""
+        },
+        "protobuf_hex": "080012001a00",
+        "decoded": {
+          "opId": "0",
+          "payload": "",
+          "jscontextId": ""
+        }
+      },
+      "fields": [
+        {
+          "field": "opId",
+          "input": {
+            "opId": 7
+          },
+          "protobuf_hex": "0807",
+          "decoded": {
+            "opId": "7",
+            "payload": "",
+            "jscontextId": ""
+          }
+        },
+        {
+          "field": "payload",
+          "input": {
+            "payload": "payload-value"
+          },
+          "protobuf_hex": "120d7061796c6f61642d76616c7565",
+          "decoded": {
+            "opId": "0",
+            "payload": "payload-value",
+            "jscontextId": ""
+          }
+        },
+        {
+          "field": "jscontextId",
+          "input": {
+            "jscontextId": "jscontextId-value"
+          },
+          "protobuf_hex": "1a116a73636f6e7465787449642d76616c7565",
+          "decoded": {
+            "opId": "0",
+            "payload": "",
+            "jscontextId": "jscontextId-value"
+          }
+        }
+      ]
+    },
+    {
+      "type": "WARemoteDebug_ChromeDevtoolsResult",
+      "input": {
+        "opId": 7,
+        "payload": "payload-value",
+        "jscontextId": "jscontextId-value"
+      },
+      "protobuf_hex": "0807120d7061796c6f61642d76616c75651a116a73636f6e7465787449642d76616c7565",
+      "decoded": {
+        "opId": "7",
+        "payload": "payload-value",
+        "jscontextId": "jscontextId-value"
+      },
+      "explicit_zero": {
+        "input": {
+          "opId": 0,
+          "payload": "",
+          "jscontextId": ""
+        },
+        "protobuf_hex": "080012001a00",
+        "decoded": {
+          "opId": "0",
+          "payload": "",
+          "jscontextId": ""
+        }
+      },
+      "fields": [
+        {
+          "field": "opId",
+          "input": {
+            "opId": 7
+          },
+          "protobuf_hex": "0807",
+          "decoded": {
+            "opId": "7",
+            "payload": "",
+            "jscontextId": ""
+          }
+        },
+        {
+          "field": "payload",
+          "input": {
+            "payload": "payload-value"
+          },
+          "protobuf_hex": "120d7061796c6f61642d76616c7565",
+          "decoded": {
+            "opId": "0",
+            "payload": "payload-value",
+            "jscontextId": ""
+          }
+        },
+        {
+          "field": "jscontextId",
+          "input": {
+            "jscontextId": "jscontextId-value"
+          },
+          "protobuf_hex": "1a116a73636f6e7465787449642d76616c7565",
+          "decoded": {
+            "opId": "0",
+            "payload": "",
+            "jscontextId": "jscontextId-value"
+          }
+        }
+      ]
+    },
+    {
+      "type": "WARemoteDebug_CommReq",
+      "input": {
+        "baseRequest": {}
+      },
+      "protobuf_hex": "0a00",
+      "decoded": {
+        "baseRequest": {
+          "clientVersion": 0
+        }
+      },
+      "explicit_zero": {
+        "input": {
+          "baseRequest": {}
+        },
+        "protobuf_hex": "0a00",
+        "decoded": {
+          "baseRequest": {
+            "clientVersion": 0
+          }
+        }
+      },
+      "fields": [
+        {
+          "field": "baseRequest",
+          "input": {
+            "baseRequest": {}
+          },
+          "protobuf_hex": "0a00",
+          "decoded": {
+            "baseRequest": {
+              "clientVersion": 0
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "WARemoteDebug_CommResp",
+      "input": {
+        "baseResponse": {}
+      },
+      "protobuf_hex": "0a00",
+      "decoded": {
+        "baseResponse": {
+          "errcode": 0,
+          "errmsg": ""
+        }
+      },
+      "explicit_zero": {
+        "input": {
+          "baseResponse": {}
+        },
+        "protobuf_hex": "0a00",
+        "decoded": {
+          "baseResponse": {
+            "errcode": 0,
+            "errmsg": ""
+          }
+        }
+      },
+      "fields": [
+        {
+          "field": "baseResponse",
+          "input": {
+            "baseResponse": {}
+          },
+          "protobuf_hex": "0a00",
+          "decoded": {
+            "baseResponse": {
+              "errcode": 0,
+              "errmsg": ""
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "WARemoteDebug_ConnectJsContext",
+      "input": {
+        "jscontextId": "jscontextId-value"
+      },
+      "protobuf_hex": "0a116a73636f6e7465787449642d76616c7565",
+      "decoded": {
+        "jscontextId": "jscontextId-value"
+      },
+      "explicit_zero": {
+        "input": {
+          "jscontextId": ""
+        },
+        "protobuf_hex": "0a00",
+        "decoded": {
+          "jscontextId": ""
+        }
+      },
+      "fields": [
+        {
+          "field": "jscontextId",
+          "input": {
+            "jscontextId": "jscontextId-value"
+          },
+          "protobuf_hex": "0a116a73636f6e7465787449642d76616c7565",
+          "decoded": {
+            "jscontextId": "jscontextId-value"
+          }
+        }
+      ]
+    },
+    {
+      "type": "WARemoteDebug_CustomMessage",
+      "input": {
+        "method": "method-value",
+        "payload": "payload-value",
+        "raw": [
+          "raw-value",
+          "raw-value-2"
+        ]
+      },
+      "protobuf_hex": "0a0c6d6574686f642d76616c7565120d7061796c6f61642d76616c75651a020000",
+      "decoded": {
+        "method": "method-value",
+        "payload": "payload-value",
+        "raw": [
+          0,
+          0
+        ]
+      },
+      "explicit_zero": {
+        "input": {
+          "method": "",
+          "payload": "",
+          "raw": []
+        },
+        "protobuf_hex": "0a0012001a00",
+        "decoded": {
+          "method": "",
+          "payload": "",
+          "raw": []
+        }
+      },
+      "fields": [
+        {
+          "field": "method",
+          "input": {
+            "method": "method-value"
+          },
+          "protobuf_hex": "0a0c6d6574686f642d76616c7565",
+          "decoded": {
+            "method": "method-value",
+            "payload": "",
+            "raw": []
+          }
+        },
+        {
+          "field": "payload",
+          "input": {
+            "payload": "payload-value"
+          },
+          "protobuf_hex": "120d7061796c6f61642d76616c7565",
+          "decoded": {
+            "method": "",
+            "payload": "payload-value",
+            "raw": []
+          }
+        },
+        {
+          "field": "raw",
+          "input": {
+            "raw": [
+              "raw-value",
+              "raw-value-2"
+            ]
+          },
+          "protobuf_hex": "1a020000",
+          "decoded": {
+            "method": "",
+            "payload": "",
+            "raw": [
+              0,
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "type": "WARemoteDebug_DataFormat",
+      "input": {
+        "cmd": 7,
+        "uuid": "uuid-value",
+        "data": [
+          "data-value",
+          "data-value-2"
+        ]
+      },
+      "protobuf_hex": "0807120a757569642d76616c75651a020000",
+      "decoded": {
+        "cmd": 7,
+        "uuid": "uuid-value",
+        "data": [
+          0,
+          0
+        ]
+      },
+      "explicit_zero": {
+        "input": {
+          "cmd": 0,
+          "uuid": "",
+          "data": []
+        },
+        "protobuf_hex": "080012001a00",
+        "decoded": {
+          "cmd": 0,
+          "uuid": "",
+          "data": []
+        }
+      },
+      "fields": [
+        {
+          "field": "cmd",
+          "input": {
+            "cmd": 7
+          },
+          "protobuf_hex": "0807",
+          "decoded": {
+            "cmd": 7,
+            "uuid": "",
+            "data": []
+          }
+        },
+        {
+          "field": "uuid",
+          "input": {
+            "uuid": "uuid-value"
+          },
+          "protobuf_hex": "120a757569642d76616c7565",
+          "decoded": {
+            "cmd": 0,
+            "uuid": "uuid-value",
+            "data": []
+          }
+        },
+        {
+          "field": "data",
+          "input": {
+            "data": [
+              "data-value",
+              "data-value-2"
+            ]
+          },
+          "protobuf_hex": "1a020000",
+          "decoded": {
+            "cmd": 0,
+            "uuid": "",
+            "data": [
+              0,
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "type": "WARemoteDebug_DebugMessage",
+      "input": {
+        "seq": 7,
+        "after": 7,
+        "category": "category-value",
+        "data": [
+          "data-value",
+          "data-value-2"
+        ],
+        "compressAlgo": 7,
+        "originalSize": 7
+      },
+      "protobuf_hex": "080710071a0e63617465676f72792d76616c75652202000028073007",
+      "decoded": {
+        "seq": 7,
+        "after": 7,
+        "category": "category-value",
+        "data": [
+          0,
+          0
+        ],
+        "compressAlgo": 7,
+        "originalSize": 7
+      },
+      "explicit_zero": {
+        "input": {
+          "seq": 0,
+          "after": 0,
+          "category": "",
+          "data": [],
+          "compressAlgo": 0,
+          "originalSize": 0
+        },
+        "protobuf_hex": "080010001a00220028003000",
+        "decoded": {
+          "seq": 0,
+          "after": 0,
+          "category": "",
+          "data": [],
+          "compressAlgo": 0,
+          "originalSize": 0
+        }
+      },
+      "fields": [
+        {
+          "field": "seq",
+          "input": {
+            "seq": 7
+          },
+          "protobuf_hex": "0807",
+          "decoded": {
+            "seq": 7,
+            "after": 0,
+            "category": "",
+            "data": [],
+            "compressAlgo": 0,
+            "originalSize": 0
+          }
+        },
+        {
+          "field": "after",
+          "input": {
+            "after": 7
+          },
+          "protobuf_hex": "1007",
+          "decoded": {
+            "seq": 0,
+            "after": 7,
+            "category": "",
+            "data": [],
+            "compressAlgo": 0,
+            "originalSize": 0
+          }
+        },
+        {
+          "field": "category",
+          "input": {
+            "category": "category-value"
+          },
+          "protobuf_hex": "1a0e63617465676f72792d76616c7565",
+          "decoded": {
+            "seq": 0,
+            "after": 0,
+            "category": "category-value",
+            "data": [],
+            "compressAlgo": 0,
+            "originalSize": 0
+          }
+        },
+        {
+          "field": "data",
+          "input": {
+            "data": [
+              "data-value",
+              "data-value-2"
+            ]
+          },
+          "protobuf_hex": "22020000",
+          "decoded": {
+            "seq": 0,
+            "after": 0,
+            "category": "",
+            "data": [
+              0,
+              0
+            ],
+            "compressAlgo": 0,
+            "originalSize": 0
+          }
+        },
+        {
+          "field": "compressAlgo",
+          "input": {
+            "compressAlgo": 7
+          },
+          "protobuf_hex": "2807",
+          "decoded": {
+            "seq": 0,
+            "after": 0,
+            "category": "",
+            "data": [],
+            "compressAlgo": 7,
+            "originalSize": 0
+          }
+        },
+        {
+          "field": "originalSize",
+          "input": {
+            "originalSize": 7
+          },
+          "protobuf_hex": "3007",
+          "decoded": {
+            "seq": 0,
+            "after": 0,
+            "category": "",
+            "data": [],
+            "compressAlgo": 0,
+            "originalSize": 7
+          }
+        }
+      ]
+    },
+    {
+      "type": "WARemoteDebug_DevHeartBeatReq",
+      "input": {
+        "baseRequest": {},
+        "recvAck": 7
+      },
+      "protobuf_hex": "0a001007",
+      "decoded": {
+        "baseRequest": {
+          "clientVersion": 0
+        },
+        "recvAck": 7
+      },
+      "explicit_zero": {
+        "input": {
+          "baseRequest": {},
+          "recvAck": 0
+        },
+        "protobuf_hex": "0a001000",
+        "decoded": {
+          "baseRequest": {
+            "clientVersion": 0
+          },
+          "recvAck": 0
+        }
+      },
+      "fields": [
+        {
+          "field": "baseRequest",
+          "input": {
+            "baseRequest": {}
+          },
+          "protobuf_hex": "0a00",
+          "decoded": {
+            "baseRequest": {
+              "clientVersion": 0
+            },
+            "recvAck": 0
+          }
+        },
+        {
+          "field": "recvAck",
+          "input": {
+            "recvAck": 7,
+            "baseRequest": {}
+          },
+          "protobuf_hex": "0a001007",
+          "decoded": {
+            "baseRequest": {
+              "clientVersion": 0
+            },
+            "recvAck": 7
+          }
+        }
+      ]
+    },
+    {
+      "type": "WARemoteDebug_DevHeartBeatResp",
+      "input": {
+        "baseResponse": {}
+      },
+      "protobuf_hex": "0a00",
+      "decoded": {
+        "baseResponse": {
+          "errcode": 0,
+          "errmsg": ""
+        }
+      },
+      "explicit_zero": {
+        "input": {
+          "baseResponse": {}
+        },
+        "protobuf_hex": "0a00",
+        "decoded": {
+          "baseResponse": {
+            "errcode": 0,
+            "errmsg": ""
+          }
+        }
+      },
+      "fields": [
+        {
+          "field": "baseResponse",
+          "input": {
+            "baseResponse": {}
+          },
+          "protobuf_hex": "0a00",
+          "decoded": {
+            "baseResponse": {
+              "errcode": 0,
+              "errmsg": ""
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "WARemoteDebug_DevJoinRoomReq",
+      "input": {
+        "baseRequest": {},
+        "appid": "appid-value",
+        "roomId": "roomId-value",
+        "wxpkgInfo": "wxpkgInfo-value"
+      },
+      "protobuf_hex": "0a00120b61707069642d76616c75651a0c726f6f6d49642d76616c7565220f7778706b67496e666f2d76616c7565",
+      "decoded": {
+        "baseRequest": {
+          "clientVersion": 0
+        },
+        "appid": "appid-value",
+        "roomId": "roomId-value",
+        "wxpkgInfo": "wxpkgInfo-value"
+      },
+      "explicit_zero": {
+        "input": {
+          "baseRequest": {},
+          "appid": "",
+          "roomId": "",
+          "wxpkgInfo": ""
+        },
+        "protobuf_hex": "0a0012001a002200",
+        "decoded": {
+          "baseRequest": {
+            "clientVersion": 0
+          },
+          "appid": "",
+          "roomId": "",
+          "wxpkgInfo": ""
+        }
+      },
+      "fields": [
+        {
+          "field": "baseRequest",
+          "input": {
+            "baseRequest": {}
+          },
+          "protobuf_hex": "0a00",
+          "decoded": {
+            "baseRequest": {
+              "clientVersion": 0
+            },
+            "appid": "",
+            "roomId": "",
+            "wxpkgInfo": ""
+          }
+        },
+        {
+          "field": "appid",
+          "input": {
+            "appid": "appid-value",
+            "baseRequest": {}
+          },
+          "protobuf_hex": "0a00120b61707069642d76616c7565",
+          "decoded": {
+            "baseRequest": {
+              "clientVersion": 0
+            },
+            "appid": "appid-value",
+            "roomId": "",
+            "wxpkgInfo": ""
+          }
+        },
+        {
+          "field": "roomId",
+          "input": {
+            "roomId": "roomId-value",
+            "baseRequest": {}
+          },
+          "protobuf_hex": "0a001a0c726f6f6d49642d76616c7565",
+          "decoded": {
+            "baseRequest": {
+              "clientVersion": 0
+            },
+            "appid": "",
+            "roomId": "roomId-value",
+            "wxpkgInfo": ""
+          }
+        },
+        {
+          "field": "wxpkgInfo",
+          "input": {
+            "wxpkgInfo": "wxpkgInfo-value",
+            "baseRequest": {}
+          },
+          "protobuf_hex": "0a00220f7778706b67496e666f2d76616c7565",
+          "decoded": {
+            "baseRequest": {
+              "clientVersion": 0
+            },
+            "appid": "",
+            "roomId": "",
+            "wxpkgInfo": "wxpkgInfo-value"
+          }
+        }
+      ]
+    },
+    {
+      "type": "WARemoteDebug_DevJoinRoomResp",
+      "input": {
+        "baseResponse": {}
+      },
+      "protobuf_hex": "0a00",
+      "decoded": {
+        "baseResponse": {
+          "errcode": 0,
+          "errmsg": ""
+        }
+      },
+      "explicit_zero": {
+        "input": {
+          "baseResponse": {}
+        },
+        "protobuf_hex": "0a00",
+        "decoded": {
+          "baseResponse": {
+            "errcode": 0,
+            "errmsg": ""
+          }
+        }
+      },
+      "fields": [
+        {
+          "field": "baseResponse",
+          "input": {
+            "baseResponse": {}
+          },
+          "protobuf_hex": "0a00",
+          "decoded": {
+            "baseResponse": {
+              "errcode": 0,
+              "errmsg": ""
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "WARemoteDebug_DevLoginReq",
+      "input": {
+        "baseRequest": {},
+        "newticket": "newticket-value",
+        "autodev": 7
+      },
+      "protobuf_hex": "0a00120f6e65777469636b65742d76616c75651807",
+      "decoded": {
+        "baseRequest": {
+          "clientVersion": 0
+        },
+        "newticket": "newticket-value",
+        "autodev": 7
+      },
+      "explicit_zero": {
+        "input": {
+          "baseRequest": {},
+          "newticket": "",
+          "autodev": 0
+        },
+        "protobuf_hex": "0a0012001800",
+        "decoded": {
+          "baseRequest": {
+            "clientVersion": 0
+          },
+          "newticket": "",
+          "autodev": 0
+        }
+      },
+      "fields": [
+        {
+          "field": "baseRequest",
+          "input": {
+            "baseRequest": {}
+          },
+          "protobuf_hex": "0a00",
+          "decoded": {
+            "baseRequest": {
+              "clientVersion": 0
+            },
+            "newticket": "",
+            "autodev": 0
+          }
+        },
+        {
+          "field": "newticket",
+          "input": {
+            "newticket": "newticket-value",
+            "baseRequest": {}
+          },
+          "protobuf_hex": "0a00120f6e65777469636b65742d76616c7565",
+          "decoded": {
+            "baseRequest": {
+              "clientVersion": 0
+            },
+            "newticket": "newticket-value",
+            "autodev": 0
+          }
+        },
+        {
+          "field": "autodev",
+          "input": {
+            "autodev": 7,
+            "baseRequest": {}
+          },
+          "protobuf_hex": "0a001807",
+          "decoded": {
+            "baseRequest": {
+              "clientVersion": 0
+            },
+            "newticket": "",
+            "autodev": 7
+          }
+        }
+      ]
+    },
+    {
+      "type": "WARemoteDebug_DevLoginResp",
+      "input": {
+        "baseResponse": {}
+      },
+      "protobuf_hex": "0a00",
+      "decoded": {
+        "baseResponse": {
+          "errcode": 0,
+          "errmsg": ""
+        },
+        "roomInfo": null
+      },
+      "explicit_zero": {
+        "input": {
+          "baseResponse": {}
+        },
+        "protobuf_hex": "0a00",
+        "decoded": {
+          "baseResponse": {
+            "errcode": 0,
+            "errmsg": ""
+          },
+          "roomInfo": null
+        }
+      },
+      "fields": [
+        {
+          "field": "baseResponse",
+          "input": {
+            "baseResponse": {}
+          },
+          "protobuf_hex": "0a00",
+          "decoded": {
+            "baseResponse": {
+              "errcode": 0,
+              "errmsg": ""
+            },
+            "roomInfo": null
+          }
+        },
+        {
+          "field": "roomInfo",
+          "input": {
+            "roomInfo": {},
+            "baseResponse": {}
+          },
+          "protobuf_hex": "0a001200",
+          "decoded": {
+            "baseResponse": {
+              "errcode": 0,
+              "errmsg": ""
+            },
+            "roomInfo": {
+              "joinRoom": false,
+              "roomId": "",
+              "originalMd5": "",
+              "roomStatus": 0,
+              "wxConnStatus": 0,
+              "devConnStatus": 0
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "WARemoteDebug_DevQuitRoomReq",
+      "input": {
+        "baseRequest": {}
+      },
+      "protobuf_hex": "0a00",
+      "decoded": {
+        "baseRequest": {
+          "clientVersion": 0
+        }
+      },
+      "explicit_zero": {
+        "input": {
+          "baseRequest": {}
+        },
+        "protobuf_hex": "0a00",
+        "decoded": {
+          "baseRequest": {
+            "clientVersion": 0
+          }
+        }
+      },
+      "fields": [
+        {
+          "field": "baseRequest",
+          "input": {
+            "baseRequest": {}
+          },
+          "protobuf_hex": "0a00",
+          "decoded": {
+            "baseRequest": {
+              "clientVersion": 0
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "WARemoteDebug_DevQuitRoomResp",
+      "input": {
+        "baseResponse": {}
+      },
+      "protobuf_hex": "0a00",
+      "decoded": {
+        "baseResponse": {
+          "errcode": 0,
+          "errmsg": ""
+        }
+      },
+      "explicit_zero": {
+        "input": {
+          "baseResponse": {}
+        },
+        "protobuf_hex": "0a00",
+        "decoded": {
+          "baseResponse": {
+            "errcode": 0,
+            "errmsg": ""
+          }
+        }
+      },
+      "fields": [
+        {
+          "field": "baseResponse",
+          "input": {
+            "baseResponse": {}
+          },
+          "protobuf_hex": "0a00",
+          "decoded": {
+            "baseResponse": {
+              "errcode": 0,
+              "errmsg": ""
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "WARemoteDebug_DevSyncMessageReq",
+      "input": {
+        "baseRequest": {},
+        "minSeq": 7,
+        "maxSeq": 7
+      },
+      "protobuf_hex": "0a0010071807",
+      "decoded": {
+        "baseRequest": {
+          "clientVersion": 0
+        },
+        "minSeq": 7,
+        "maxSeq": 7
+      },
+      "explicit_zero": {
+        "input": {
+          "baseRequest": {},
+          "minSeq": 0,
+          "maxSeq": 0
+        },
+        "protobuf_hex": "0a0010001800",
+        "decoded": {
+          "baseRequest": {
+            "clientVersion": 0
+          },
+          "minSeq": 0,
+          "maxSeq": 0
+        }
+      },
+      "fields": [
+        {
+          "field": "baseRequest",
+          "input": {
+            "baseRequest": {}
+          },
+          "protobuf_hex": "0a00",
+          "decoded": {
+            "baseRequest": {
+              "clientVersion": 0
+            },
+            "minSeq": 0,
+            "maxSeq": 0
+          }
+        },
+        {
+          "field": "minSeq",
+          "input": {
+            "minSeq": 7,
+            "baseRequest": {}
+          },
+          "protobuf_hex": "0a001007",
+          "decoded": {
+            "baseRequest": {
+              "clientVersion": 0
+            },
+            "minSeq": 7,
+            "maxSeq": 0
+          }
+        },
+        {
+          "field": "maxSeq",
+          "input": {
+            "maxSeq": 7,
+            "baseRequest": {}
+          },
+          "protobuf_hex": "0a001807",
+          "decoded": {
+            "baseRequest": {
+              "clientVersion": 0
+            },
+            "minSeq": 0,
+            "maxSeq": 7
+          }
+        }
+      ]
+    },
+    {
+      "type": "WARemoteDebug_DevSyncMessageResp",
+      "input": {
+        "baseResponse": {},
+        "sendAck": 7
+      },
+      "protobuf_hex": "0a001807",
+      "decoded": {
+        "debugMessageList": [],
+        "baseResponse": {
+          "errcode": 0,
+          "errmsg": ""
+        },
+        "sendAck": 7
+      },
+      "explicit_zero": {
+        "input": {
+          "debugMessageList": [],
+          "baseResponse": {},
+          "sendAck": 0
+        },
+        "protobuf_hex": "0a001800",
+        "decoded": {
+          "debugMessageList": [],
+          "baseResponse": {
+            "errcode": 0,
+            "errmsg": ""
+          },
+          "sendAck": 0
+        }
+      },
+      "fields": [
+        {
+          "field": "debugMessageList",
+          "input": {
+            "baseResponse": {}
+          },
+          "protobuf_hex": "0a00",
+          "decoded": {
+            "debugMessageList": [],
+            "baseResponse": {
+              "errcode": 0,
+              "errmsg": ""
+            },
+            "sendAck": 0
+          }
+        },
+        {
+          "field": "baseResponse",
+          "input": {
+            "baseResponse": {}
+          },
+          "protobuf_hex": "0a00",
+          "decoded": {
+            "debugMessageList": [],
+            "baseResponse": {
+              "errcode": 0,
+              "errmsg": ""
+            },
+            "sendAck": 0
+          }
+        },
+        {
+          "field": "sendAck",
+          "input": {
+            "sendAck": 7,
+            "baseResponse": {}
+          },
+          "protobuf_hex": "0a001807",
+          "decoded": {
+            "debugMessageList": [],
+            "baseResponse": {
+              "errcode": 0,
+              "errmsg": ""
+            },
+            "sendAck": 7
+          }
+        }
+      ]
+    },
+    {
+      "type": "WARemoteDebug_DeviceInfo",
+      "input": {
+        "deviceName": "deviceName-value",
+        "deviceModel": "deviceModel-value",
+        "systemVersion": "systemVersion-value",
+        "wechatVersion": "wechatVersion-value",
+        "publibVersion": 7,
+        "screenWidth": 7,
+        "pixelRatio": 7,
+        "userAgent": "userAgent-value"
+      },
+      "protobuf_hex": "0a106465766963654e616d652d76616c756512116465766963654d6f64656c2d76616c75651a1373797374656d56657273696f6e2d76616c7565221377656368617456657273696f6e2d76616c75652807350000e0403d0000e040420f757365724167656e742d76616c7565",
+      "decoded": {
+        "deviceName": "deviceName-value",
+        "deviceModel": "deviceModel-value",
+        "systemVersion": "systemVersion-value",
+        "wechatVersion": "wechatVersion-value",
+        "publibVersion": 7,
+        "screenWidth": 7,
+        "pixelRatio": 7,
+        "userAgent": "userAgent-value"
+      },
+      "explicit_zero": {
+        "input": {
+          "deviceName": "",
+          "deviceModel": "",
+          "systemVersion": "",
+          "wechatVersion": "",
+          "publibVersion": 0,
+          "screenWidth": 0,
+          "pixelRatio": 0,
+          "userAgent": ""
+        },
+        "protobuf_hex": "0a0012001a002200280035000000003d000000004200",
+        "decoded": {
+          "deviceName": "",
+          "deviceModel": "",
+          "systemVersion": "",
+          "wechatVersion": "",
+          "publibVersion": 0,
+          "screenWidth": 0,
+          "pixelRatio": 0,
+          "userAgent": ""
+        }
+      },
+      "fields": [
+        {
+          "field": "deviceName",
+          "input": {
+            "deviceName": "deviceName-value"
+          },
+          "protobuf_hex": "0a106465766963654e616d652d76616c7565",
+          "decoded": {
+            "deviceName": "deviceName-value",
+            "deviceModel": "",
+            "systemVersion": "",
+            "wechatVersion": "",
+            "publibVersion": 0,
+            "screenWidth": 0,
+            "pixelRatio": 0,
+            "userAgent": ""
+          }
+        },
+        {
+          "field": "deviceModel",
+          "input": {
+            "deviceModel": "deviceModel-value"
+          },
+          "protobuf_hex": "12116465766963654d6f64656c2d76616c7565",
+          "decoded": {
+            "deviceName": "",
+            "deviceModel": "deviceModel-value",
+            "systemVersion": "",
+            "wechatVersion": "",
+            "publibVersion": 0,
+            "screenWidth": 0,
+            "pixelRatio": 0,
+            "userAgent": ""
+          }
+        },
+        {
+          "field": "systemVersion",
+          "input": {
+            "systemVersion": "systemVersion-value"
+          },
+          "protobuf_hex": "1a1373797374656d56657273696f6e2d76616c7565",
+          "decoded": {
+            "deviceName": "",
+            "deviceModel": "",
+            "systemVersion": "systemVersion-value",
+            "wechatVersion": "",
+            "publibVersion": 0,
+            "screenWidth": 0,
+            "pixelRatio": 0,
+            "userAgent": ""
+          }
+        },
+        {
+          "field": "wechatVersion",
+          "input": {
+            "wechatVersion": "wechatVersion-value"
+          },
+          "protobuf_hex": "221377656368617456657273696f6e2d76616c7565",
+          "decoded": {
+            "deviceName": "",
+            "deviceModel": "",
+            "systemVersion": "",
+            "wechatVersion": "wechatVersion-value",
+            "publibVersion": 0,
+            "screenWidth": 0,
+            "pixelRatio": 0,
+            "userAgent": ""
+          }
+        },
+        {
+          "field": "publibVersion",
+          "input": {
+            "publibVersion": 7
+          },
+          "protobuf_hex": "2807",
+          "decoded": {
+            "deviceName": "",
+            "deviceModel": "",
+            "systemVersion": "",
+            "wechatVersion": "",
+            "publibVersion": 7,
+            "screenWidth": 0,
+            "pixelRatio": 0,
+            "userAgent": ""
+          }
+        },
+        {
+          "field": "screenWidth",
+          "input": {
+            "screenWidth": 7
+          },
+          "protobuf_hex": "350000e040",
+          "decoded": {
+            "deviceName": "",
+            "deviceModel": "",
+            "systemVersion": "",
+            "wechatVersion": "",
+            "publibVersion": 0,
+            "screenWidth": 7,
+            "pixelRatio": 0,
+            "userAgent": ""
+          }
+        },
+        {
+          "field": "pixelRatio",
+          "input": {
+            "pixelRatio": 7
+          },
+          "protobuf_hex": "3d0000e040",
+          "decoded": {
+            "deviceName": "",
+            "deviceModel": "",
+            "systemVersion": "",
+            "wechatVersion": "",
+            "publibVersion": 0,
+            "screenWidth": 0,
+            "pixelRatio": 7,
+            "userAgent": ""
+          }
+        },
+        {
+          "field": "userAgent",
+          "input": {
+            "userAgent": "userAgent-value"
+          },
+          "protobuf_hex": "420f757365724167656e742d76616c7565",
+          "decoded": {
+            "deviceName": "",
+            "deviceModel": "",
+            "systemVersion": "",
+            "wechatVersion": "",
+            "publibVersion": 0,
+            "screenWidth": 0,
+            "pixelRatio": 0,
+            "userAgent": "userAgent-value"
+          }
+        }
+      ]
+    },
+    {
+      "type": "WARemoteDebug_DomEvent",
+      "input": {
+        "params": "params-value",
+        "webviewId": 7
+      },
+      "protobuf_hex": "0a0c706172616d732d76616c75651007",
+      "decoded": {
+        "params": "params-value",
+        "webviewId": 7
+      },
+      "explicit_zero": {
+        "input": {
+          "params": "",
+          "webviewId": 0
+        },
+        "protobuf_hex": "0a001000",
+        "decoded": {
+          "params": "",
+          "webviewId": 0
+        }
+      },
+      "fields": [
+        {
+          "field": "params",
+          "input": {
+            "params": "params-value"
+          },
+          "protobuf_hex": "0a0c706172616d732d76616c7565",
+          "decoded": {
+            "params": "params-value",
+            "webviewId": 0
+          }
+        },
+        {
+          "field": "webviewId",
+          "input": {
+            "webviewId": 7
+          },
+          "protobuf_hex": "1007",
+          "decoded": {
+            "params": "",
+            "webviewId": 7
+          }
+        }
+      ]
+    },
+    {
+      "type": "WARemoteDebug_DomOp",
+      "input": {
+        "params": "params-value",
+        "webviewId": 7
+      },
+      "protobuf_hex": "0a0c706172616d732d76616c75651007",
+      "decoded": {
+        "params": "params-value",
+        "webviewId": 7
+      },
+      "explicit_zero": {
+        "input": {
+          "params": "",
+          "webviewId": 0
+        },
+        "protobuf_hex": "0a001000",
+        "decoded": {
+          "params": "",
+          "webviewId": 0
+        }
+      },
+      "fields": [
+        {
+          "field": "params",
+          "input": {
+            "params": "params-value"
+          },
+          "protobuf_hex": "0a0c706172616d732d76616c7565",
+          "decoded": {
+            "params": "params-value",
+            "webviewId": 0
+          }
+        },
+        {
+          "field": "webviewId",
+          "input": {
+            "webviewId": 7
+          },
+          "protobuf_hex": "1007",
+          "decoded": {
+            "params": "",
+            "webviewId": 7
+          }
+        }
+      ]
+    },
+    {
+      "type": "WARemoteDebug_EvaluateJavascript",
+      "input": {
+        "script": "script-value",
+        "evaluateId": 7,
+        "debugInfo": "debugInfo-value"
+      },
+      "protobuf_hex": "0a0c7363726970742d76616c756510071a0f6465627567496e666f2d76616c7565",
+      "decoded": {
+        "script": "script-value",
+        "evaluateId": 7,
+        "debugInfo": "debugInfo-value"
+      },
+      "explicit_zero": {
+        "input": {
+          "script": "",
+          "evaluateId": 0,
+          "debugInfo": ""
+        },
+        "protobuf_hex": "0a0010001a00",
+        "decoded": {
+          "script": "",
+          "evaluateId": 0,
+          "debugInfo": ""
+        }
+      },
+      "fields": [
+        {
+          "field": "script",
+          "input": {
+            "script": "script-value"
+          },
+          "protobuf_hex": "0a0c7363726970742d76616c7565",
+          "decoded": {
+            "script": "script-value",
+            "evaluateId": 0,
+            "debugInfo": ""
+          }
+        },
+        {
+          "field": "evaluateId",
+          "input": {
+            "evaluateId": 7
+          },
+          "protobuf_hex": "1007",
+          "decoded": {
+            "script": "",
+            "evaluateId": 7,
+            "debugInfo": ""
+          }
+        },
+        {
+          "field": "debugInfo",
+          "input": {
+            "debugInfo": "debugInfo-value"
+          },
+          "protobuf_hex": "1a0f6465627567496e666f2d76616c7565",
+          "decoded": {
+            "script": "",
+            "evaluateId": 0,
+            "debugInfo": "debugInfo-value"
+          }
+        }
+      ]
+    },
+    {
+      "type": "WARemoteDebug_EvaluateJavascriptResult",
+      "input": {
+        "ret": "ret-value",
+        "evaluateId": 7
+      },
+      "protobuf_hex": "0a097265742d76616c75651007",
+      "decoded": {
+        "ret": "ret-value",
+        "evaluateId": 7
+      },
+      "explicit_zero": {
+        "input": {
+          "ret": "",
+          "evaluateId": 0
+        },
+        "protobuf_hex": "0a001000",
+        "decoded": {
+          "ret": "",
+          "evaluateId": 0
+        }
+      },
+      "fields": [
+        {
+          "field": "ret",
+          "input": {
+            "ret": "ret-value"
+          },
+          "protobuf_hex": "0a097265742d76616c7565",
+          "decoded": {
+            "ret": "ret-value",
+            "evaluateId": 0
+          }
+        },
+        {
+          "field": "evaluateId",
+          "input": {
+            "evaluateId": 7
+          },
+          "protobuf_hex": "1007",
+          "decoded": {
+            "ret": "",
+            "evaluateId": 7
+          }
+        }
+      ]
+    },
+    {
+      "type": "WARemoteDebug_EventNotify",
+      "input": {},
+      "protobuf_hex": "",
+      "decoded": {},
+      "explicit_zero": {
+        "input": {},
+        "protobuf_hex": "",
+        "decoded": {}
+      },
+      "fields": []
+    },
+    {
+      "type": "WARemoteDebug_EventNotifyResp",
+      "input": {},
+      "protobuf_hex": "",
+      "decoded": {},
+      "explicit_zero": {
+        "input": {},
+        "protobuf_hex": "",
+        "decoded": {}
+      },
+      "fields": []
+    },
+    {
+      "type": "WARemoteDebug_MessageNotify",
+      "input": {
+        "debugMessageList": [
+          {},
+          {}
+        ]
+      },
+      "protobuf_hex": "0a000a00",
+      "decoded": {
+        "debugMessageList": [
+          {
+            "seq": 0,
+            "after": 0,
+            "category": "",
+            "data": [],
+            "compressAlgo": 0,
+            "originalSize": 0
+          },
+          {
+            "seq": 0,
+            "after": 0,
+            "category": "",
+            "data": [],
+            "compressAlgo": 0,
+            "originalSize": 0
+          }
+        ]
+      },
+      "explicit_zero": {
+        "input": {
+          "debugMessageList": []
+        },
+        "protobuf_hex": "",
+        "decoded": {
+          "debugMessageList": []
+        }
+      },
+      "fields": [
+        {
+          "field": "debugMessageList",
+          "input": {
+            "debugMessageList": [
+              {},
+              {}
+            ]
+          },
+          "protobuf_hex": "0a000a00",
+          "decoded": {
+            "debugMessageList": [
+              {
+                "seq": 0,
+                "after": 0,
+                "category": "",
+                "data": [],
+                "compressAlgo": 0,
+                "originalSize": 0
+              },
+              {
+                "seq": 0,
+                "after": 0,
+                "category": "",
+                "data": [],
+                "compressAlgo": 0,
+                "originalSize": 0
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "type": "WARemoteDebug_MessageNotifyResp",
+      "input": {
+        "recvAck": 7
+      },
+      "protobuf_hex": "0807",
+      "decoded": {
+        "recvAck": 7
+      },
+      "explicit_zero": {
+        "input": {
+          "recvAck": 0
+        },
+        "protobuf_hex": "0800",
+        "decoded": {
+          "recvAck": 0
+        }
+      },
+      "fields": [
+        {
+          "field": "recvAck",
+          "input": {
+            "recvAck": 7
+          },
+          "protobuf_hex": "0807",
+          "decoded": {
+            "recvAck": 7
+          }
+        }
+      ]
+    },
+    {
+      "type": "WARemoteDebug_MethodWithArgs",
+      "input": {
+        "methodArgList": [
+          "methodArgList-value",
+          "methodArgList-value-2"
+        ],
+        "methodName": "methodName-value"
+      },
+      "protobuf_hex": "0a106d6574686f644e616d652d76616c756512136d6574686f644172674c6973742d76616c756512156d6574686f644172674c6973742d76616c75652d32",
+      "decoded": {
+        "methodArgList": [
+          "methodArgList-value",
+          "methodArgList-value-2"
+        ],
+        "methodName": "methodName-value"
+      },
+      "explicit_zero": {
+        "input": {
+          "methodArgList": [],
+          "methodName": ""
+        },
+        "protobuf_hex": "0a00",
+        "decoded": {
+          "methodArgList": [],
+          "methodName": ""
+        }
+      },
+      "fields": [
+        {
+          "field": "methodArgList",
+          "input": {
+            "methodArgList": [
+              "methodArgList-value",
+              "methodArgList-value-2"
+            ]
+          },
+          "protobuf_hex": "12136d6574686f644172674c6973742d76616c756512156d6574686f644172674c6973742d76616c75652d32",
+          "decoded": {
+            "methodArgList": [
+              "methodArgList-value",
+              "methodArgList-value-2"
+            ],
+            "methodName": ""
+          }
+        },
+        {
+          "field": "methodName",
+          "input": {
+            "methodName": "methodName-value"
+          },
+          "protobuf_hex": "0a106d6574686f644e616d652d76616c7565",
+          "decoded": {
+            "methodArgList": [],
+            "methodName": "methodName-value"
+          }
+        }
+      ]
+    },
+    {
+      "type": "WARemoteDebug_NetworkDebugAPI",
+      "input": {
+        "apiName": "apiName-value",
+        "taskId": "taskId-value",
+        "requestHeaders": "requestHeaders-value",
+        "timestamp": 7
+      },
+      "protobuf_hex": "0a0d6170694e616d652d76616c7565120c7461736b49642d76616c75651a1472657175657374486561646572732d76616c75652007",
+      "decoded": {
+        "apiName": "apiName-value",
+        "taskId": "taskId-value",
+        "requestHeaders": "requestHeaders-value",
+        "timestamp": "7"
+      },
+      "explicit_zero": {
+        "input": {
+          "apiName": "",
+          "taskId": "",
+          "requestHeaders": "",
+          "timestamp": 0
+        },
+        "protobuf_hex": "0a0012001a002000",
+        "decoded": {
+          "apiName": "",
+          "taskId": "",
+          "requestHeaders": "",
+          "timestamp": "0"
+        }
+      },
+      "fields": [
+        {
+          "field": "apiName",
+          "input": {
+            "apiName": "apiName-value"
+          },
+          "protobuf_hex": "0a0d6170694e616d652d76616c7565",
+          "decoded": {
+            "apiName": "apiName-value",
+            "taskId": "",
+            "requestHeaders": "",
+            "timestamp": "0"
+          }
+        },
+        {
+          "field": "taskId",
+          "input": {
+            "taskId": "taskId-value"
+          },
+          "protobuf_hex": "120c7461736b49642d76616c7565",
+          "decoded": {
+            "apiName": "",
+            "taskId": "taskId-value",
+            "requestHeaders": "",
+            "timestamp": "0"
+          }
+        },
+        {
+          "field": "requestHeaders",
+          "input": {
+            "requestHeaders": "requestHeaders-value"
+          },
+          "protobuf_hex": "1a1472657175657374486561646572732d76616c7565",
+          "decoded": {
+            "apiName": "",
+            "taskId": "",
+            "requestHeaders": "requestHeaders-value",
+            "timestamp": "0"
+          }
+        },
+        {
+          "field": "timestamp",
+          "input": {
+            "timestamp": 7
+          },
+          "protobuf_hex": "2007",
+          "decoded": {
+            "apiName": "",
+            "taskId": "",
+            "requestHeaders": "",
+            "timestamp": "7"
+          }
+        }
+      ]
+    },
+    {
+      "type": "WARemoteDebug_NewSendDebugMessageReq",
+      "input": {
+        "baseRequest": {},
+        "recvAck": 7
+      },
+      "protobuf_hex": "0a001807",
+      "decoded": {
+        "debugMessageList": [],
+        "baseRequest": {
+          "clientVersion": 0
+        },
+        "recvAck": 7
+      },
+      "explicit_zero": {
+        "input": {
+          "debugMessageList": [],
+          "baseRequest": {},
+          "recvAck": 0
+        },
+        "protobuf_hex": "0a001800",
+        "decoded": {
+          "debugMessageList": [],
+          "baseRequest": {
+            "clientVersion": 0
+          },
+          "recvAck": 0
+        }
+      },
+      "fields": [
+        {
+          "field": "debugMessageList",
+          "input": {
+            "baseRequest": {}
+          },
+          "protobuf_hex": "0a00",
+          "decoded": {
+            "debugMessageList": [],
+            "baseRequest": {
+              "clientVersion": 0
+            },
+            "recvAck": 0
+          }
+        },
+        {
+          "field": "baseRequest",
+          "input": {
+            "baseRequest": {}
+          },
+          "protobuf_hex": "0a00",
+          "decoded": {
+            "debugMessageList": [],
+            "baseRequest": {
+              "clientVersion": 0
+            },
+            "recvAck": 0
+          }
+        },
+        {
+          "field": "recvAck",
+          "input": {
+            "recvAck": 7,
+            "baseRequest": {}
+          },
+          "protobuf_hex": "0a001807",
+          "decoded": {
+            "debugMessageList": [],
+            "baseRequest": {
+              "clientVersion": 0
+            },
+            "recvAck": 7
+          }
+        }
+      ]
+    },
+    {
+      "type": "WARemoteDebug_NewSendDebugMessageResp",
+      "input": {
+        "baseResponse": {},
+        "minAck": 7,
+        "maxAck": 7
+      },
+      "protobuf_hex": "0a0010071807",
+      "decoded": {
+        "baseResponse": {
+          "errcode": 0,
+          "errmsg": ""
+        },
+        "minAck": 7,
+        "maxAck": 7
+      },
+      "explicit_zero": {
+        "input": {
+          "baseResponse": {},
+          "minAck": 0,
+          "maxAck": 0
+        },
+        "protobuf_hex": "0a0010001800",
+        "decoded": {
+          "baseResponse": {
+            "errcode": 0,
+            "errmsg": ""
+          },
+          "minAck": 0,
+          "maxAck": 0
+        }
+      },
+      "fields": [
+        {
+          "field": "baseResponse",
+          "input": {
+            "baseResponse": {}
+          },
+          "protobuf_hex": "0a00",
+          "decoded": {
+            "baseResponse": {
+              "errcode": 0,
+              "errmsg": ""
+            },
+            "minAck": 0,
+            "maxAck": 0
+          }
+        },
+        {
+          "field": "minAck",
+          "input": {
+            "minAck": 7,
+            "baseResponse": {}
+          },
+          "protobuf_hex": "0a001007",
+          "decoded": {
+            "baseResponse": {
+              "errcode": 0,
+              "errmsg": ""
+            },
+            "minAck": 7,
+            "maxAck": 0
+          }
+        },
+        {
+          "field": "maxAck",
+          "input": {
+            "maxAck": 7,
+            "baseResponse": {}
+          },
+          "protobuf_hex": "0a001807",
+          "decoded": {
+            "baseResponse": {
+              "errcode": 0,
+              "errmsg": ""
+            },
+            "minAck": 0,
+            "maxAck": 7
+          }
+        }
+      ]
+    },
+    {
+      "type": "WARemoteDebug_Ping",
+      "input": {
+        "pingId": 7,
+        "payload": "payload-value"
+      },
+      "protobuf_hex": "0807120d7061796c6f61642d76616c7565",
+      "decoded": {
+        "pingId": "7",
+        "payload": "payload-value"
+      },
+      "explicit_zero": {
+        "input": {
+          "pingId": 0,
+          "payload": ""
+        },
+        "protobuf_hex": "08001200",
+        "decoded": {
+          "pingId": "0",
+          "payload": ""
+        }
+      },
+      "fields": [
+        {
+          "field": "pingId",
+          "input": {
+            "pingId": 7
+          },
+          "protobuf_hex": "0807",
+          "decoded": {
+            "pingId": "7",
+            "payload": ""
+          }
+        },
+        {
+          "field": "payload",
+          "input": {
+            "payload": "payload-value"
+          },
+          "protobuf_hex": "120d7061796c6f61642d76616c7565",
+          "decoded": {
+            "pingId": "0",
+            "payload": "payload-value"
+          }
+        }
+      ]
+    },
+    {
+      "type": "WARemoteDebug_Pong",
+      "input": {
+        "pingId": 7,
+        "networkType": 7,
+        "payload": "payload-value"
+      },
+      "protobuf_hex": "080710071a0d7061796c6f61642d76616c7565",
+      "decoded": {
+        "pingId": "7",
+        "networkType": 7,
+        "payload": "payload-value"
+      },
+      "explicit_zero": {
+        "input": {
+          "pingId": 0,
+          "networkType": 0,
+          "payload": ""
+        },
+        "protobuf_hex": "080010001a00",
+        "decoded": {
+          "pingId": "0",
+          "networkType": 0,
+          "payload": ""
+        }
+      },
+      "fields": [
+        {
+          "field": "pingId",
+          "input": {
+            "pingId": 7
+          },
+          "protobuf_hex": "0807",
+          "decoded": {
+            "pingId": "7",
+            "networkType": 0,
+            "payload": ""
+          }
+        },
+        {
+          "field": "networkType",
+          "input": {
+            "networkType": 7
+          },
+          "protobuf_hex": "1007",
+          "decoded": {
+            "pingId": "0",
+            "networkType": 7,
+            "payload": ""
+          }
+        },
+        {
+          "field": "payload",
+          "input": {
+            "payload": "payload-value"
+          },
+          "protobuf_hex": "1a0d7061796c6f61642d76616c7565",
+          "decoded": {
+            "pingId": "0",
+            "networkType": 0,
+            "payload": "payload-value"
+          }
+        }
+      ]
+    },
+    {
+      "type": "WARemoteDebug_RegisterInterface",
+      "input": {
+        "objMethodList": [
+          {},
+          {}
+        ],
+        "objName": "objName-value"
+      },
+      "protobuf_hex": "0a0d6f626a4e616d652d76616c756512001200",
+      "decoded": {
+        "objMethodList": [
+          {
+            "methodArgList": [],
+            "methodName": ""
+          },
+          {
+            "methodArgList": [],
+            "methodName": ""
+          }
+        ],
+        "objName": "objName-value"
+      },
+      "explicit_zero": {
+        "input": {
+          "objMethodList": [],
+          "objName": ""
+        },
+        "protobuf_hex": "0a00",
+        "decoded": {
+          "objMethodList": [],
+          "objName": ""
+        }
+      },
+      "fields": [
+        {
+          "field": "objMethodList",
+          "input": {
+            "objMethodList": [
+              {},
+              {}
+            ]
+          },
+          "protobuf_hex": "12001200",
+          "decoded": {
+            "objMethodList": [
+              {
+                "methodArgList": [],
+                "methodName": ""
+              },
+              {
+                "methodArgList": [],
+                "methodName": ""
+              }
+            ],
+            "objName": ""
+          }
+        },
+        {
+          "field": "objName",
+          "input": {
+            "objName": "objName-value"
+          },
+          "protobuf_hex": "0a0d6f626a4e616d652d76616c7565",
+          "decoded": {
+            "objMethodList": [],
+            "objName": "objName-value"
+          }
+        }
+      ]
+    },
+    {
+      "type": "WARemoteDebug_RemoveJsContext",
+      "input": {
+        "jscontextId": "jscontextId-value"
+      },
+      "protobuf_hex": "0a116a73636f6e7465787449642d76616c7565",
+      "decoded": {
+        "jscontextId": "jscontextId-value"
+      },
+      "explicit_zero": {
+        "input": {
+          "jscontextId": ""
+        },
+        "protobuf_hex": "0a00",
+        "decoded": {
+          "jscontextId": ""
+        }
+      },
+      "fields": [
+        {
+          "field": "jscontextId",
+          "input": {
+            "jscontextId": "jscontextId-value"
+          },
+          "protobuf_hex": "0a116a73636f6e7465787449642d76616c7565",
+          "decoded": {
+            "jscontextId": "jscontextId-value"
+          }
+        }
+      ]
+    },
+    {
+      "type": "WARemoteDebug_RoomInfo",
+      "input": {
+        "joinRoom": true,
+        "roomId": "roomId-value",
+        "originalMd5": "originalMd5-value",
+        "roomStatus": 7,
+        "wxConnStatus": 7,
+        "devConnStatus": 7
+      },
+      "protobuf_hex": "0801120c726f6f6d49642d76616c75651a116f726967696e616c4d64352d76616c7565200728073007",
+      "decoded": {
+        "joinRoom": true,
+        "roomId": "roomId-value",
+        "originalMd5": "originalMd5-value",
+        "roomStatus": 7,
+        "wxConnStatus": 7,
+        "devConnStatus": 7
+      },
+      "explicit_zero": {
+        "input": {
+          "joinRoom": false,
+          "roomId": "",
+          "originalMd5": "",
+          "roomStatus": 0,
+          "wxConnStatus": 0,
+          "devConnStatus": 0
+        },
+        "protobuf_hex": "080012001a00200028003000",
+        "decoded": {
+          "joinRoom": false,
+          "roomId": "",
+          "originalMd5": "",
+          "roomStatus": 0,
+          "wxConnStatus": 0,
+          "devConnStatus": 0
+        }
+      },
+      "fields": [
+        {
+          "field": "joinRoom",
+          "input": {
+            "joinRoom": true
+          },
+          "protobuf_hex": "0801",
+          "decoded": {
+            "joinRoom": true,
+            "roomId": "",
+            "originalMd5": "",
+            "roomStatus": 0,
+            "wxConnStatus": 0,
+            "devConnStatus": 0
+          }
+        },
+        {
+          "field": "roomId",
+          "input": {
+            "roomId": "roomId-value"
+          },
+          "protobuf_hex": "120c726f6f6d49642d76616c7565",
+          "decoded": {
+            "joinRoom": false,
+            "roomId": "roomId-value",
+            "originalMd5": "",
+            "roomStatus": 0,
+            "wxConnStatus": 0,
+            "devConnStatus": 0
+          }
+        },
+        {
+          "field": "originalMd5",
+          "input": {
+            "originalMd5": "originalMd5-value"
+          },
+          "protobuf_hex": "1a116f726967696e616c4d64352d76616c7565",
+          "decoded": {
+            "joinRoom": false,
+            "roomId": "",
+            "originalMd5": "originalMd5-value",
+            "roomStatus": 0,
+            "wxConnStatus": 0,
+            "devConnStatus": 0
+          }
+        },
+        {
+          "field": "roomStatus",
+          "input": {
+            "roomStatus": 7
+          },
+          "protobuf_hex": "2007",
+          "decoded": {
+            "joinRoom": false,
+            "roomId": "",
+            "originalMd5": "",
+            "roomStatus": 7,
+            "wxConnStatus": 0,
+            "devConnStatus": 0
+          }
+        },
+        {
+          "field": "wxConnStatus",
+          "input": {
+            "wxConnStatus": 7
+          },
+          "protobuf_hex": "2807",
+          "decoded": {
+            "joinRoom": false,
+            "roomId": "",
+            "originalMd5": "",
+            "roomStatus": 0,
+            "wxConnStatus": 7,
+            "devConnStatus": 0
+          }
+        },
+        {
+          "field": "devConnStatus",
+          "input": {
+            "devConnStatus": 7
+          },
+          "protobuf_hex": "3007",
+          "decoded": {
+            "joinRoom": false,
+            "roomId": "",
+            "originalMd5": "",
+            "roomStatus": 0,
+            "wxConnStatus": 0,
+            "devConnStatus": 7
+          }
+        }
+      ]
+    },
+    {
+      "type": "WARemoteDebug_SendDebugMessageReq",
+      "input": {
+        "baseRequest": {},
+        "recvAck": 7
+      },
+      "protobuf_hex": "0a001807",
+      "decoded": {
+        "debugMessageList": [],
+        "baseRequest": {
+          "clientVersion": 0
+        },
+        "recvAck": 7
+      },
+      "explicit_zero": {
+        "input": {
+          "debugMessageList": [],
+          "baseRequest": {},
+          "recvAck": 0
+        },
+        "protobuf_hex": "0a001800",
+        "decoded": {
+          "debugMessageList": [],
+          "baseRequest": {
+            "clientVersion": 0
+          },
+          "recvAck": 0
+        }
+      },
+      "fields": [
+        {
+          "field": "debugMessageList",
+          "input": {
+            "baseRequest": {}
+          },
+          "protobuf_hex": "0a00",
+          "decoded": {
+            "debugMessageList": [],
+            "baseRequest": {
+              "clientVersion": 0
+            },
+            "recvAck": 0
+          }
+        },
+        {
+          "field": "baseRequest",
+          "input": {
+            "baseRequest": {}
+          },
+          "protobuf_hex": "0a00",
+          "decoded": {
+            "debugMessageList": [],
+            "baseRequest": {
+              "clientVersion": 0
+            },
+            "recvAck": 0
+          }
+        },
+        {
+          "field": "recvAck",
+          "input": {
+            "recvAck": 7,
+            "baseRequest": {}
+          },
+          "protobuf_hex": "0a001807",
+          "decoded": {
+            "debugMessageList": [],
+            "baseRequest": {
+              "clientVersion": 0
+            },
+            "recvAck": 7
+          }
+        }
+      ]
+    },
+    {
+      "type": "WARemoteDebug_SendDebugMessageResp",
+      "input": {
+        "baseResponse": {},
+        "sendAck": 7
+      },
+      "protobuf_hex": "0a001007",
+      "decoded": {
+        "baseResponse": {
+          "errcode": 0,
+          "errmsg": ""
+        },
+        "sendAck": 7
+      },
+      "explicit_zero": {
+        "input": {
+          "baseResponse": {},
+          "sendAck": 0
+        },
+        "protobuf_hex": "0a001000",
+        "decoded": {
+          "baseResponse": {
+            "errcode": 0,
+            "errmsg": ""
+          },
+          "sendAck": 0
+        }
+      },
+      "fields": [
+        {
+          "field": "baseResponse",
+          "input": {
+            "baseResponse": {}
+          },
+          "protobuf_hex": "0a00",
+          "decoded": {
+            "baseResponse": {
+              "errcode": 0,
+              "errmsg": ""
+            },
+            "sendAck": 0
+          }
+        },
+        {
+          "field": "sendAck",
+          "input": {
+            "sendAck": 7,
+            "baseResponse": {}
+          },
+          "protobuf_hex": "0a001007",
+          "decoded": {
+            "baseResponse": {
+              "errcode": 0,
+              "errmsg": ""
+            },
+            "sendAck": 7
+          }
+        }
+      ]
+    },
+    {
+      "type": "WARemoteDebug_SetupContext",
+      "input": {
+        "registerInterface": {},
+        "deviceInfo": {},
+        "configureJs": "configureJs-value",
+        "publicJsMd5": "publicJsMd5-value",
+        "threeJsMd5": "threeJsMd5-value",
+        "supportCompressAlgo": 7
+      },
+      "protobuf_hex": "0a0012001a11636f6e6669677572654a732d76616c756522117075626c69634a734d64352d76616c75652a1074687265654a734d64352d76616c75653007",
+      "decoded": {
+        "registerInterface": {
+          "objMethodList": [],
+          "objName": ""
+        },
+        "deviceInfo": {
+          "deviceName": "",
+          "deviceModel": "",
+          "systemVersion": "",
+          "wechatVersion": "",
+          "publibVersion": 0,
+          "screenWidth": 0,
+          "pixelRatio": 0,
+          "userAgent": ""
+        },
+        "configureJs": "configureJs-value",
+        "publicJsMd5": "publicJsMd5-value",
+        "threeJsMd5": "threeJsMd5-value",
+        "supportCompressAlgo": 7
+      },
+      "explicit_zero": {
+        "input": {
+          "registerInterface": {},
+          "deviceInfo": {},
+          "configureJs": "",
+          "publicJsMd5": "",
+          "threeJsMd5": "",
+          "supportCompressAlgo": 0
+        },
+        "protobuf_hex": "0a0012001a0022002a003000",
+        "decoded": {
+          "registerInterface": {
+            "objMethodList": [],
+            "objName": ""
+          },
+          "deviceInfo": {
+            "deviceName": "",
+            "deviceModel": "",
+            "systemVersion": "",
+            "wechatVersion": "",
+            "publibVersion": 0,
+            "screenWidth": 0,
+            "pixelRatio": 0,
+            "userAgent": ""
+          },
+          "configureJs": "",
+          "publicJsMd5": "",
+          "threeJsMd5": "",
+          "supportCompressAlgo": 0
+        }
+      },
+      "fields": [
+        {
+          "field": "registerInterface",
+          "input": {
+            "registerInterface": {}
+          },
+          "protobuf_hex": "0a00",
+          "decoded": {
+            "registerInterface": {
+              "objMethodList": [],
+              "objName": ""
+            },
+            "deviceInfo": null,
+            "configureJs": "",
+            "publicJsMd5": "",
+            "threeJsMd5": "",
+            "supportCompressAlgo": 0
+          }
+        },
+        {
+          "field": "deviceInfo",
+          "input": {
+            "deviceInfo": {}
+          },
+          "protobuf_hex": "1200",
+          "decoded": {
+            "registerInterface": null,
+            "deviceInfo": {
+              "deviceName": "",
+              "deviceModel": "",
+              "systemVersion": "",
+              "wechatVersion": "",
+              "publibVersion": 0,
+              "screenWidth": 0,
+              "pixelRatio": 0,
+              "userAgent": ""
+            },
+            "configureJs": "",
+            "publicJsMd5": "",
+            "threeJsMd5": "",
+            "supportCompressAlgo": 0
+          }
+        },
+        {
+          "field": "configureJs",
+          "input": {
+            "configureJs": "configureJs-value"
+          },
+          "protobuf_hex": "1a11636f6e6669677572654a732d76616c7565",
+          "decoded": {
+            "registerInterface": null,
+            "deviceInfo": null,
+            "configureJs": "configureJs-value",
+            "publicJsMd5": "",
+            "threeJsMd5": "",
+            "supportCompressAlgo": 0
+          }
+        },
+        {
+          "field": "publicJsMd5",
+          "input": {
+            "publicJsMd5": "publicJsMd5-value"
+          },
+          "protobuf_hex": "22117075626c69634a734d64352d76616c7565",
+          "decoded": {
+            "registerInterface": null,
+            "deviceInfo": null,
+            "configureJs": "",
+            "publicJsMd5": "publicJsMd5-value",
+            "threeJsMd5": "",
+            "supportCompressAlgo": 0
+          }
+        },
+        {
+          "field": "threeJsMd5",
+          "input": {
+            "threeJsMd5": "threeJsMd5-value"
+          },
+          "protobuf_hex": "2a1074687265654a734d64352d76616c7565",
+          "decoded": {
+            "registerInterface": null,
+            "deviceInfo": null,
+            "configureJs": "",
+            "publicJsMd5": "",
+            "threeJsMd5": "threeJsMd5-value",
+            "supportCompressAlgo": 0
+          }
+        },
+        {
+          "field": "supportCompressAlgo",
+          "input": {
+            "supportCompressAlgo": 7
+          },
+          "protobuf_hex": "3007",
+          "decoded": {
+            "registerInterface": null,
+            "deviceInfo": null,
+            "configureJs": "",
+            "publicJsMd5": "",
+            "threeJsMd5": "",
+            "supportCompressAlgo": 7
+          }
+        }
+      ]
+    },
+    {
+      "type": "WARemoteDebug_WxHeartBeatReq",
+      "input": {
+        "baseRequest": {},
+        "recvAck": 7
+      },
+      "protobuf_hex": "0a001007",
+      "decoded": {
+        "baseRequest": {
+          "clientVersion": 0
+        },
+        "recvAck": 7
+      },
+      "explicit_zero": {
+        "input": {
+          "baseRequest": {},
+          "recvAck": 0
+        },
+        "protobuf_hex": "0a001000",
+        "decoded": {
+          "baseRequest": {
+            "clientVersion": 0
+          },
+          "recvAck": 0
+        }
+      },
+      "fields": [
+        {
+          "field": "baseRequest",
+          "input": {
+            "baseRequest": {}
+          },
+          "protobuf_hex": "0a00",
+          "decoded": {
+            "baseRequest": {
+              "clientVersion": 0
+            },
+            "recvAck": 0
+          }
+        },
+        {
+          "field": "recvAck",
+          "input": {
+            "recvAck": 7,
+            "baseRequest": {}
+          },
+          "protobuf_hex": "0a001007",
+          "decoded": {
+            "baseRequest": {
+              "clientVersion": 0
+            },
+            "recvAck": 7
+          }
+        }
+      ]
+    },
+    {
+      "type": "WARemoteDebug_WxHeartBeatResp",
+      "input": {
+        "baseResponse": {}
+      },
+      "protobuf_hex": "0a00",
+      "decoded": {
+        "baseResponse": {
+          "errcode": 0,
+          "errmsg": ""
+        }
+      },
+      "explicit_zero": {
+        "input": {
+          "baseResponse": {}
+        },
+        "protobuf_hex": "0a00",
+        "decoded": {
+          "baseResponse": {
+            "errcode": 0,
+            "errmsg": ""
+          }
+        }
+      },
+      "fields": [
+        {
+          "field": "baseResponse",
+          "input": {
+            "baseResponse": {}
+          },
+          "protobuf_hex": "0a00",
+          "decoded": {
+            "baseResponse": {
+              "errcode": 0,
+              "errmsg": ""
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "WARemoteDebug_WxJoinRoomReq",
+      "input": {
+        "baseRequest": {},
+        "username": "username-value",
+        "roomId": "roomId-value",
+        "wxpkgInfo": "wxpkgInfo-value"
+      },
+      "protobuf_hex": "0a00120e757365726e616d652d76616c75651a0c726f6f6d49642d76616c7565220f7778706b67496e666f2d76616c7565",
+      "decoded": {
+        "baseRequest": {
+          "clientVersion": 0
+        },
+        "username": "username-value",
+        "roomId": "roomId-value",
+        "wxpkgInfo": "wxpkgInfo-value"
+      },
+      "explicit_zero": {
+        "input": {
+          "baseRequest": {},
+          "username": "",
+          "roomId": "",
+          "wxpkgInfo": ""
+        },
+        "protobuf_hex": "0a0012001a002200",
+        "decoded": {
+          "baseRequest": {
+            "clientVersion": 0
+          },
+          "username": "",
+          "roomId": "",
+          "wxpkgInfo": ""
+        }
+      },
+      "fields": [
+        {
+          "field": "baseRequest",
+          "input": {
+            "baseRequest": {}
+          },
+          "protobuf_hex": "0a00",
+          "decoded": {
+            "baseRequest": {
+              "clientVersion": 0
+            },
+            "username": "",
+            "roomId": "",
+            "wxpkgInfo": ""
+          }
+        },
+        {
+          "field": "username",
+          "input": {
+            "username": "username-value",
+            "baseRequest": {}
+          },
+          "protobuf_hex": "0a00120e757365726e616d652d76616c7565",
+          "decoded": {
+            "baseRequest": {
+              "clientVersion": 0
+            },
+            "username": "username-value",
+            "roomId": "",
+            "wxpkgInfo": ""
+          }
+        },
+        {
+          "field": "roomId",
+          "input": {
+            "roomId": "roomId-value",
+            "baseRequest": {}
+          },
+          "protobuf_hex": "0a001a0c726f6f6d49642d76616c7565",
+          "decoded": {
+            "baseRequest": {
+              "clientVersion": 0
+            },
+            "username": "",
+            "roomId": "roomId-value",
+            "wxpkgInfo": ""
+          }
+        },
+        {
+          "field": "wxpkgInfo",
+          "input": {
+            "wxpkgInfo": "wxpkgInfo-value",
+            "baseRequest": {}
+          },
+          "protobuf_hex": "0a00220f7778706b67496e666f2d76616c7565",
+          "decoded": {
+            "baseRequest": {
+              "clientVersion": 0
+            },
+            "username": "",
+            "roomId": "",
+            "wxpkgInfo": "wxpkgInfo-value"
+          }
+        }
+      ]
+    },
+    {
+      "type": "WARemoteDebug_WxJoinRoomResp",
+      "input": {
+        "baseResponse": {}
+      },
+      "protobuf_hex": "0a00",
+      "decoded": {
+        "baseResponse": {
+          "errcode": 0,
+          "errmsg": ""
+        }
+      },
+      "explicit_zero": {
+        "input": {
+          "baseResponse": {}
+        },
+        "protobuf_hex": "0a00",
+        "decoded": {
+          "baseResponse": {
+            "errcode": 0,
+            "errmsg": ""
+          }
+        }
+      },
+      "fields": [
+        {
+          "field": "baseResponse",
+          "input": {
+            "baseResponse": {}
+          },
+          "protobuf_hex": "0a00",
+          "decoded": {
+            "baseResponse": {
+              "errcode": 0,
+              "errmsg": ""
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "WARemoteDebug_WxLoginReq",
+      "input": {
+        "baseRequest": {},
+        "loginTicket": "loginTicket-value"
+      },
+      "protobuf_hex": "0a0012116c6f67696e5469636b65742d76616c7565",
+      "decoded": {
+        "baseRequest": {
+          "clientVersion": 0
+        },
+        "loginTicket": "loginTicket-value"
+      },
+      "explicit_zero": {
+        "input": {
+          "baseRequest": {},
+          "loginTicket": ""
+        },
+        "protobuf_hex": "0a001200",
+        "decoded": {
+          "baseRequest": {
+            "clientVersion": 0
+          },
+          "loginTicket": ""
+        }
+      },
+      "fields": [
+        {
+          "field": "baseRequest",
+          "input": {
+            "baseRequest": {}
+          },
+          "protobuf_hex": "0a00",
+          "decoded": {
+            "baseRequest": {
+              "clientVersion": 0
+            },
+            "loginTicket": ""
+          }
+        },
+        {
+          "field": "loginTicket",
+          "input": {
+            "loginTicket": "loginTicket-value",
+            "baseRequest": {}
+          },
+          "protobuf_hex": "0a0012116c6f67696e5469636b65742d76616c7565",
+          "decoded": {
+            "baseRequest": {
+              "clientVersion": 0
+            },
+            "loginTicket": "loginTicket-value"
+          }
+        }
+      ]
+    },
+    {
+      "type": "WARemoteDebug_WxLoginResp",
+      "input": {
+        "baseResponse": {}
+      },
+      "protobuf_hex": "0a00",
+      "decoded": {
+        "baseResponse": {
+          "errcode": 0,
+          "errmsg": ""
+        },
+        "roomInfo": null
+      },
+      "explicit_zero": {
+        "input": {
+          "baseResponse": {}
+        },
+        "protobuf_hex": "0a00",
+        "decoded": {
+          "baseResponse": {
+            "errcode": 0,
+            "errmsg": ""
+          },
+          "roomInfo": null
+        }
+      },
+      "fields": [
+        {
+          "field": "baseResponse",
+          "input": {
+            "baseResponse": {}
+          },
+          "protobuf_hex": "0a00",
+          "decoded": {
+            "baseResponse": {
+              "errcode": 0,
+              "errmsg": ""
+            },
+            "roomInfo": null
+          }
+        },
+        {
+          "field": "roomInfo",
+          "input": {
+            "roomInfo": {},
+            "baseResponse": {}
+          },
+          "protobuf_hex": "0a001200",
+          "decoded": {
+            "baseResponse": {
+              "errcode": 0,
+              "errmsg": ""
+            },
+            "roomInfo": {
+              "joinRoom": false,
+              "roomId": "",
+              "originalMd5": "",
+              "roomStatus": 0,
+              "wxConnStatus": 0,
+              "devConnStatus": 0
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "WARemoteDebug_WxQuitRoomReq",
+      "input": {
+        "baseRequest": {}
+      },
+      "protobuf_hex": "0a00",
+      "decoded": {
+        "baseRequest": {
+          "clientVersion": 0
+        }
+      },
+      "explicit_zero": {
+        "input": {
+          "baseRequest": {}
+        },
+        "protobuf_hex": "0a00",
+        "decoded": {
+          "baseRequest": {
+            "clientVersion": 0
+          }
+        }
+      },
+      "fields": [
+        {
+          "field": "baseRequest",
+          "input": {
+            "baseRequest": {}
+          },
+          "protobuf_hex": "0a00",
+          "decoded": {
+            "baseRequest": {
+              "clientVersion": 0
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "WARemoteDebug_WxQuitRoomResp",
+      "input": {
+        "baseResponse": {}
+      },
+      "protobuf_hex": "0a00",
+      "decoded": {
+        "baseResponse": {
+          "errcode": 0,
+          "errmsg": ""
+        }
+      },
+      "explicit_zero": {
+        "input": {
+          "baseResponse": {}
+        },
+        "protobuf_hex": "0a00",
+        "decoded": {
+          "baseResponse": {
+            "errcode": 0,
+            "errmsg": ""
+          }
+        }
+      },
+      "fields": [
+        {
+          "field": "baseResponse",
+          "input": {
+            "baseResponse": {}
+          },
+          "protobuf_hex": "0a00",
+          "decoded": {
+            "baseResponse": {
+              "errcode": 0,
+              "errmsg": ""
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "WARemoteDebug_WxSyncMessageReq",
+      "input": {
+        "baseRequest": {},
+        "minSeq": 7,
+        "maxSeq": 7
+      },
+      "protobuf_hex": "0a0010071807",
+      "decoded": {
+        "baseRequest": {
+          "clientVersion": 0
+        },
+        "minSeq": 7,
+        "maxSeq": 7
+      },
+      "explicit_zero": {
+        "input": {
+          "baseRequest": {},
+          "minSeq": 0,
+          "maxSeq": 0
+        },
+        "protobuf_hex": "0a0010001800",
+        "decoded": {
+          "baseRequest": {
+            "clientVersion": 0
+          },
+          "minSeq": 0,
+          "maxSeq": 0
+        }
+      },
+      "fields": [
+        {
+          "field": "baseRequest",
+          "input": {
+            "baseRequest": {}
+          },
+          "protobuf_hex": "0a00",
+          "decoded": {
+            "baseRequest": {
+              "clientVersion": 0
+            },
+            "minSeq": 0,
+            "maxSeq": 0
+          }
+        },
+        {
+          "field": "minSeq",
+          "input": {
+            "minSeq": 7,
+            "baseRequest": {}
+          },
+          "protobuf_hex": "0a001007",
+          "decoded": {
+            "baseRequest": {
+              "clientVersion": 0
+            },
+            "minSeq": 7,
+            "maxSeq": 0
+          }
+        },
+        {
+          "field": "maxSeq",
+          "input": {
+            "maxSeq": 7,
+            "baseRequest": {}
+          },
+          "protobuf_hex": "0a001807",
+          "decoded": {
+            "baseRequest": {
+              "clientVersion": 0
+            },
+            "minSeq": 0,
+            "maxSeq": 7
+          }
+        }
+      ]
+    },
+    {
+      "type": "WARemoteDebug_WxSyncMessageResp",
+      "input": {
+        "baseResponse": {},
+        "sendAck": 7
+      },
+      "protobuf_hex": "0a001807",
+      "decoded": {
+        "debugMessageList": [],
+        "baseResponse": {
+          "errcode": 0,
+          "errmsg": ""
+        },
+        "sendAck": 7
+      },
+      "explicit_zero": {
+        "input": {
+          "debugMessageList": [],
+          "baseResponse": {},
+          "sendAck": 0
+        },
+        "protobuf_hex": "0a001800",
+        "decoded": {
+          "debugMessageList": [],
+          "baseResponse": {
+            "errcode": 0,
+            "errmsg": ""
+          },
+          "sendAck": 0
+        }
+      },
+      "fields": [
+        {
+          "field": "debugMessageList",
+          "input": {
+            "baseResponse": {}
+          },
+          "protobuf_hex": "0a00",
+          "decoded": {
+            "debugMessageList": [],
+            "baseResponse": {
+              "errcode": 0,
+              "errmsg": ""
+            },
+            "sendAck": 0
+          }
+        },
+        {
+          "field": "baseResponse",
+          "input": {
+            "baseResponse": {}
+          },
+          "protobuf_hex": "0a00",
+          "decoded": {
+            "debugMessageList": [],
+            "baseResponse": {
+              "errcode": 0,
+              "errmsg": ""
+            },
+            "sendAck": 0
+          }
+        },
+        {
+          "field": "sendAck",
+          "input": {
+            "sendAck": 7,
+            "baseResponse": {}
+          },
+          "protobuf_hex": "0a001807",
+          "decoded": {
+            "debugMessageList": [],
+            "baseResponse": {
+              "errcode": 0,
+              "errmsg": ""
+            },
+            "sendAck": 7
+          }
+        }
+      ]
+    }
+  ],
+  "duplicate_singular": {
+    "type": "WARemoteDebug_SetupContext",
+    "protobuf_hex": "0a070a0566697273740a00",
+    "decoded": {
+      "registerInterface": {
+        "objMethodList": [],
+        "objName": ""
+      },
+      "deviceInfo": null,
+      "configureJs": "",
+      "publicJsMd5": "",
+      "threeJsMd5": "",
+      "supportCompressAlgo": 0
+    }
+  },
+  "corrupt_inputs": [
+    {
+      "name": "truncated_varint",
+      "protobuf_hex": "08",
+      "error": "index out of range: 1 + 1 > 1",
+      "decoded": null
+    },
+    {
+      "name": "overlong_varint",
+      "protobuf_hex": "08ffffffffffffffffffff01",
+      "error": "invalid varint encoding",
+      "decoded": null
+    },
+    {
+      "name": "truncated_bytes",
+      "protobuf_hex": "120501",
+      "error": null,
+      "decoded": {
+        "pingId": "0",
+        "payload": "\u0001"
+      }
+    },
+    {
+      "name": "truncated_fixed32_unknown",
+      "protobuf_hex": "fd050102",
+      "error": "index out of range: 2 + 4 > 4",
+      "decoded": null
+    },
+    {
+      "name": "truncated_fixed64_unknown",
+      "protobuf_hex": "f905010203",
+      "error": "index out of range: 2 + 8 > 5",
+      "decoded": null
+    },
+    {
+      "name": "invalid_wire_type_7",
+      "protobuf_hex": "ff05",
+      "error": "invalid wire type 7 at offset 2",
+      "decoded": null
+    }
+  ]
+}

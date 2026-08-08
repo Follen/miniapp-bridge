@@ -1,0 +1,13 @@
+LIBRARY miniapp-frida
+EXPORTS
+  mb_device_open
+  mb_device_enumerate
+  mb_processes_free
+  mb_device_attach
+  mb_device_close
+  mb_runtime_shutdown
+  mb_session_load_script
+  mb_session_detach
+  mb_script_post
+  mb_script_unload
+  mb_error_free

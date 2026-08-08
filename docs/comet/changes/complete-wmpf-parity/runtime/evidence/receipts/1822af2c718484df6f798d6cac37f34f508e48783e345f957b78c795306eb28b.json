@@ -1,0 +1,28 @@
+{
+  "schema": "comet.native.verification-receipt.v3",
+  "kind": "manual-evidence",
+  "role": "acceptance-evidence",
+  "status": "passed",
+  "bindings": {
+    "change": "complete-wmpf-parity",
+    "sourceRevision": 9,
+    "contractHash": "febb014a24c851bad6df86ec162c7e420eafca5c2faada82d8cf67530226f764",
+    "scopeHash": "eb23d0cbe77760b301d3ccc8fb0a0e2fa9913ac772f514a0c6ef2faa7a5f55ad",
+    "snapshotHash": "bc089b29e4ded1f42d735004594ae9924759c612787e450b01d0c0aae9a7d29b",
+    "artifactHash": "bbdcea95d394b93191a119014961dd8b8930b9f12c7382c13f857e1c34661bc4"
+  },
+  "acceptanceIds": [
+    "acceptance-8fc22df3cdf7b059bdf074c158b79eebdeca763ce0fe3f0cd5c29b5e3ec056ba"
+  ],
+  "actor": "native-runtime:manual-evidence",
+  "issuedAt": "2026-08-08T01:14:41.754Z",
+  "evidence": {
+    "steps": [
+      "powershell -ExecutionPolicy Bypass -File scripts/smoke-windows.ps1 -UpstreamWaitSeconds 180"
+    ],
+    "observations": [
+      "Exited 1 after 180s. Bridge owned 127.0.0.1:9421 and :62000; Frida attached pid=57992 version=25297; CDP client connected/disconnected. Target did not establish WMPF upstream on 9421, so Runtime.enable/Debugger.enable/Runtime.evaluate were not run."
+    ]
+  },
+  "receiptHash": "1822af2c718484df6f798d6cac37f34f508e48783e345f957b78c795306eb28b"
+}

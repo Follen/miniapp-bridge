@@ -1,0 +1,28 @@
+{
+  "schema": "comet.native.verification-receipt.v3",
+  "kind": "manual-evidence",
+  "role": "acceptance-evidence",
+  "status": "passed",
+  "bindings": {
+    "change": "complete-wmpf-parity",
+    "sourceRevision": 11,
+    "contractHash": "febb014a24c851bad6df86ec162c7e420eafca5c2faada82d8cf67530226f764",
+    "scopeHash": "f490bb7e7f63cca24550c0e71ea640156cce9e1b320997413fb022e28428bec1",
+    "snapshotHash": "fa7310bf064d2a129137a25c20d985d652d946dd424dc774c2c39fd7f677b456",
+    "artifactHash": "bbdcea95d394b93191a119014961dd8b8930b9f12c7382c13f857e1c34661bc4"
+  },
+  "acceptanceIds": [
+    "acceptance-8fc22df3cdf7b059bdf074c158b79eebdeca763ce0fe3f0cd5c29b5e3ec056ba"
+  ],
+  "actor": "native-runtime:manual-evidence",
+  "issuedAt": "2026-08-08T03:58:21.587Z",
+  "evidence": {
+    "steps": [
+      "manual bridge PID 63624; Get-NetTCPConnection; go run scripts/smoke-client.go --url ws://127.0.0.1:62000"
+    ],
+    "observations": [
+      "Exited 0. After post-attach miniapp reload, 9421 upstream established; listeners 9421/62000 owned; Runtime.enable=true Debugger.enable=true Runtime.evaluate=true events=246."
+    ]
+  },
+  "receiptHash": "a70e76d5dd3dbbcce2a3b35a764965071a56ebbc2ca463d0682264c7000bff43"
+}

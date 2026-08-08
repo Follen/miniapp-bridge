@@ -1,0 +1,1507 @@
+{
+  "reference_commit": "2b90b77fc6f13dd18480cd07d7dd9c052cc26c9d",
+  "debug_wrap": [
+    {
+      "name": "ping_snake",
+      "category": "ping",
+      "input": {
+        "ping_id": 900719925,
+        "payload": "ping-payload"
+      },
+      "compress_algo": 0,
+      "payload_hex": "08b5cabfad03120c70696e672d7061796c6f6164",
+      "original_size": 0,
+      "debug_proto_hex": "080c10221a0470696e67221408b5cabfad03120c70696e672d7061796c6f616428003000",
+      "unwrapped": {
+        "seq": 12,
+        "delay": 34,
+        "category": "ping",
+        "data": {
+          "ping_id": {
+            "low": 900719925,
+            "high": 0,
+            "unsigned": true
+          },
+          "payload": "ping-payload"
+        },
+        "compress_algo": 0,
+        "original_size": 0
+      }
+    },
+    {
+      "name": "ping_zlib",
+      "category": "ping",
+      "input": {
+        "ping_id": 77,
+        "payload": "compress-me-compress-me-compress-me-compress-me-compress-me-compress-me-compress-me-compress-me-compress-me-compress-me-compress-me-compress-me-compress-me-compress-me-compress-me-compress-me-compress-me-compress-me-compress-me-compress-me-compress-me-compress-me-compress-me-compress-me-"
+      },
+      "compress_algo": 1,
+      "payload_hex": "789ce3f0155ac0949c9f5b50945a5cac9b9baa3bcac66403009be26f4a",
+      "original_size": 293,
+      "debug_proto_hex": "080c10221a0470696e67221d789ce3f0155ac0949c9f5b50945a5cac9b9baa3bcac66403009be26f4a280130a502",
+      "unwrapped": {
+        "seq": 12,
+        "delay": 34,
+        "category": "ping",
+        "data": {
+          "ping_id": {
+            "low": 77,
+            "high": 0,
+            "unsigned": true
+          },
+          "payload": "compress-me-compress-me-compress-me-compress-me-compress-me-compress-me-compress-me-compress-me-compress-me-compress-me-compress-me-compress-me-compress-me-compress-me-compress-me-compress-me-compress-me-compress-me-compress-me-compress-me-compress-me-compress-me-compress-me-compress-me-"
+        },
+        "compress_algo": 1,
+        "original_size": 293
+      }
+    },
+    {
+      "name": "ping_zlib_bitmask",
+      "category": "ping",
+      "input": {
+        "ping_id": 78,
+        "payload": "bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-"
+      },
+      "compress_algo": 3,
+      "payload_hex": "789ce3f0136a604aca2cc94d2cced61da93400b98b63eb",
+      "original_size": 261,
+      "debug_proto_hex": "080c10221a0470696e672217789ce3f0136a604aca2cc94d2cced61da93400b98b63eb2803308502",
+      "unwrapped": {
+        "seq": 12,
+        "delay": 34,
+        "category": "ping",
+        "data": {
+          "ping_id": {
+            "low": 78,
+            "high": 0,
+            "unsigned": true
+          },
+          "payload": "bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-bitmask-"
+        },
+        "compress_algo": 3,
+        "original_size": 261
+      }
+    },
+    {
+      "name": "call_interface_stringifies_args",
+      "category": "callInterface",
+      "input": {
+        "name": "wx",
+        "method": "invoke",
+        "args": [
+          7,
+          true,
+          null,
+          "raw"
+        ],
+        "call_id": 41
+      },
+      "compress_algo": 0,
+      "payload_hex": "0a0277781206696e766f6b651a01371a04747275651a046e756c6c1a037261772029",
+      "original_size": 0,
+      "debug_proto_hex": "080c10221a0d63616c6c496e7465726661636522220a0277781206696e766f6b651a01371a04747275651a046e756c6c1a03726177202928003000",
+      "unwrapped": {
+        "seq": 12,
+        "delay": 34,
+        "category": "callInterface",
+        "data": {
+          "name": "wx",
+          "method": "invoke",
+          "args": [
+            "7",
+            "true",
+            "null",
+            "raw"
+          ],
+          "call_id": 41
+        },
+        "compress_algo": 0,
+        "original_size": 0
+      }
+    },
+    {
+      "name": "breakpoint_boolean",
+      "category": "breakpoint",
+      "input": {
+        "is_hit": 2
+      },
+      "compress_algo": 0,
+      "payload_hex": "0801",
+      "original_size": 0,
+      "debug_proto_hex": "080c10221a0a627265616b706f696e742202080128003000",
+      "unwrapped": {
+        "seq": 12,
+        "delay": 34,
+        "category": "breakpoint",
+        "data": {
+          "is_hit": 1
+        },
+        "compress_algo": 0,
+        "original_size": 0
+      }
+    },
+    {
+      "name": "chrome_snake",
+      "category": "chromeDevtools",
+      "input": {
+        "op_id": 55,
+        "payload": "{\"id\":55}",
+        "jscontext_id": "ctx-main"
+      },
+      "compress_algo": 0,
+      "payload_hex": "083712097b226964223a35357d1a086374782d6d61696e",
+      "original_size": 0,
+      "debug_proto_hex": "080c10221a0e6368726f6d65446576746f6f6c732217083712097b226964223a35357d1a086374782d6d61696e28003000",
+      "unwrapped": {
+        "seq": 12,
+        "delay": 34,
+        "category": "chromeDevtools",
+        "data": {
+          "op_id": {
+            "low": 55,
+            "high": 0,
+            "unsigned": true
+          },
+          "payload": "{\"id\":55}",
+          "jscontext_id": "ctx-main"
+        },
+        "compress_algo": 0,
+        "original_size": 0
+      }
+    },
+    {
+      "name": "custom_raw",
+      "category": "customMessage",
+      "input": {
+        "method": "notice",
+        "payload": "{}",
+        "raw": {
+          "type": "Buffer",
+          "data": [
+            0,
+            1,
+            254,
+            255
+          ]
+        }
+      },
+      "compress_algo": 0,
+      "payload_hex": "0a066e6f7469636512027b7d1a040001feff",
+      "original_size": 0,
+      "debug_proto_hex": "080c10221a0d637573746f6d4d65737361676522120a066e6f7469636512027b7d1a040001feff28003000",
+      "unwrapped": {
+        "seq": 12,
+        "delay": 34,
+        "category": "customMessage",
+        "data": {
+          "method": "notice",
+          "payload": "{}",
+          "raw": {
+            "type": "Buffer",
+            "data": [
+              0,
+              1,
+              254,
+              255
+            ]
+          }
+        },
+        "compress_algo": 0,
+        "original_size": 0
+      }
+    }
+  ],
+  "category_branches": [
+    {
+      "name": "setup",
+      "category": "setupContext",
+      "payload_hex": "0a0c0a02777812060a016d120161121b0a016412016d1a0173220177280135000020403d000040404201751a01632201702a01743001",
+      "unwrap": {
+        "seq": 21,
+        "delay": 22,
+        "category": "setupContext",
+        "data": {
+          "register_interface": {
+            "obj_name": "wx",
+            "obj_methods": [
+              {
+                "method_name": "m",
+                "method_args": [
+                  "a"
+                ]
+              }
+            ]
+          },
+          "configure_js": "c",
+          "public_js_md5": "p",
+          "three_js_md5": "t",
+          "device_info": {
+            "device_name": "d",
+            "device_model": "m",
+            "os": "s",
+            "wechat_version": "w",
+            "pixel_ratio": 3,
+            "screen_width": 2.5,
+            "publib": 1,
+            "user_agent": "u"
+          },
+          "support_compress_algo": 1
+        },
+        "compress_algo": 0,
+        "original_size": 0
+      },
+      "wrap_payload_hex": null,
+      "wrap_original_size": null,
+      "wrap_error": "invalid debug message category setupContext"
+    },
+    {
+      "name": "call",
+      "category": "callInterface",
+      "payload_hex": "0a02777812016d1a01612001",
+      "unwrap": {
+        "seq": 21,
+        "delay": 22,
+        "category": "callInterface",
+        "data": {
+          "name": "wx",
+          "method": "m",
+          "args": [
+            "a"
+          ],
+          "call_id": 1
+        },
+        "compress_algo": 0,
+        "original_size": 0
+      },
+      "wrap_payload_hex": "0a02777812016d1a01612001",
+      "wrap_original_size": 0,
+      "wrap_error": null
+    },
+    {
+      "name": "call_result",
+      "category": "callInterfaceResult",
+      "payload_hex": "0a017210021a0164",
+      "unwrap": {
+        "seq": 21,
+        "delay": 22,
+        "category": "callInterfaceResult",
+        "data": {
+          "ret": "r",
+          "call_id": 2,
+          "debug_info": "d"
+        },
+        "compress_algo": 0,
+        "original_size": 0
+      },
+      "wrap_payload_hex": null,
+      "wrap_original_size": null,
+      "wrap_error": "invalid debug message category callInterfaceResult"
+    },
+    {
+      "name": "evaluate",
+      "category": "evaluateJavascript",
+      "payload_hex": "0a013110031a0164",
+      "unwrap": {
+        "seq": 21,
+        "delay": 22,
+        "category": "evaluateJavascript",
+        "data": {
+          "script": "1",
+          "evaluate_id": 3,
+          "debug_info": "d"
+        },
+        "compress_algo": 0,
+        "original_size": 0
+      },
+      "wrap_payload_hex": null,
+      "wrap_original_size": null,
+      "wrap_error": "invalid debug message category evaluateJavascript"
+    },
+    {
+      "name": "evaluate_result",
+      "category": "evaluateJavascriptResult",
+      "payload_hex": "0a01311003",
+      "unwrap": {
+        "seq": 21,
+        "delay": 22,
+        "category": "evaluateJavascriptResult",
+        "data": {
+          "ret": "1",
+          "evaluate_id": 3
+        },
+        "compress_algo": 0,
+        "original_size": 0
+      },
+      "wrap_payload_hex": "0a01311003",
+      "wrap_original_size": 0,
+      "wrap_error": null
+    },
+    {
+      "name": "breakpoint",
+      "category": "breakpoint",
+      "payload_hex": "0800",
+      "unwrap": {
+        "seq": 21,
+        "delay": 22,
+        "category": "breakpoint",
+        "data": {
+          "is_hit": 0
+        },
+        "compress_algo": 0,
+        "original_size": 0
+      },
+      "wrap_payload_hex": "0800",
+      "wrap_original_size": 0,
+      "wrap_error": null
+    },
+    {
+      "name": "ping",
+      "category": "ping",
+      "payload_hex": "0804120170",
+      "unwrap": {
+        "seq": 21,
+        "delay": 22,
+        "category": "ping",
+        "data": {
+          "ping_id": {
+            "low": 4,
+            "high": 0,
+            "unsigned": true
+          },
+          "payload": "p"
+        },
+        "compress_algo": 0,
+        "original_size": 0
+      },
+      "wrap_payload_hex": "0804120170",
+      "wrap_original_size": 0,
+      "wrap_error": null
+    },
+    {
+      "name": "pong",
+      "category": "pong",
+      "payload_hex": "080410051a0170",
+      "unwrap": {
+        "seq": 21,
+        "delay": 22,
+        "category": "pong",
+        "data": {
+          "ping_id": 4,
+          "network_type": 5,
+          "payload": "p"
+        },
+        "compress_algo": 0,
+        "original_size": 0
+      },
+      "wrap_payload_hex": null,
+      "wrap_original_size": null,
+      "wrap_error": "invalid debug message category pong"
+    },
+    {
+      "name": "dom_op",
+      "category": "domOp",
+      "payload_hex": "0a027b7d1006",
+      "unwrap": {
+        "seq": 21,
+        "delay": 22,
+        "category": "domOp",
+        "data": {
+          "params": "{}",
+          "webview_id": 6
+        },
+        "compress_algo": 0,
+        "original_size": 0
+      },
+      "wrap_payload_hex": "0a027b7d1006",
+      "wrap_original_size": 0,
+      "wrap_error": null
+    },
+    {
+      "name": "dom_event",
+      "category": "domEvent",
+      "payload_hex": "0a027b7d1007",
+      "unwrap": {
+        "seq": 21,
+        "delay": 22,
+        "category": "domEvent",
+        "data": {
+          "params": "{}",
+          "webview_id": 7
+        },
+        "compress_algo": 0,
+        "original_size": 0
+      },
+      "wrap_payload_hex": "0a027b7d1007",
+      "wrap_original_size": 0,
+      "wrap_error": null
+    },
+    {
+      "name": "network",
+      "category": "networkDebugAPI",
+      "payload_hex": "0a01611201741a01682008",
+      "unwrap": {
+        "seq": 21,
+        "delay": 22,
+        "category": "networkDebugAPI",
+        "data": {
+          "api_name": "a",
+          "task_id": "t",
+          "request_headers": "h",
+          "timestamp": {
+            "low": 8,
+            "high": 0,
+            "unsigned": true
+          }
+        },
+        "compress_algo": 0,
+        "original_size": 0
+      },
+      "wrap_payload_hex": null,
+      "wrap_original_size": null,
+      "wrap_error": "invalid debug message category networkDebugAPI"
+    },
+    {
+      "name": "chrome",
+      "category": "chromeDevtools",
+      "payload_hex": "080912027b7d1a0163",
+      "unwrap": {
+        "seq": 21,
+        "delay": 22,
+        "category": "chromeDevtools",
+        "data": {
+          "op_id": {
+            "low": 9,
+            "high": 0,
+            "unsigned": true
+          },
+          "payload": "{}",
+          "jscontext_id": "c"
+        },
+        "compress_algo": 0,
+        "original_size": 0
+      },
+      "wrap_payload_hex": "080912027b7d1a0163",
+      "wrap_original_size": 0,
+      "wrap_error": null
+    },
+    {
+      "name": "chrome_result",
+      "category": "chromeDevtoolsResult",
+      "payload_hex": "080a12027b7d1a0163",
+      "unwrap": {
+        "seq": 21,
+        "delay": 22,
+        "category": "chromeDevtoolsResult",
+        "data": {
+          "op_id": {
+            "low": 10,
+            "high": 0,
+            "unsigned": true
+          },
+          "payload": "{}",
+          "jscontext_id": "c"
+        },
+        "compress_algo": 0,
+        "original_size": 0
+      },
+      "wrap_payload_hex": null,
+      "wrap_original_size": null,
+      "wrap_error": "invalid debug message category chromeDevtoolsResult"
+    },
+    {
+      "name": "add_context",
+      "category": "addJsContext",
+      "payload_hex": "0a016112016e",
+      "unwrap": {
+        "seq": 21,
+        "delay": 22,
+        "category": "addJsContext",
+        "data": {
+          "jscontext_id": "a",
+          "jscontext_name": "n"
+        },
+        "compress_algo": 0,
+        "original_size": 0
+      },
+      "wrap_payload_hex": null,
+      "wrap_original_size": null,
+      "wrap_error": "invalid debug message category addJsContext"
+    },
+    {
+      "name": "remove_context",
+      "category": "removeJsContext",
+      "payload_hex": "0a0172",
+      "unwrap": {
+        "seq": 21,
+        "delay": 22,
+        "category": "removeJsContext",
+        "data": {
+          "jscontext_id": "r"
+        },
+        "compress_algo": 0,
+        "original_size": 0
+      },
+      "wrap_payload_hex": null,
+      "wrap_original_size": null,
+      "wrap_error": "invalid debug message category removeJsContext"
+    },
+    {
+      "name": "connect_context",
+      "category": "connectJsContext",
+      "payload_hex": "0a0163",
+      "unwrap": {
+        "seq": 21,
+        "delay": 22,
+        "category": "connectJsContext",
+        "data": {
+          "jscontext_id": "c"
+        },
+        "compress_algo": 0,
+        "original_size": 0
+      },
+      "wrap_payload_hex": "0a0163",
+      "wrap_original_size": 0,
+      "wrap_error": null
+    },
+    {
+      "name": "engine_event",
+      "category": "engineEvent",
+      "payload_hex": "0801",
+      "unwrap": {
+        "seq": 21,
+        "delay": 22,
+        "category": "engineEvent",
+        "data": {},
+        "compress_algo": 0,
+        "original_size": 0
+      },
+      "wrap_payload_hex": null,
+      "wrap_original_size": null,
+      "wrap_error": "invalid debug message category engineEvent"
+    },
+    {
+      "name": "engine_op",
+      "category": "engineOp",
+      "payload_hex": "0801",
+      "unwrap": {
+        "seq": 21,
+        "delay": 22,
+        "category": "engineOp",
+        "data": {},
+        "compress_algo": 0,
+        "original_size": 0
+      },
+      "wrap_payload_hex": null,
+      "wrap_original_size": null,
+      "wrap_error": "invalid debug message category engineOp"
+    },
+    {
+      "name": "custom",
+      "category": "customMessage",
+      "payload_hex": "0a016d12027b7d1a020102",
+      "unwrap": {
+        "seq": 21,
+        "delay": 22,
+        "category": "customMessage",
+        "data": {
+          "method": "m",
+          "payload": "{}",
+          "raw": {
+            "type": "Buffer",
+            "data": [
+              1,
+              2
+            ]
+          }
+        },
+        "compress_algo": 0,
+        "original_size": 0
+      },
+      "wrap_payload_hex": "0a016d12027b7d1a020102",
+      "wrap_original_size": 0,
+      "wrap_error": null
+    }
+  ],
+  "special_unwrap": [
+    {
+      "name": "empty_category_defaults_ping",
+      "debug_proto_hex": "080310041a0022120809120e656d7074792d63617465676f727928003000",
+      "output": {
+        "seq": 3,
+        "delay": 4,
+        "category": "ping",
+        "data": {},
+        "compress_algo": 0,
+        "original_size": 0
+      }
+    },
+    {
+      "name": "unknown_category_empty_object",
+      "debug_proto_hex": "080510061a0e66757475726543617465676f7279220308960128003000",
+      "output": {
+        "seq": 5,
+        "delay": 6,
+        "category": "futureCategory",
+        "data": {},
+        "compress_algo": 0,
+        "original_size": 0
+      }
+    },
+    {
+      "name": "compressed_original_size_fallback",
+      "debug_proto_hex": "080710081a0470696e67221b789ce3e012ea634a4bccc9494a4cced61d652467eb02004610659b28013000",
+      "compressed_size": 27,
+      "output": {
+        "seq": 7,
+        "delay": 8,
+        "category": "ping",
+        "data": {
+          "ping_id": {
+            "low": 10,
+            "high": 0,
+            "unsigned": true
+          },
+          "payload": "fallback-fallback-fallback-fallback-fallback-fallback-fallback-fallback-fallback-fallback-fallback-fallback-fallback-fallback-fallback-fallback-fallback-fallback-fallback-fallback-fallback-fallback-fallback-fallback-fallback-fallback-fallback-fallback-fallback-fallback-"
+        },
+        "compress_algo": 1,
+        "original_size": 27
+      }
+    }
+  ],
+  "compression_saved_bytes_after_round_trips": 1004,
+  "command_mapping": [
+    {
+      "name": "Login",
+      "request_type": 2002,
+      "request_cmd": 2002,
+      "client_response_type": 1002,
+      "client_request_cmd": 1002
+    },
+    {
+      "name": "Heartbeat",
+      "request_type": 2001,
+      "request_cmd": 2001,
+      "client_response_type": 1001,
+      "client_request_cmd": 1001
+    },
+    {
+      "name": "JoinRoom",
+      "request_type": 2003,
+      "request_cmd": 2003,
+      "client_response_type": 1003,
+      "client_request_cmd": 1003
+    },
+    {
+      "name": "QuitRoom",
+      "request_type": 2004,
+      "request_cmd": 2004,
+      "client_response_type": 1004,
+      "client_request_cmd": 1004
+    },
+    {
+      "name": "SendDebugMessage",
+      "request_type": 2000,
+      "request_cmd": 2000,
+      "client_response_type": 1000,
+      "client_request_cmd": 1000
+    },
+    {
+      "name": "SendDebugMessageParallelly",
+      "request_type": 2006,
+      "request_cmd": 2006,
+      "client_response_type": 1006,
+      "client_request_cmd": 1006
+    },
+    {
+      "name": "MessageNotify",
+      "request_type": 1000,
+      "request_cmd": 1000,
+      "client_response_type": 2000,
+      "client_request_cmd": 2000
+    },
+    {
+      "name": "MessageNotifyParallelly",
+      "request_type": 1006,
+      "request_cmd": 1006,
+      "client_response_type": 2006,
+      "client_request_cmd": 2006
+    },
+    {
+      "name": "SyncMessage",
+      "request_type": 2005,
+      "request_cmd": 2005,
+      "client_response_type": 1005,
+      "client_request_cmd": 1005
+    },
+    {
+      "name": "EventNotifyBegin",
+      "request_type": 3001,
+      "request_cmd": 3001,
+      "client_response_type": 3001,
+      "client_request_cmd": 3001
+    },
+    {
+      "name": "EventNotifyBlock",
+      "request_type": 3003,
+      "request_cmd": 3003,
+      "client_response_type": 3003,
+      "client_request_cmd": 3003
+    },
+    {
+      "name": "EventNotifyEnd",
+      "request_type": 3002,
+      "request_cmd": 3002,
+      "client_response_type": 3002,
+      "client_request_cmd": 3002
+    },
+    {
+      "name": "UnknownNumeric",
+      "request_type": 4242,
+      "request_cmd": -1,
+      "client_response_type": 4242,
+      "client_request_cmd": -1
+    }
+  ],
+  "developer_outgoing": [
+    {
+      "name": "login",
+      "type": 2002,
+      "uuid": "dev-0",
+      "input": {
+        "base_request": {
+          "clientversion": 123
+        },
+        "newticket": "ticket",
+        "autodev": 1
+      },
+      "frame_hex": "08d20f12056465762d301a0e0a02087b12067469636b65741801",
+      "error": null
+    },
+    {
+      "name": "heartbeat",
+      "type": 2001,
+      "uuid": "dev-1",
+      "input": {
+        "base_request": {
+          "clientversion": 124
+        },
+        "recv_ack": 19
+      },
+      "frame_hex": "08d10f12056465762d311a060a02087c1013",
+      "error": null
+    },
+    {
+      "name": "join",
+      "type": 2003,
+      "uuid": "dev-2",
+      "input": {
+        "base_request": {
+          "clientversion": 125
+        },
+        "appid": "wx-app",
+        "room_id": "room-1",
+        "wxpkg_info": "pkg"
+      },
+      "frame_hex": "08d30f12056465762d321a190a02087d120677782d6170701a06726f6f6d2d312203706b67",
+      "error": null
+    },
+    {
+      "name": "quit",
+      "type": 2004,
+      "uuid": "dev-3",
+      "input": {
+        "base_request": {
+          "clientversion": 126
+        }
+      },
+      "frame_hex": "08d40f12056465762d331a040a02087e",
+      "error": null
+    },
+    {
+      "name": "sync_with_max",
+      "type": 2005,
+      "uuid": "dev-4",
+      "input": {
+        "base_request": {
+          "clientversion": 127
+        },
+        "min_seq": 4,
+        "max_seq": 99
+      },
+      "frame_hex": "08d50f12056465762d341a080a02087f10041863",
+      "error": null
+    },
+    {
+      "name": "sync_without_max",
+      "type": 2005,
+      "uuid": "dev-5",
+      "input": {
+        "base_request": {
+          "clientversion": 128
+        },
+        "min_seq": 5
+      },
+      "frame_hex": "08d50f12056465762d351a070a030880011005",
+      "error": null
+    },
+    {
+      "name": "send_debug",
+      "type": 2000,
+      "uuid": "send_debug",
+      "input": {
+        "base_request": {
+          "clientversion": 129
+        },
+        "recv_ack": 7,
+        "debug_message": [
+          {
+            "seq": 1,
+            "after": 2,
+            "category": "ping",
+            "data": {
+              "ping_id": 2,
+              "payload": "x"
+            },
+            "compress_algo": 0
+          }
+        ]
+      },
+      "parallel": false,
+      "frame_hex": "08d00f120a73656e645f64656275671a1c0a03088101121308011a0470696e6722050802120178280030001807",
+      "error": null
+    },
+    {
+      "name": "send_debug_parallel_request",
+      "type": 2006,
+      "uuid": "send_debug_parallel_request",
+      "input": {
+        "base_request": {
+          "clientversion": 130
+        },
+        "recv_ack": 8,
+        "debug_message": [
+          {
+            "seq": 1,
+            "after": 2,
+            "category": "ping",
+            "data": {
+              "ping_id": 2,
+              "payload": "x"
+            },
+            "compress_algo": 0
+          }
+        ]
+      },
+      "parallel": false,
+      "frame_hex": "08d60f121b73656e645f64656275675f706172616c6c656c5f726571756573741a1c0a03088201121308011a0470696e6722050802120178280030001808",
+      "error": null
+    },
+    {
+      "name": "send_debug_parallel_notify",
+      "type": 2006,
+      "uuid": "send_debug_parallel_notify",
+      "input": {
+        "debug_message": [
+          {
+            "seq": 1,
+            "after": 2,
+            "category": "ping",
+            "data": {
+              "ping_id": 2,
+              "payload": "x"
+            },
+            "compress_algo": 0
+          }
+        ]
+      },
+      "parallel": true,
+      "frame_hex": "08d60f121a73656e645f64656275675f706172616c6c656c5f6e6f746966791a150a1308011a0470696e672205080212017828003000",
+      "error": null
+    },
+    {
+      "name": "message_notify_parallel_response",
+      "type": 1006,
+      "uuid": "message_notify_parallel_response",
+      "input": {},
+      "parallel": false,
+      "frame_hex": "08ee0712206d6573736167655f6e6f746966795f706172616c6c656c5f726573706f6e73651a060a0408001200",
+      "error": null
+    },
+    {
+      "name": "unknown_type",
+      "type": 4242,
+      "uuid": "bad",
+      "input": {},
+      "error": "error wrapping outgoing object, invalid type 4242",
+      "frame_hex": null
+    }
+  ],
+  "client_response_frames": [
+    {
+      "name": "login",
+      "type": 1002,
+      "uuid": "client-0",
+      "input": {
+        "base_response": {
+          "errcode": -2,
+          "errmsg": "bad"
+        },
+        "room_info": {
+          "join_room": true,
+          "original_md5": "md5",
+          "room_status": 3,
+          "wx_conn_status": 4,
+          "dev_conn_status": 5,
+          "room_id": "room-x"
+        }
+      },
+      "frame_hex": "08ea071208636c69656e742d301a290a1008feffffffffffffffff011203626164121508011206726f6f6d2d781a036d6435200328043005",
+      "error": null
+    },
+    {
+      "name": "heartbeat",
+      "type": 1001,
+      "uuid": "client-1",
+      "input": {
+        "base_response": {
+          "errcode": 0,
+          "errmsg": ""
+        }
+      },
+      "frame_hex": "08e9071208636c69656e742d311a060a0408001200",
+      "error": null
+    },
+    {
+      "name": "join",
+      "type": 1003,
+      "uuid": "client-2",
+      "input": {
+        "base_response": {
+          "errcode": 1,
+          "errmsg": "join"
+        }
+      },
+      "frame_hex": "08eb071208636c69656e742d321a0a0a08080112046a6f696e",
+      "error": null
+    },
+    {
+      "name": "quit",
+      "type": 1004,
+      "uuid": "client-3",
+      "input": {
+        "base_response": {
+          "errcode": 0,
+          "errmsg": "bye"
+        }
+      },
+      "frame_hex": "08ec071208636c69656e742d331a090a0708001203627965",
+      "error": null
+    },
+    {
+      "name": "sync",
+      "type": 1005,
+      "uuid": "client-4",
+      "input": {
+        "base_response": {
+          "errcode": 0,
+          "errmsg": ""
+        },
+        "debug_message": [
+          {
+            "seq": 1,
+            "delay": 17,
+            "category": "ping",
+            "data": {
+              "ping_id": 2,
+              "payload": "sync"
+            },
+            "compress_algo": 0
+          }
+        ],
+        "send_ack": 88
+      },
+      "frame_hex": "08ed071208636c69656e742d341a200a0408001200121608011a0470696e6722080802120473796e63280030001858",
+      "error": null
+    },
+    {
+      "name": "notify_parallel",
+      "type": 2006,
+      "uuid": "client-5",
+      "input": {
+        "debug_message": [
+          {
+            "seq": 2,
+            "delay": 18,
+            "category": "chromeDevtools",
+            "data": {
+              "op_id": 3,
+              "payload": "{}",
+              "jscontext_id": "ctx"
+            },
+            "compress_algo": 0
+          }
+        ]
+      },
+      "frame_hex": "08d60f1208636c69656e742d351a250a2308021a0e6368726f6d65446576746f6f6c73220b080312027b7d1a0363747828003000",
+      "error": null
+    },
+    {
+      "name": "event_begin",
+      "type": 3001,
+      "uuid": "client-6",
+      "input": {},
+      "frame_hex": "08b9171208636c69656e742d361a00",
+      "error": null
+    },
+    {
+      "name": "event_block",
+      "type": 3003,
+      "uuid": "client-7",
+      "input": {},
+      "frame_hex": "08bb171208636c69656e742d371a00",
+      "error": null
+    },
+    {
+      "name": "event_end",
+      "type": 3002,
+      "uuid": "client-8",
+      "input": {},
+      "frame_hex": "08ba171208636c69656e742d381a00",
+      "error": null
+    },
+    {
+      "name": "unknown_type",
+      "type": 4242,
+      "uuid": "client-bad",
+      "input": {},
+      "frame_hex": null,
+      "error": "error wrapping outgoing object, invalid type 4242"
+    }
+  ],
+  "incoming_frames": [
+    {
+      "name": "client_login",
+      "direction": "client",
+      "cmd": 1002,
+      "frame_hex": "08ea07120a696e636f6d696e672d301a130a0308c901120c6c6f67696e2d7469636b6574",
+      "output": {
+        "cmd": 1002,
+        "uuid": "incoming-0",
+        "data": {
+          "base_request": {
+            "clientversion": {
+              "clientVersion": 201
+            }
+          },
+          "loginticket": "login-ticket"
+        },
+        "_comment": "Login"
+      }
+    },
+    {
+      "name": "client_heartbeat",
+      "direction": "client",
+      "cmd": 1001,
+      "frame_hex": "08e907120a696e636f6d696e672d311a070a0308ca01102c",
+      "output": {
+        "cmd": 1001,
+        "uuid": "incoming-1",
+        "data": {
+          "base_request": {
+            "clientversion": {
+              "clientVersion": 202
+            }
+          },
+          "recv_ack": 44
+        },
+        "_comment": "Heartbeat"
+      }
+    },
+    {
+      "name": "client_join",
+      "direction": "client",
+      "cmd": 1003,
+      "frame_hex": "08eb07120a696e636f6d696e672d321a160a0308cb011204757365721a04726f6f6d2203706b67",
+      "output": {
+        "cmd": 1003,
+        "uuid": "incoming-2",
+        "data": {
+          "base_request": {
+            "clientversion": {
+              "clientVersion": 203
+            }
+          },
+          "wxpkg_info": "pkg",
+          "username": "user",
+          "room_id": "room"
+        },
+        "_comment": "JoinRoom"
+      }
+    },
+    {
+      "name": "client_quit",
+      "direction": "client",
+      "cmd": 1004,
+      "frame_hex": "08ec07120a696e636f6d696e672d331a050a0308cc01",
+      "output": {
+        "cmd": 1004,
+        "uuid": "incoming-3",
+        "data": {
+          "base_request": {
+            "clientversion": {
+              "clientVersion": 204
+            }
+          }
+        },
+        "_comment": "QuitRoom"
+      }
+    },
+    {
+      "name": "client_sync",
+      "direction": "client",
+      "cmd": 1005,
+      "frame_hex": "08ed07120a696e636f6d696e672d341a090a0308cd01100b1816",
+      "output": {
+        "cmd": 1005,
+        "uuid": "incoming-4",
+        "data": {
+          "base_request": {
+            "clientversion": {
+              "clientVersion": 205
+            }
+          },
+          "min_seq": 11,
+          "max_seq": 22
+        },
+        "_comment": "SyncMessage"
+      }
+    },
+    {
+      "name": "developer_login_response",
+      "direction": "developer",
+      "cmd": 2002,
+      "frame_hex": "08d20f120a696e636f6d696e672d351a180a06080012026f6b120e08011201721a016d200128023003",
+      "output": {
+        "cmd": 2002,
+        "uuid": "incoming-5",
+        "data": {
+          "base_response": {
+            "errcode": 0,
+            "errmsg": "ok"
+          },
+          "room_info": {
+            "join_room": true,
+            "original_md5": "m",
+            "room_status": 1,
+            "wx_conn_status": 2,
+            "dev_conn_status": 3,
+            "room_id": "r"
+          }
+        },
+        "_comment": "Login"
+      }
+    },
+    {
+      "name": "developer_heartbeat_response",
+      "direction": "developer",
+      "cmd": 2001,
+      "frame_hex": "08d10f120a696e636f6d696e672d361a180a1608ffffffffffffffffff011209686561727462656174",
+      "output": {
+        "cmd": 2001,
+        "uuid": "incoming-6",
+        "data": {
+          "base_response": {
+            "errcode": -1,
+            "errmsg": "heartbeat"
+          }
+        },
+        "_comment": "Heartbeat"
+      }
+    },
+    {
+      "name": "developer_join_response",
+      "direction": "developer",
+      "cmd": 2003,
+      "frame_hex": "08d30f120a696e636f6d696e672d371a0c0a0a080012066a6f696e6564",
+      "output": {
+        "cmd": 2003,
+        "uuid": "incoming-7",
+        "data": {
+          "base_response": {
+            "errcode": 0,
+            "errmsg": "joined"
+          }
+        },
+        "_comment": "JoinRoom"
+      }
+    },
+    {
+      "name": "developer_quit_response",
+      "direction": "developer",
+      "cmd": 2004,
+      "frame_hex": "08d40f120a696e636f6d696e672d381a0a0a080800120471756974",
+      "output": {
+        "cmd": 2004,
+        "uuid": "incoming-8",
+        "data": {
+          "base_response": {
+            "errcode": 0,
+            "errmsg": "quit"
+          }
+        },
+        "_comment": "QuitRoom"
+      }
+    },
+    {
+      "name": "developer_sync_response",
+      "direction": "developer",
+      "cmd": 2005,
+      "frame_hex": "08d50f120a696e636f6d696e672d391a2c0a080800120473796e63121e080310041a0022120809120e656d7074792d63617465676f7279280030001842",
+      "output": {
+        "cmd": 2005,
+        "uuid": "incoming-9",
+        "data": {
+          "debug_message": [
+            {
+              "seq": 3,
+              "delay": 4,
+              "category": "ping",
+              "data": {},
+              "compress_algo": 0,
+              "original_size": 0
+            }
+          ],
+          "send_ack": 66,
+          "base_response": {
+            "errcode": 0,
+            "errmsg": "sync"
+          }
+        },
+        "_comment": "SyncMessage"
+      }
+    },
+    {
+      "name": "client_send_debug_default",
+      "direction": "client",
+      "cmd": 1000,
+      "frame_hex": "08e807120b696e636f6d696e672d31301a050a0308ce01",
+      "output": {
+        "cmd": 1000,
+        "uuid": "incoming-10",
+        "data": {},
+        "_comment": "MessageNotify"
+      }
+    },
+    {
+      "name": "client_send_debug_parallel",
+      "direction": "client",
+      "cmd": 1006,
+      "frame_hex": "08ee07120b696e636f6d696e672d31311a070a0308cf011801",
+      "output": {
+        "cmd": 1006,
+        "uuid": "incoming-11",
+        "data": {
+          "base_request": {
+            "clientversion": {
+              "clientVersion": 207
+            }
+          },
+          "debug_message": [],
+          "recv_ack": 1
+        },
+        "_comment": "MessageNotifyParallelly"
+      }
+    },
+    {
+      "name": "client_message_notify_default",
+      "direction": "client",
+      "cmd": 2000,
+      "frame_hex": "08d00f120b696e636f6d696e672d31321a00",
+      "output": {
+        "cmd": 2000,
+        "uuid": "incoming-12",
+        "data": {},
+        "_comment": "SendDebugMessage"
+      }
+    },
+    {
+      "name": "client_message_notify_parallel_default",
+      "direction": "client",
+      "cmd": 2006,
+      "frame_hex": "08d60f120b696e636f6d696e672d31331a00",
+      "output": {
+        "cmd": 2006,
+        "uuid": "incoming-13",
+        "data": {},
+        "_comment": "SendDebugMessageParallelly"
+      }
+    },
+    {
+      "name": "client_event_begin_default",
+      "direction": "client",
+      "cmd": 3001,
+      "frame_hex": "08b917120b696e636f6d696e672d31341a00",
+      "output": {
+        "cmd": 3001,
+        "uuid": "incoming-14",
+        "data": {},
+        "_comment": "EventNotifyBegin"
+      }
+    },
+    {
+      "name": "client_event_block_default",
+      "direction": "client",
+      "cmd": 3003,
+      "frame_hex": "08bb17120b696e636f6d696e672d31351a00",
+      "output": {
+        "cmd": 3003,
+        "uuid": "incoming-15",
+        "data": {},
+        "_comment": "EventNotifyBlock"
+      }
+    },
+    {
+      "name": "client_event_end_default",
+      "direction": "client",
+      "cmd": 3002,
+      "frame_hex": "08ba17120b696e636f6d696e672d31361a00",
+      "output": {
+        "cmd": 3002,
+        "uuid": "incoming-16",
+        "data": {},
+        "_comment": "EventNotifyEnd"
+      }
+    },
+    {
+      "name": "developer_send_debug_response",
+      "direction": "developer",
+      "cmd": 2000,
+      "frame_hex": "08d00f120b696e636f6d696e672d31371a0c0a080800120473656e641002",
+      "output": {
+        "cmd": 2000,
+        "uuid": "incoming-17",
+        "data": {
+          "base_response": {
+            "errcode": 0,
+            "errmsg": "send"
+          },
+          "send_ack": 2
+        },
+        "_comment": "SendDebugMessage"
+      }
+    },
+    {
+      "name": "developer_send_debug_parallel_response",
+      "direction": "developer",
+      "cmd": 2006,
+      "frame_hex": "08d60f120b696e636f6d696e672d31381a120a0c08001208706172616c6c656c10011802",
+      "output": {
+        "cmd": 2006,
+        "uuid": "incoming-18",
+        "data": {
+          "base_response": {
+            "errcode": 0,
+            "errmsg": "parallel"
+          },
+          "max_ack": 2,
+          "min_ack": 1
+        },
+        "_comment": "SendDebugMessageParallelly"
+      }
+    },
+    {
+      "name": "developer_message_notify",
+      "direction": "developer",
+      "cmd": 1000,
+      "frame_hex": "08e807120b696e636f6d696e672d31391a00",
+      "output": {
+        "cmd": 1000,
+        "uuid": "incoming-19",
+        "data": {
+          "debug_message": []
+        },
+        "_comment": "MessageNotify"
+      }
+    },
+    {
+      "name": "developer_message_notify_parallel",
+      "direction": "developer",
+      "cmd": 1006,
+      "frame_hex": "08ee07120b696e636f6d696e672d32301a00",
+      "output": {
+        "cmd": 1006,
+        "uuid": "incoming-20",
+        "data": {
+          "debug_message": []
+        },
+        "_comment": "MessageNotifyParallelly"
+      }
+    },
+    {
+      "name": "developer_event_begin",
+      "direction": "developer",
+      "cmd": 3001,
+      "frame_hex": "08b917120b696e636f6d696e672d32311a00",
+      "output": {
+        "cmd": 3001,
+        "uuid": "incoming-21",
+        "data": {
+          "base_response": {}
+        },
+        "_comment": "EventNotifyBegin"
+      }
+    },
+    {
+      "name": "developer_event_block",
+      "direction": "developer",
+      "cmd": 3003,
+      "frame_hex": "08bb17120b696e636f6d696e672d32321a00",
+      "output": {
+        "cmd": 3003,
+        "uuid": "incoming-22",
+        "data": {
+          "base_response": {}
+        },
+        "_comment": "EventNotifyBlock"
+      }
+    },
+    {
+      "name": "developer_event_end",
+      "direction": "developer",
+      "cmd": 3002,
+      "frame_hex": "08ba17120b696e636f6d696e672d32331a00",
+      "output": {
+        "cmd": 3002,
+        "uuid": "incoming-23",
+        "data": {
+          "base_response": {}
+        },
+        "_comment": "EventNotifyEnd"
+      }
+    },
+    {
+      "name": "unknown_client_cmd",
+      "direction": "client",
+      "cmd": 4242,
+      "frame_hex": "0892211207756e6b6e6f776e1a00",
+      "output": {
+        "cmd": 4242,
+        "uuid": "unknown",
+        "data": {},
+        "_comment": "<unknown>"
+      }
+    },
+    {
+      "name": "unknown_developer_cmd",
+      "direction": "developer",
+      "cmd": 4242,
+      "frame_hex": "0892211207756e6b6e6f776e1a00",
+      "output": {
+        "cmd": 4242,
+        "uuid": "unknown",
+        "data": {},
+        "_comment": "<unknown>"
+      }
+    }
+  ]
+}

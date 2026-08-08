@@ -1,0 +1,12 @@
+{
+  "schema": "comet.native.checkpoint-manifest.v1",
+  "change": "complete-wmpf-parity",
+  "artifacts": [
+    {
+      "path": "docs/verification-current.md",
+      "hash": "051e1fa3e5f13568b6581399716aaea641eeaa750238b5b4e0445c28d25b1eac",
+      "size": 3403
+    }
+  ],
+  "totalBytes": 3403
+}
