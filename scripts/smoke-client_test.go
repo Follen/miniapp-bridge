@@ -65,6 +65,10 @@ func fakeCDPServer(t *testing.T) (string, func()) {
 					pausedID = request.ID
 					write(map[string]any{"method": "Debugger.paused", "params": map[string]any{"callFrames": []any{map[string]any{"callFrameId": "1"}}}})
 					continue
+				case expression == "globalThis.__miniappBridgeInputClickCount":
+					response["result"] = map[string]any{"result": map[string]any{"value": 1}}
+				case strings.Contains(expression, "__miniapp_bridge_key_probe').value"):
+					response["result"] = map[string]any{"result": map[string]any{"value": "A"}}
 				default:
 					var longValue string
 					if json.Unmarshal([]byte(expression), &longValue) == nil && strings.HasPrefix(longValue, "miniapp-bridge-") {
@@ -78,6 +82,12 @@ func fakeCDPServer(t *testing.T) (string, func()) {
 					pausedID = 0
 				}
 				continue
+			case "DOM.getDocument":
+				response["result"] = map[string]any{"root": map[string]any{"nodeId": 1}}
+			case "DOM.querySelector":
+				response["result"] = map[string]any{"nodeId": 2}
+			case "DOM.getBoxModel":
+				response["result"] = map[string]any{"model": map[string]any{"content": []float64{0, 0, 100, 0, 100, 100, 0, 100}}}
 			case "MiniAppBridge.invalidMethod":
 				response = map[string]any{"id": request.ID, "error": map[string]any{"code": -32601, "message": "method not found"}}
 			}
@@ -95,6 +105,9 @@ func TestLinkAndMatrixClients(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err := runMatrix(url); err != nil {
+		t.Fatal(err)
+	}
+	if err := runInteraction(url); err != nil {
 		t.Fatal(err)
 	}
 }

@@ -404,9 +404,144 @@ func runMatrix(url string) error {
 	return nil
 }
 
+func runInteraction(url string) error {
+	c, err := dial(url)
+	if err != nil {
+		return err
+	}
+	defer c.close()
+	for _, method := range []string{"Runtime.enable", "DOM.enable"} {
+		if _, err := c.call(method, map[string]any{}, 15*time.Second); err != nil {
+			return err
+		}
+	}
+
+	setup := `(() => {
+  document.getElementById('__miniapp_bridge_input_probe')?.remove();
+  const host = document.createElement('div');
+  host.id = '__miniapp_bridge_input_probe';
+  host.style.cssText = 'position:fixed;left:12px;top:12px;width:160px;height:120px;z-index:2147483647;background:#fff';
+  const button = document.createElement('button');
+  button.id = '__miniapp_bridge_click_probe';
+  button.style.cssText = 'display:block;width:120px;height:48px;margin:0;padding:0';
+  button.textContent = 'probe';
+  const input = document.createElement('input');
+  input.id = '__miniapp_bridge_key_probe';
+  input.style.cssText = 'display:block;width:120px;height:32px;margin-top:8px;padding:0';
+  globalThis.__miniappBridgeInputClickCount = 0;
+  button.addEventListener('click', () => globalThis.__miniappBridgeInputClickCount++);
+  host.append(button, input);
+  document.body.append(host);
+  return true;
+})()`
+	if _, err := c.call("Runtime.evaluate", map[string]any{"expression": setup, "returnByValue": true}, 15*time.Second); err != nil {
+		return err
+	}
+	defer func() {
+		_, _ = c.call("Runtime.evaluate", map[string]any{
+			"expression":    "document.getElementById('__miniapp_bridge_input_probe')?.remove(); delete globalThis.__miniappBridgeInputClickCount;",
+			"returnByValue": true,
+		}, 5*time.Second)
+	}()
+
+	document, err := c.call("DOM.getDocument", map[string]any{"depth": 1}, 15*time.Second)
+	if err != nil {
+		return err
+	}
+	var documentResult struct {
+		Root struct {
+			NodeID int `json:"nodeId"`
+		} `json:"root"`
+	}
+	if err := json.Unmarshal(document.Result, &documentResult); err != nil || documentResult.Root.NodeID == 0 {
+		return fmt.Errorf("interaction DOM root missing: %s: %v", document.Result, err)
+	}
+	query, err := c.call("DOM.querySelector", map[string]any{
+		"nodeId": documentResult.Root.NodeID, "selector": "#__miniapp_bridge_click_probe",
+	}, 15*time.Second)
+	if err != nil {
+		return err
+	}
+	var queryResult struct {
+		NodeID int `json:"nodeId"`
+	}
+	if err := json.Unmarshal(query.Result, &queryResult); err != nil || queryResult.NodeID == 0 {
+		return fmt.Errorf("interaction click node missing: %s: %v", query.Result, err)
+	}
+	box, err := c.call("DOM.getBoxModel", map[string]any{"nodeId": queryResult.NodeID}, 15*time.Second)
+	if err != nil {
+		return err
+	}
+	var boxResult struct {
+		Model struct {
+			Content []float64 `json:"content"`
+		} `json:"model"`
+	}
+	if err := json.Unmarshal(box.Result, &boxResult); err != nil || len(boxResult.Model.Content) != 8 {
+		return fmt.Errorf("interaction box model invalid: %s: %v", box.Result, err)
+	}
+	x := (boxResult.Model.Content[0] + boxResult.Model.Content[2] + boxResult.Model.Content[4] + boxResult.Model.Content[6]) / 4
+	y := (boxResult.Model.Content[1] + boxResult.Model.Content[3] + boxResult.Model.Content[5] + boxResult.Model.Content[7]) / 4
+	for _, event := range []map[string]any{
+		{"type": "mouseMoved", "x": x, "y": y},
+		{"type": "mousePressed", "x": x, "y": y, "button": "left", "clickCount": 1},
+		{"type": "mouseReleased", "x": x, "y": y, "button": "left", "clickCount": 1},
+	} {
+		if _, err := c.call("Input.dispatchMouseEvent", event, 15*time.Second); err != nil {
+			return err
+		}
+	}
+	clicks, err := c.call("Runtime.evaluate", map[string]any{
+		"expression": "globalThis.__miniappBridgeInputClickCount", "returnByValue": true,
+	}, 15*time.Second)
+	if err != nil {
+		return err
+	}
+	var clickResult struct {
+		Result struct {
+			Value float64 `json:"value"`
+		} `json:"result"`
+	}
+	if err := json.Unmarshal(clicks.Result, &clickResult); err != nil || clickResult.Result.Value != 1 {
+		return fmt.Errorf("mouse click did not reach DOM target: %s: %v", clicks.Result, err)
+	}
+
+	if _, err := c.call("Runtime.evaluate", map[string]any{
+		"expression": "document.getElementById('__miniapp_bridge_key_probe').focus()", "returnByValue": true,
+	}, 15*time.Second); err != nil {
+		return err
+	}
+	for _, event := range []map[string]any{
+		{"type": "rawKeyDown", "key": "A", "code": "KeyA", "windowsVirtualKeyCode": 65, "nativeVirtualKeyCode": 65},
+		{"type": "char", "key": "A", "code": "KeyA", "text": "A", "unmodifiedText": "A", "windowsVirtualKeyCode": 65, "nativeVirtualKeyCode": 65},
+		{"type": "keyUp", "key": "A", "code": "KeyA", "windowsVirtualKeyCode": 65, "nativeVirtualKeyCode": 65},
+	} {
+		if _, err := c.call("Input.dispatchKeyEvent", event, 15*time.Second); err != nil {
+			return err
+		}
+	}
+	value, err := c.call("Runtime.evaluate", map[string]any{
+		"expression": "document.getElementById('__miniapp_bridge_key_probe').value", "returnByValue": true,
+	}, 15*time.Second)
+	if err != nil {
+		return err
+	}
+	var valueResult struct {
+		Result struct {
+			Value string `json:"value"`
+		} `json:"result"`
+	}
+	if err := json.Unmarshal(value.Result, &valueResult); err != nil || valueResult.Result.Value != "A" {
+		return fmt.Errorf("keyboard input did not reach DOM target: %s: %v", value.Result, err)
+	}
+
+	fmt.Printf("interaction-live: Input.dispatchMouseEvent=true click-count=1 Input.dispatchKeyEvent=true input-value=A coordinates=%.1f,%.1f\n", x, y)
+	return nil
+}
+
 func main() {
 	url := flag.String("url", "ws://127.0.0.1:62000", "CDP WebSocket URL")
-	mode := flag.String("mode", "link", "validation mode: link or matrix")
+	mode := flag.String("mode", "link", "validation mode: link, matrix, or interaction")
 	flag.Parse()
 	var err error
 	switch *mode {
@@ -414,6 +549,8 @@ func main() {
 		err = runLink(*url)
 	case "matrix":
 		err = runMatrix(*url)
+	case "interaction":
+		err = runInteraction(*url)
 	default:
 		err = fmt.Errorf("unknown mode %q", *mode)
 	}
