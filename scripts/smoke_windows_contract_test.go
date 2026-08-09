@@ -31,6 +31,7 @@ func TestWindowsSmokeUsesGracefulProcessGroupShutdown(t *testing.T) {
 		"$attachedTargetPid",
 		"AppletIndexContainer::OnLoadStart onEnter",
 		"agent-on-load-start=true",
+		"agent-on-load-start=false diagnostic=post-attach-upstream-without-onloadstart continuing-to-cdp=true",
 		"observed-new-target-pids=",
 		"Get-CimInstance Win32_Process",
 		"ParentProcessId",
@@ -179,6 +180,12 @@ func TestWindowsSmokeUsesGracefulProcessGroupShutdown(t *testing.T) {
 	if !strings.Contains(script, "$peerProcess[0].Identity -ne $peerIdentity") {
 		t.Fatal("peer start-time validation diagnostic is missing its identity comparison")
 	}
+	if strings.Contains(script, "WMPF upstream connected without a post-attach AppletIndexContainer::OnLoadStart onEnter event") {
+		t.Fatal("smoke must not fail before CDP checks when a cached/preload route establishes upstream without OnLoadStart")
+	}
+	if !strings.Contains(script, "$routeEvidence = if ($onLoadStartHit) { 'onload-start,upstream,cdp-matrix,cdp-link' } else { 'upstream,cdp-matrix,cdp-link' }") {
+		t.Fatal("reused renderer evidence must distinguish an observed OnLoadStart from an upstream-only route")
+	}
 	if !strings.Contains(script, "if ($upstreamPeerConnections.Count -gt 0) { break }") ||
 		!strings.Contains(script, "could not be identified within ${UpstreamWaitSeconds}s; server=") ||
 		!strings.Contains(script, "reverse-port-candidates=") {
@@ -189,7 +196,7 @@ func TestWindowsSmokeUsesGracefulProcessGroupShutdown(t *testing.T) {
 	upstreamCheck := strings.Index(script, "if (-not $upstream)")
 	firstCDPCheck := strings.Index(script, "go run scripts/smoke-client.go --url ws://127.0.0.1:62000 --mode matrix")
 	if attachLogOffset < 0 || onLoadStartCheck < attachLogOffset || upstreamCheck < attachLogOffset || firstCDPCheck < onLoadStartCheck || firstCDPCheck < upstreamCheck {
-		t.Fatal("post-attach OnLoadStart, upstream identification, and CDP matrix are not enforced in order")
+		t.Fatal("post-attach OnLoadStart check, upstream identification, and CDP matrix are not sequenced in order")
 	}
 	linkCheck := strings.Index(script, "go run scripts/smoke-client.go --url ws://127.0.0.1:62000 --mode link")
 	interactionCheck := strings.Index(script, "go run scripts/smoke-client.go --url ws://127.0.0.1:62000 --mode interaction")

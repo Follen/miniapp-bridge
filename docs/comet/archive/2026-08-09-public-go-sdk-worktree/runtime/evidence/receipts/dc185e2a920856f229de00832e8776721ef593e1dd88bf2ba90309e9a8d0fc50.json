@@ -1,0 +1,52 @@
+{
+  "schema": "comet.native.verification-receipt.v3",
+  "kind": "automated-check",
+  "role": "acceptance-evidence",
+  "status": "passed",
+  "bindings": {
+    "change": "public-go-sdk-worktree",
+    "sourceRevision": 18,
+    "contractHash": "4613a8aa3f31c57ff4ecd5747e9281aedd3281f2473412ada3fceb06a7ca1274",
+    "scopeHash": "0fe5d8a61e3912dd4c47c582e9c9f7b9b4707d66765edef776e466589dea0b50",
+    "snapshotHash": "30f3335a876fbc4c81f9d2567952d6008b1199171032c1bc20a7091c462abb6e",
+    "artifactHash": "17f9e1f46a9863c636603af1634c3c2760fd4308872072a66a451e9c0e640dd0"
+  },
+  "acceptanceIds": [
+    "acceptance-3142a0a03549f74290c8b80dfdc548a2fda3240da1a4d5a5481c24db4f7d0e36",
+    "acceptance-819bf1b23ee4330f5c192d362b105a80f81bc9cc58d7bdb0739d5ccba218b09d",
+    "acceptance-ae8b3367addf0fe612cab807bbb7ae7a5781031f6de0799560acc63fe8ef0e97"
+  ],
+  "actor": "native-runtime:command:go.exe",
+  "issuedAt": "2026-08-09T09:42:17.932Z",
+  "evidence": {
+    "executable": "go.exe",
+    "args": [
+      "test",
+      "./internal/native",
+      "./scripts",
+      "-count=1"
+    ],
+    "cwd": ".",
+    "exitCode": 0,
+    "signal": null,
+    "timedOut": false,
+    "timeoutMs": 120000,
+    "startedAt": "2026-08-09T09:41:42.117Z",
+    "endedAt": "2026-08-09T09:42:17.932Z",
+    "worktree": {
+      "provider": "git",
+      "root": ".",
+      "beforeCommit": "625cdee135abb26c3ff79999b907f755fcb9c6a6",
+      "afterCommit": "625cdee135abb26c3ff79999b907f755fcb9c6a6"
+    },
+    "afterFence": {
+      "snapshotHash": "30f3335a876fbc4c81f9d2567952d6008b1199171032c1bc20a7091c462abb6e",
+      "scopeHash": "0fe5d8a61e3912dd4c47c582e9c9f7b9b4707d66765edef776e466589dea0b50",
+      "matched": true
+    },
+    "outputHash": "382628a59206f438204a9f6d35ead73443cc0a6bd59ca2e46a0b200203c3f0a5",
+    "outputSummary": "ok  \tgithub.com/Follen/miniapp-bridge/internal/native\t3.651s\nok  \tgithub.com/Follen/miniapp-bridge/scripts\t35.262s",
+    "outputTruncated": false
+  },
+  "receiptHash": "dc185e2a920856f229de00832e8776721ef593e1dd88bf2ba90309e9a8d0fc50"
+}

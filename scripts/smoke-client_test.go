@@ -38,6 +38,8 @@ func fakeCDPServerMode(t *testing.T, mode string) (string, func()) {
 		pausedID := 0
 		breakpointID := "bp-1"
 		breakpointSet := false
+		interleaved := mode == "interleaved-events"
+		emptyBreakpointLocations := interleaved || mode == "resolved-breakpoint" || mode == "resolved-breakpoint-with-hits" || mode == "bad-breakpoint-resolved"
 		for {
 			_, data, err := conn.ReadMessage()
 			if err != nil {
@@ -66,19 +68,81 @@ func fakeCDPServerMode(t *testing.T, mode string) (string, func()) {
 				case strings.HasPrefix(expression, "miniappBridgeMatrix()"):
 					if breakpointSet {
 						pausedID = request.ID
-						write(map[string]any{"method": "Debugger.paused", "params": map[string]any{"reason": "breakpoint", "hitBreakpoints": []string{breakpointID}, "callFrames": []any{map[string]any{"callFrameId": "frame-1", "functionName": "miniappBridgeMatrix"}}}})
+						pausedParams := map[string]any{
+							"reason": "other",
+							"callFrames": []any{map[string]any{
+								"callFrameId":  "frame-1",
+								"functionName": "miniappBridgeMatrix",
+								"location":     map[string]any{"scriptId": "1", "lineNumber": 0, "columnNumber": 0},
+							}},
+						}
+						switch mode {
+						case "with-hit-breakpoints", "resolved-breakpoint-with-hits":
+							pausedParams["hitBreakpoints"] = []string{breakpointID}
+						case "bad-hit-breakpoint":
+							pausedParams["hitBreakpoints"] = []string{"other-breakpoint"}
+						}
+						if interleaved || mode == "bad-paused-event" {
+							write(map[string]any{"method": "Debugger.paused", "params": map[string]any{
+								"reason": "other",
+								"callFrames": []any{map[string]any{
+									"callFrameId": "unrelated-frame",
+									"location":    map[string]any{"scriptId": "unrelated-script", "lineNumber": 99},
+								}},
+							}})
+							if mode == "bad-paused-event" {
+								return
+							}
+						}
+						write(map[string]any{"method": "Debugger.paused", "params": pausedParams})
+						if mode == "bad-hit-breakpoint" {
+							return
+						}
 						continue
 					}
 					response["result"] = map[string]any{"result": map[string]any{"value": 42}}
 				case strings.HasPrefix(expression, "throw new Error"):
 					if mode == "bad-exception" {
-						response["result"] = map[string]any{"exceptionDetails": map[string]any{"text": "Uncaught"}}
+						response["result"] = map[string]any{"exceptionDetails": map[string]any{
+							"text":       "Uncaught",
+							"exception":  map[string]any{"description": "Error: miniapp-bridge-matrix", "className": "Error"},
+							"stackTrace": map[string]any{"description": "Error: miniapp-bridge-matrix"},
+						}}
 					} else {
-						response["result"] = map[string]any{"exceptionDetails": map[string]any{"text": "Uncaught", "exception": map[string]any{"description": "Error: miniapp-bridge-matrix", "className": "Error"}, "stackTrace": map[string]any{"description": "Error: miniapp-bridge-matrix"}}}
+						response["result"] = map[string]any{"exceptionDetails": map[string]any{
+							"text":      "Uncaught",
+							"exception": map[string]any{"description": "Error: miniapp-bridge-matrix", "className": "Error"},
+							"stackTrace": map[string]any{"callFrames": []any{map[string]any{
+								"functionName": "miniappBridgeMatrixException",
+								"scriptId":     "1",
+								"url":          "miniapp-bridge-matrix.js",
+								"lineNumber":   0,
+								"columnNumber": 0,
+							}}},
+						}}
 					}
 				case strings.HasPrefix(expression, "console.log"):
+					if interleaved || mode == "bad-console-event" {
+						write(map[string]any{"method": "Runtime.consoleAPICalled", "params": map[string]any{"type": "log", "args": []any{map[string]any{"type": "string", "value": "unrelated-console-value"}}}})
+						write(map[string]any{"id": request.ID + 1000, "result": map[string]any{"result": map[string]any{"value": "wrong-response-id"}}})
+						write(response)
+						if mode == "bad-console-event" {
+							return
+						}
+						write(map[string]any{"method": "Runtime.consoleAPICalled", "params": map[string]any{"type": "log", "args": []any{map[string]any{"type": "string", "value": "miniapp-bridge-matrix-console"}}}})
+						continue
+					}
 					write(map[string]any{"method": "Runtime.consoleAPICalled", "params": map[string]any{"type": "log", "args": []any{map[string]any{"type": "string", "value": "miniapp-bridge-matrix-console"}}}})
 				case strings.Contains(expression, "sourceURL=miniapp-bridge-matrix.js"):
+					if interleaved || mode == "bad-script-event" {
+						write(map[string]any{"method": "Debugger.scriptParsed", "params": map[string]any{"scriptId": "unrelated", "url": "unrelated.js"}})
+						write(response)
+						if mode == "bad-script-event" {
+							return
+						}
+						write(map[string]any{"method": "Debugger.scriptParsed", "params": map[string]any{"scriptId": "1", "url": "miniapp-bridge-matrix.js"}})
+						continue
+					}
 					write(map[string]any{"method": "Debugger.scriptParsed", "params": map[string]any{"scriptId": "1", "url": "miniapp-bridge-matrix.js"}})
 				case strings.HasPrefix(expression, "debugger;"):
 					pausedID = request.ID
@@ -95,7 +159,7 @@ func fakeCDPServerMode(t *testing.T, mode string) (string, func()) {
 						right, rightErr := strconv.Atoi(parts[1])
 						if leftErr == nil && rightErr == nil {
 							value := left * right
-							if mode == "bad-concurrent" {
+							if mode == "bad-concurrent" || mode == "bad-reconnect" && expression == "6 * 7" {
 								value = 0
 							}
 							response["result"] = map[string]any{"result": map[string]any{"value": value}}
@@ -107,6 +171,13 @@ func fakeCDPServerMode(t *testing.T, mode string) (string, func()) {
 					}
 				}
 			case "Debugger.resume":
+				if interleaved && pausedID != 0 {
+					write(map[string]any{"method": "Debugger.resumed", "params": map[string]any{}})
+					write(map[string]any{"id": pausedID, "result": map[string]any{"result": map[string]any{"value": 42}}})
+					pausedID = 0
+					write(response)
+					continue
+				}
 				write(response)
 				if pausedID != 0 {
 					write(map[string]any{"method": "Debugger.resumed", "params": map[string]any{}})
@@ -118,6 +189,18 @@ func fakeCDPServerMode(t *testing.T, mode string) (string, func()) {
 				breakpointSet = true
 				if mode == "bad-breakpoint" {
 					response["result"] = map[string]any{}
+				} else if emptyBreakpointLocations {
+					response["result"] = map[string]any{"breakpointId": breakpointID, "locations": []any{}}
+					if interleaved {
+						write(map[string]any{"method": "Debugger.breakpointResolved", "params": map[string]any{"breakpointId": "unrelated-breakpoint", "location": map[string]any{"scriptId": "unrelated", "lineNumber": 99}}})
+					}
+					write(response)
+					if mode == "bad-breakpoint-resolved" {
+						write(map[string]any{"method": "Debugger.breakpointResolved", "params": map[string]any{"breakpointId": "unrelated-breakpoint", "location": map[string]any{"scriptId": "1", "lineNumber": 0}}})
+						return
+					}
+					write(map[string]any{"method": "Debugger.breakpointResolved", "params": map[string]any{"breakpointId": breakpointID, "location": map[string]any{"scriptId": "1", "lineNumber": 0, "columnNumber": 0}}})
+					continue
 				} else {
 					response["result"] = map[string]any{"breakpointId": breakpointID, "locations": []any{map[string]any{"scriptId": "1", "lineNumber": 0, "columnNumber": 0}}}
 				}
@@ -132,7 +215,7 @@ func fakeCDPServerMode(t *testing.T, mode string) (string, func()) {
 				} else {
 					response["result"] = map[string]any{"result": []any{
 						map[string]any{"name": "alpha", "value": map[string]any{"type": "number", "value": 1}},
-						map[string]any{"name": "nested", "value": map[string]any{"type": "object", "description": "Object"}},
+						map[string]any{"name": "nested", "value": map[string]any{"type": "object", "objectId": "fake-nested-1"}},
 					}}
 				}
 			case "Page.getFrameTree":
@@ -154,8 +237,12 @@ func fakeCDPServerMode(t *testing.T, mode string) (string, func()) {
 					response["result"] = map[string]any{"cookies": []any{map[string]any{"name": "session", "value": "fixture", "domain": "example.test", "path": "/"}}}
 				}
 			case "Performance.getMetrics":
-				if mode == "bad-metrics" {
+				if mode == "bad-metrics-shape" {
+					response["result"] = map[string]any{"metrics": map[string]any{}}
+				} else if mode == "bad-metrics" {
 					response["result"] = map[string]any{"metrics": []any{map[string]any{"value": 1.0}}}
+				} else if mode == "empty-metrics" {
+					response["result"] = map[string]any{"metrics": []any{}}
 				} else {
 					response["result"] = map[string]any{"metrics": []any{map[string]any{"name": "Timestamp", "value": 1.0}, map[string]any{"name": "Documents", "value": 1.0}}}
 				}
@@ -190,6 +277,24 @@ func TestLinkAndMatrixClients(t *testing.T) {
 	}
 }
 
+func TestMatrixAcceptsHitBreakpoints(t *testing.T) {
+	for _, fixture := range []string{
+		"with-hit-breakpoints",
+		"interleaved-events",
+		"resolved-breakpoint",
+		"resolved-breakpoint-with-hits",
+		"empty-metrics",
+	} {
+		t.Run(fixture, func(t *testing.T) {
+			url, closeServer := fakeCDPServerMode(t, fixture)
+			defer closeServer()
+			if err := runMatrix(url); err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+}
+
 func TestMatrixSemanticNegativeFixtures(t *testing.T) {
 	for _, fixture := range []struct {
 		name string
@@ -198,11 +303,18 @@ func TestMatrixSemanticNegativeFixtures(t *testing.T) {
 		{name: "bad-properties", want: "Runtime.getProperties missing alpha/nested"},
 		{name: "bad-exception", want: "Runtime exception details missing"},
 		{name: "bad-breakpoint", want: "setBreakpointByUrl missing breakpointId"},
+		{name: "bad-breakpoint-resolved", want: "Debugger.breakpointResolved"},
+		{name: "bad-hit-breakpoint", want: "could not correlate breakpoint"},
+		{name: "bad-paused-event", want: "could not correlate breakpoint"},
+		{name: "bad-console-event", want: "Runtime.consoleAPICalled marker"},
+		{name: "bad-script-event", want: "Debugger.scriptParsed URL"},
 		{name: "bad-frame-tree", want: "Page.getFrameTree missing frame"},
 		{name: "bad-dom", want: "DOM.getDocument missing root nodeId"},
 		{name: "bad-cookies", want: "Network.getCookies cookies must be array"},
 		{name: "bad-metrics", want: "Performance.getMetrics metric name empty"},
+		{name: "bad-metrics-shape", want: "Performance.getMetrics metrics must be array"},
 		{name: "bad-concurrent", want: "concurrent Runtime.evaluate"},
+		{name: "bad-reconnect", want: "CDP reconnect Runtime.evaluate result="},
 	} {
 		t.Run(fixture.name, func(t *testing.T) {
 			url, closeServer := fakeCDPServerMode(t, fixture.name)

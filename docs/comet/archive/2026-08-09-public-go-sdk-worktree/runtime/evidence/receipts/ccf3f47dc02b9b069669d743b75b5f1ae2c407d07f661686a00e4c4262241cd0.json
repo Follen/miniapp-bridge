@@ -1,0 +1,54 @@
+{
+  "schema": "comet.native.verification-receipt.v3",
+  "kind": "automated-check",
+  "role": "acceptance-evidence",
+  "status": "passed",
+  "bindings": {
+    "change": "public-go-sdk-worktree",
+    "sourceRevision": 18,
+    "contractHash": "4613a8aa3f31c57ff4ecd5747e9281aedd3281f2473412ada3fceb06a7ca1274",
+    "scopeHash": "0fe5d8a61e3912dd4c47c582e9c9f7b9b4707d66765edef776e466589dea0b50",
+    "snapshotHash": "30f3335a876fbc4c81f9d2567952d6008b1199171032c1bc20a7091c462abb6e",
+    "artifactHash": "17f9e1f46a9863c636603af1634c3c2760fd4308872072a66a451e9c0e640dd0"
+  },
+  "acceptanceIds": [
+    "acceptance-3142a0a03549f74290c8b80dfdc548a2fda3240da1a4d5a5481c24db4f7d0e36",
+    "acceptance-819bf1b23ee4330f5c192d362b105a80f81bc9cc58d7bdb0739d5ccba218b09d",
+    "acceptance-ae8b3367addf0fe612cab807bbb7ae7a5781031f6de0799560acc63fe8ef0e97"
+  ],
+  "actor": "native-runtime:command:powershell.exe",
+  "issuedAt": "2026-08-09T09:53:43.357Z",
+  "evidence": {
+    "executable": "powershell.exe",
+    "args": [
+      "-NoProfile",
+      "-NonInteractive",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-Command",
+      "$env:PSModulePath='C:\\Users\\follen\\Documents\\WindowsPowerShell\\Modules;C:\\Program Files\\WindowsPowerShell\\Modules;C:\\Windows\\system32\\WindowsPowerShell\\v1.0\\Modules'; Import-Module Microsoft.PowerShell.Utility -Force; $log=Join-Path $env:TEMP ('miniapp-release-receipt-'+[guid]::NewGuid().ToString()+'.log'); & .\\scripts\\native-release.ps1 *> $log; $code=$LASTEXITCODE; $lines=@(Get-Content -LiteralPath $log -ErrorAction SilentlyContinue); $markers=@($lines | Where-Object { $_ -match 'native|zip|sha|manifest|license|notice|release|PASS|FAIL' }); if($markers.Count -gt 50){$markers=@($markers | Select-Object -Last 50)}; $markers | ForEach-Object {($_ -replace '[^\\x00-\\x7F]','?')}; Write-Output ('release-wrapper-exit=' + $code); Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue; exit $code"
+    ],
+    "cwd": ".",
+    "exitCode": 0,
+    "signal": null,
+    "timedOut": false,
+    "timeoutMs": 300000,
+    "startedAt": "2026-08-09T09:53:40.517Z",
+    "endedAt": "2026-08-09T09:53:43.357Z",
+    "worktree": {
+      "provider": "git",
+      "root": ".",
+      "beforeCommit": "625cdee135abb26c3ff79999b907f755fcb9c6a6",
+      "afterCommit": "625cdee135abb26c3ff79999b907f755fcb9c6a6"
+    },
+    "afterFence": {
+      "snapshotHash": "30f3335a876fbc4c81f9d2567952d6008b1199171032c1bc20a7091c462abb6e",
+      "scopeHash": "0fe5d8a61e3912dd4c47c582e9c9f7b9b4707d66765edef776e466589dea0b50",
+      "matched": true
+    },
+    "outputHash": "92e1d5041698967febbf127c77216a74230a071c6e0eb8626940a204be9cfc16",
+    "outputSummary": "asset=D:\\Code\\third-partry\\miniapp-bridge\\.worktree\\public-go-sdk\\dist\\native\\miniapp-frida-native-17.3.2-abi1-windows-amd64.zip\r\nmanifest=manifest.json (inside archive)\r\ndll_sha256=05CF2B66A6A031E813FEB1C0A895A1272A68770233C3F270272243F48D11E846\r\narchive_sha256=1597ADCC6B3B13B5BCBA910904046AB7D2E1E3D73AE16961C73E400373BDE87A\r\nsha256sums=D:\\Code\\third-partry\\miniapp-bridge\\.worktree\\public-go-sdk\\dist\\native\\SHA256SUMS\r\nrelease-wrapper-exit=0",
+    "outputTruncated": false
+  },
+  "receiptHash": "ccf3f47dc02b9b069669d743b75b5f1ae2c407d07f661686a00e4c4262241cd0"
+}

@@ -1,0 +1,57 @@
+{
+  "schema": "comet.native.verification-receipt.v3",
+  "kind": "automated-check",
+  "role": "acceptance-evidence",
+  "status": "passed",
+  "bindings": {
+    "change": "public-go-sdk-worktree",
+    "sourceRevision": 22,
+    "contractHash": "4613a8aa3f31c57ff4ecd5747e9281aedd3281f2473412ada3fceb06a7ca1274",
+    "scopeHash": "df341855cc5112bec61124ba65d0dea9de41b8fb117d694c52ea051b2d7a3ba1",
+    "snapshotHash": "4554b0b88e00f905484fa513ef4550a53db02456c95306c529458be5110881e9",
+    "artifactHash": "b898cb63d9a2fd3a28dd6e1948d178a6243df65c073132df261f77b2e3cf7bb5"
+  },
+  "acceptanceIds": [
+    "acceptance-121aa9ac52f8ca3ce5d57bd707277504f9c8ef4273aaee334400784f447408dd",
+    "acceptance-3142a0a03549f74290c8b80dfdc548a2fda3240da1a4d5a5481c24db4f7d0e36",
+    "acceptance-4f2d44b847c8dd8c719932a45b79731d1ad2d472b85482a605cdd02aed8f657a",
+    "acceptance-67a33bff9d58f064dcf2e04c4c60ac748b4f9dfb5fdf581b7622e78971c045a4",
+    "acceptance-a42d0190e373980cb49c9575720643007674f28de81471cb1efecb3373f2061a",
+    "acceptance-ae8b3367addf0fe612cab807bbb7ae7a5781031f6de0799560acc63fe8ef0e97"
+  ],
+  "actor": "native-runtime:command:powershell.exe",
+  "issuedAt": "2026-08-09T10:56:29.806Z",
+  "evidence": {
+    "executable": "powershell.exe",
+    "args": [
+      "-NoLogo",
+      "-NoProfile",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-Command",
+      "$env:MINIAPP_BRIDGE_NATIVE_PATH=(Resolve-Path '.\\dist\\miniapp-frida.dll').Path; & go.exe test -tags frida ./internal/... ./sdk -count=1; exit $LASTEXITCODE"
+    ],
+    "cwd": ".",
+    "exitCode": 0,
+    "signal": null,
+    "timedOut": false,
+    "timeoutMs": 300000,
+    "startedAt": "2026-08-09T10:56:11.090Z",
+    "endedAt": "2026-08-09T10:56:29.806Z",
+    "worktree": {
+      "provider": "git",
+      "root": ".",
+      "beforeCommit": "625cdee135abb26c3ff79999b907f755fcb9c6a6",
+      "afterCommit": "625cdee135abb26c3ff79999b907f755fcb9c6a6"
+    },
+    "afterFence": {
+      "snapshotHash": "4554b0b88e00f905484fa513ef4550a53db02456c95306c529458be5110881e9",
+      "scopeHash": "df341855cc5112bec61124ba65d0dea9de41b8fb117d694c52ea051b2d7a3ba1",
+      "matched": true
+    },
+    "outputHash": "7e60dc9e929bf5d58b74d466f5acab4e07474becf10df1238084e751c97ab1e3",
+    "outputSummary": "ok  \tgithub.com/Follen/miniapp-bridge/internal/app\t0.224s\nok  \tgithub.com/Follen/miniapp-bridge/internal/capture\t0.318s\nok  \tgithub.com/Follen/miniapp-bridge/internal/cdp\t0.044s\nok  \tgithub.com/Follen/miniapp-bridge/internal/config\t0.071s\nok  \tgithub.com/Follen/miniapp-bridge/internal/context\t0.042s\nok  \tgithub.com/Follen/miniapp-bridge/internal/frida\t17.285s\nok  \tgithub.com/Follen/miniapp-bridge/internal/logging\t0.053s\nok  \tgithub.com/Follen/miniapp-bridge/internal/native\t3.641s\nok  \tgithub.com/Follen/miniapp-bridge/internal/process\t0.725s\nok  \tgithub.com/Follen/miniapp-bridge/internal/proxy\t0.113s\nok  \tgithub.com/Follen/miniapp-bridge/internal/version\t0.070s\nok  \tgithub.com/Follen/miniapp-bridge/internal/wmpf\t0.157s\nok  \tgithub.com/Follen/miniapp-bridge/sdk\t1.636s",
+    "outputTruncated": false
+  },
+  "receiptHash": "f6bf5b6fae45fd3b9f6ec092336735a322ef37ba0488ef981a1645aed0c9c09c"
+}

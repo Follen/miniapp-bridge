@@ -1,0 +1,240 @@
+{
+  "schema": "comet.native.verification-evidence.v2",
+  "change": "public-go-sdk-worktree",
+  "sourceRevision": 18,
+  "result": "fail",
+  "freshness": "complete",
+  "contractHash": "4613a8aa3f31c57ff4ecd5747e9281aedd3281f2473412ada3fceb06a7ca1274",
+  "acceptanceCriteriaHash": "3e4852f6fa679588ea69c6b7390eccd9c21e9d3075906dc73150170e564cfa01",
+  "implementationScopeRef": "runtime/evidence/scopes/0fe5d8a61e3912dd4c47c582e9c9f7b9b4707d66765edef776e466589dea0b50.json",
+  "implementationScopeHash": "0fe5d8a61e3912dd4c47c582e9c9f7b9b4707d66765edef776e466589dea0b50",
+  "reportRef": "verification.md",
+  "reportHash": "03495526c78914a5692020194f20e9ef5a06633736817fadad640d8e2183e649",
+  "acceptanceTrace": {
+    "schema": "comet.native.acceptance-trace.v2",
+    "nativeRootRef": "docs/comet",
+    "criteriaHash": "3e4852f6fa679588ea69c6b7390eccd9c21e9d3075906dc73150170e564cfa01",
+    "total": 19,
+    "evidenced": 19,
+    "skipped": 2,
+    "entries": [
+      {
+        "acceptanceId": "acceptance-121aa9ac52f8ca3ce5d57bd707277504f9c8ef4273aaee334400784f447408dd",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/public-go-sdk/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/0e0796f15c3d7aba10f2c5d8bc7c163b40785826bb936a0732cbfbc25f9c392d.json",
+          "runtime/evidence/receipts/43a3c1579e64092cea326495d368ce4d72f9eeb2783187161362e33bbf5a0780.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-1689ac69764ec97230e410f6319914ffc0c061ce304423668c7af31c1c278f86",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/public-go-sdk/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/8f2a9617db3958904231caeb5359068d888001b2b795b9a28ea6fb37e95491ed.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-2f73d3dc90c9d5d5becaa36fe1d0c63a8da5692bdcaaccc60fe3b66050784e48",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/public-go-sdk/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/8f2a9617db3958904231caeb5359068d888001b2b795b9a28ea6fb37e95491ed.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-3142a0a03549f74290c8b80dfdc548a2fda3240da1a4d5a5481c24db4f7d0e36",
+        "status": "passed",
+        "kind": "brief-example",
+        "source": "brief.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/d9d81de2a0278441e85e9b7eca4b902301c5c63c93805dc044206c013c514d9c.json",
+          "runtime/evidence/receipts/dc185e2a920856f229de00832e8776721ef593e1dd88bf2ba90309e9a8d0fc50.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-31b0f5a042f67734358e305516168adc805443c5cdd121c77ee021e10518f8e4",
+        "status": "failed",
+        "kind": "brief-example",
+        "source": "brief.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/40a9c24a12b5146bf1050f30c83debf13c65762e3f1ac1b07ba1cff85c7e76b9.json"
+        ],
+        "skippedReason": "Live CDP reached Runtime.evaluate but the matrix rejected a standards-compliant exception StackTrace whose callFrames were populated while optional description was absent."
+      },
+      {
+        "acceptanceId": "acceptance-45351ee15618083d13cd6e5fadb5fdd42ab95395eff25d02ed65926120ff1bb7",
+        "status": "passed",
+        "kind": "brief-example",
+        "source": "brief.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/8f2a9617db3958904231caeb5359068d888001b2b795b9a28ea6fb37e95491ed.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-4f2d44b847c8dd8c719932a45b79731d1ad2d472b85482a605cdd02aed8f657a",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/public-go-sdk/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/595eb0c6ff17d1da9836d5e6a977b9fb926e9314c65407b180e4cd01f1dc4fa2.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-509d8a925b855bcbf774c57033562c26d5c9552eab56f290a92549f4d4ad9a7e",
+        "status": "passed",
+        "kind": "brief-example",
+        "source": "brief.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/8f2a9617db3958904231caeb5359068d888001b2b795b9a28ea6fb37e95491ed.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-665bbd063f3891249a11ce692793045960619d1f326994d3008b6fd880ae9550",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/public-go-sdk/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/8f2a9617db3958904231caeb5359068d888001b2b795b9a28ea6fb37e95491ed.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-67a33bff9d58f064dcf2e04c4c60ac748b4f9dfb5fdf581b7622e78971c045a4",
+        "status": "failed",
+        "kind": "spec-must",
+        "source": "specs/public-go-sdk/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/40a9c24a12b5146bf1050f30c83debf13c65762e3f1ac1b07ba1cff85c7e76b9.json"
+        ],
+        "skippedReason": "Live upstream and Runtime exception response were observed, but the full matrix stopped at an overly strict StackTrace.description assertion before remaining domains and shutdown acceptance completed."
+      },
+      {
+        "acceptanceId": "acceptance-819bf1b23ee4330f5c192d362b105a80f81bc9cc58d7bdb0739d5ccba218b09d",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/public-go-sdk/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/0e0796f15c3d7aba10f2c5d8bc7c163b40785826bb936a0732cbfbc25f9c392d.json",
+          "runtime/evidence/receipts/595eb0c6ff17d1da9836d5e6a977b9fb926e9314c65407b180e4cd01f1dc4fa2.json",
+          "runtime/evidence/receipts/ccf3f47dc02b9b069669d743b75b5f1ae2c407d07f661686a00e4c4262241cd0.json",
+          "runtime/evidence/receipts/d37cd72833907319f70fdc2ec6b7e08e560dc978c5211dffba6c119da223ab3d.json",
+          "runtime/evidence/receipts/d9d81de2a0278441e85e9b7eca4b902301c5c63c93805dc044206c013c514d9c.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-a42d0190e373980cb49c9575720643007674f28de81471cb1efecb3373f2061a",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/public-go-sdk/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/8f2a9617db3958904231caeb5359068d888001b2b795b9a28ea6fb37e95491ed.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-ae8b3367addf0fe612cab807bbb7ae7a5781031f6de0799560acc63fe8ef0e97",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/public-go-sdk/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/0e0796f15c3d7aba10f2c5d8bc7c163b40785826bb936a0732cbfbc25f9c392d.json",
+          "runtime/evidence/receipts/43a3c1579e64092cea326495d368ce4d72f9eeb2783187161362e33bbf5a0780.json",
+          "runtime/evidence/receipts/d9d81de2a0278441e85e9b7eca4b902301c5c63c93805dc044206c013c514d9c.json",
+          "runtime/evidence/receipts/dc185e2a920856f229de00832e8776721ef593e1dd88bf2ba90309e9a8d0fc50.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-d3d1601b956f004627354c9b305daa3ff654a7a1f6870e4f0840c7eaf259c029",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/public-go-sdk/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/7019d52dae1344335e80e838a2a3cc508b4cbac99a5abd30116ff46664d931d7.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-e183d1270a3b79ef3b7f4f65a44395aa030b3aa3e7909e6f6c596c681ab1bc7d",
+        "status": "passed",
+        "kind": "brief-example",
+        "source": "brief.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/8f2a9617db3958904231caeb5359068d888001b2b795b9a28ea6fb37e95491ed.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-e9cb527aa2f37b705f10729d3ba00a58f30d482d2c7a2e3a49e627dc567b5b03",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/public-go-sdk/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/8f2a9617db3958904231caeb5359068d888001b2b795b9a28ea6fb37e95491ed.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-faac62c8e51c470eb8344a3e2abf6ae6756d83764087db5ddb58d778f898da58",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/public-go-sdk/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/8f2a9617db3958904231caeb5359068d888001b2b795b9a28ea6fb37e95491ed.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-fb389f2bd226a79ae6f9115289d975196e338d7165b125d19ef1d4ca5fe88cb7",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/public-go-sdk/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/d37cd72833907319f70fdc2ec6b7e08e560dc978c5211dffba6c119da223ab3d.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-fb7226fbac2a9cb5dc41cf5513574b1ff014a8f7b17cff20c768eb1eb701b374",
+        "status": "passed",
+        "kind": "brief-example",
+        "source": "brief.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/d37cd72833907319f70fdc2ec6b7e08e560dc978c5211dffba6c119da223ab3d.json"
+        ],
+        "skippedReason": null
+      }
+    ],
+    "traceHash": "c58d4ff85441d0e96b2a84b26b132be22e8f8cc060bc0519d5b4dc8ae3e5b91b"
+  },
+  "partialAllowanceRef": null,
+  "partialAllowanceHash": null,
+  "requiredReceiptRefs": [],
+  "receiptRefs": [
+    "runtime/evidence/receipts/0e0796f15c3d7aba10f2c5d8bc7c163b40785826bb936a0732cbfbc25f9c392d.json",
+    "runtime/evidence/receipts/40a9c24a12b5146bf1050f30c83debf13c65762e3f1ac1b07ba1cff85c7e76b9.json",
+    "runtime/evidence/receipts/43a3c1579e64092cea326495d368ce4d72f9eeb2783187161362e33bbf5a0780.json",
+    "runtime/evidence/receipts/595eb0c6ff17d1da9836d5e6a977b9fb926e9314c65407b180e4cd01f1dc4fa2.json",
+    "runtime/evidence/receipts/7019d52dae1344335e80e838a2a3cc508b4cbac99a5abd30116ff46664d931d7.json",
+    "runtime/evidence/receipts/8f2a9617db3958904231caeb5359068d888001b2b795b9a28ea6fb37e95491ed.json",
+    "runtime/evidence/receipts/ccf3f47dc02b9b069669d743b75b5f1ae2c407d07f661686a00e4c4262241cd0.json",
+    "runtime/evidence/receipts/d37cd72833907319f70fdc2ec6b7e08e560dc978c5211dffba6c119da223ab3d.json",
+    "runtime/evidence/receipts/d9d81de2a0278441e85e9b7eca4b902301c5c63c93805dc044206c013c514d9c.json",
+    "runtime/evidence/receipts/dc185e2a920856f229de00832e8776721ef593e1dd88bf2ba90309e9a8d0fc50.json"
+  ],
+  "createdAt": "2026-08-09T10:05:26.332Z",
+  "envelopeHash": "0e30bb1c06a66a3ce0a8455d72899d4469bd7362e4d2e319ff4312acdfc8d74f"
+}

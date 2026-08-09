@@ -1,14 +1,20 @@
 # Known Differences
 
-| Area | Current status | Technical reason | Required validation |
+The current release-candidate results and remaining environment risks are
+recorded in
+[`docs/comet/changes/public-go-sdk-worktree/verification.md`](docs/comet/changes/public-go-sdk-worktree/verification.md).
+This file lists stable implementation differences from the fixed TypeScript
+reference rather than embedding stale run output.
+
+| Area | Current behavior | Technical reason | Production requirement |
 |---|---|---|---|
-| Native packaging | The executable loads `miniapp-frida.dll`, which contains the pinned Frida core behind the documented opaque ABI. | Windows cgo cannot safely link the official MSVC static archive directly; the small C shim keeps native handles out of Go and preserves the loader boundary. | Re-run the shim build and native lifecycle tests for every release asset. |
-| Fixed-port live WMPF/CDP | Protocol and simulated-proxy tests preserve `127.0.0.1:9421`, `127.0.0.1:62000`, startup ordering, and frame semantics. The final executable attached to WMPF 25297 and both ports rebound after shutdown. | No miniapp renderer opened the upstream socket during the bounded live run. | Refresh a miniapp after attach and run the link/matrix smoke against the final executable. |
-| Live DevTools matrix | Not claimed as complete for this worktree. | Runtime/Debugger/Page/DOM/Network/Console/Performance behavior depends on the installed WMPF target and its current address table. | Run `scripts/smoke-windows.ps1` after refreshing a target miniapp and record every matrix result. |
-| Windows shutdown | Ordered cleanup is covered by fake sessions, process-runner tests, native tagged tests, a clean live bridge exit, and successful rebinding of both fixed ports. | Upstream peer survival requires a live miniapp connection. | Confirm `target-survives-shutdown=true` after a connected live smoke. |
-| Untagged/non-Windows zlib fallback | Go `compress/zlib` is wire-compatible but not promised byte-for-byte identical outside the Windows native build. | `-tags frida` uses stock zlib 1.3.1 embedded in the Release DLL to match reference bytes; fallback builds retain a portable proxy/replay abstraction. | Use the tagged Windows build before claiming byte-exact production parity. |
-| zlib source acquisition | Windows native builds use the pinned zlib 1.3.1 URL and SHA-256 and keep source/archive caches ignored. | Reproducible builds need verified acquisition without committing third-party binaries. | Verify the cache hash and `-Offline` behavior on a clean host. |
-| Runtime shutdown entry point | `frida_deinit()` is called only after the final device/session/script owner is released. | Frida runtime initialization is process-wide and the pinned Windows runtime is not safely reinitialized between live device lifetimes. | Exercise sequential CLI starts and signal shutdown on the target host. |
-| `jscontext_id` routing | The SDK exposes deterministic discovery, selection, and routing; the fixed reference commonly sends an empty context field. | Context routing is an explicit requirement of this public SDK contract. | Compare a live target exposing multiple contexts. |
-| Malformed length-delimited frame | One historical protobuf.js fixture is more permissive than Go and returns a one-byte payload instead of `io.ErrUnexpectedEOF`. | Go rejects truncated frames to prevent data leakage and process instability; valid and other corrupt fixtures match. | Keep the differential fixture and verify no panic or crash on corrupt input. |
-| Live WMPF smoke | Ran against WMPF 25297: attach and shutdown passed; the command exited `1` after 180 seconds without upstream. | It requires an opened/refreshed miniapp to create the upstream socket after Frida attachment. | Append a connected live receipt before declaring production equivalence. |
+| Native packaging | Windows loads `miniapp-frida.dll`, containing pinned Frida core behind the documented opaque ABI. | Windows cgo cannot consume the official MSVC static archive as a portable external Go Module dependency. The small shim keeps C/Frida handles out of Go callers. | Ship the matching Release DLL and manifest beside the final EXE and verify their hashes before load. |
+| Portable zlib fallback | Untagged/non-Windows builds use Go `compress/zlib`; tagged Windows builds use stock zlib `1.3.1` in the native DLL. | The fallback preserves wire compatibility but does not promise byte-identical compressed output. | Use the tagged Windows build for byte-exact production parity. |
+| Runtime reinitialization | The final native owner releases script, session, device, runtime, and DLL once; the same Service cannot restart after Close. | Frida initialization is process-wide and the pinned Windows runtime is not safely reinitialized after deinit. | Create a new process for a new live bridge lifetime, matching CLI behavior. |
+| Malformed length-delimited frame | Go rejects one truncated frame that the pinned protobuf.js decoder partially accepts. | Strict rejection prevents incomplete bytes from becoming valid application data; valid frames and all other corrupt fixtures match. | Keep the differential fixture and require a diagnostic error without panic or process exit. |
+| Platform scope | Windows amd64 is the first native release target. Other systems retain compile-time abstractions and portable protocol tests. | Native loader, packaging, process discovery, and live target behavior are platform-specific. | Do not claim a non-Windows native release until that platform has its own loader, packaging, and live receipts. |
+| Live version breadth | All pinned reference address configurations are embedded and statically audited; a live receipt can exercise only target versions installed on the verification host. | Multiple historical WMPF binaries cannot be synthesized by unit tests. | Require a fresh live receipt for every target version declared supported by a production release. |
+
+There are no intentional changes to the reference listener addresses, WMPF
+protobuf field numbers, compression flags, CDP request/event/error semantics,
+context routing, Agent hook responsibilities, or startup order.

@@ -1,0 +1,55 @@
+{
+  "schema": "comet.native.verification-receipt.v3",
+  "kind": "automated-check",
+  "role": "acceptance-evidence",
+  "status": "passed",
+  "bindings": {
+    "change": "public-go-sdk-worktree",
+    "sourceRevision": 18,
+    "contractHash": "4613a8aa3f31c57ff4ecd5747e9281aedd3281f2473412ada3fceb06a7ca1274",
+    "scopeHash": "0fe5d8a61e3912dd4c47c582e9c9f7b9b4707d66765edef776e466589dea0b50",
+    "snapshotHash": "30f3335a876fbc4c81f9d2567952d6008b1199171032c1bc20a7091c462abb6e",
+    "artifactHash": "17f9e1f46a9863c636603af1634c3c2760fd4308872072a66a451e9c0e640dd0"
+  },
+  "acceptanceIds": [
+    "acceptance-121aa9ac52f8ca3ce5d57bd707277504f9c8ef4273aaee334400784f447408dd",
+    "acceptance-31b0f5a042f67734358e305516168adc805443c5cdd121c77ee021e10518f8e4",
+    "acceptance-819bf1b23ee4330f5c192d362b105a80f81bc9cc58d7bdb0739d5ccba218b09d",
+    "acceptance-ae8b3367addf0fe612cab807bbb7ae7a5781031f6de0799560acc63fe8ef0e97"
+  ],
+  "actor": "native-runtime:command:powershell.exe",
+  "issuedAt": "2026-08-09T09:53:20.109Z",
+  "evidence": {
+    "executable": "powershell.exe",
+    "args": [
+      "-NoProfile",
+      "-NonInteractive",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-Command",
+      "$env:PSModulePath='C:\\Users\\follen\\Documents\\WindowsPowerShell\\Modules;C:\\Program Files\\WindowsPowerShell\\Modules;C:\\Windows\\system32\\WindowsPowerShell\\v1.0\\Modules'; Import-Module Microsoft.PowerShell.Utility -Force; $log=Join-Path $env:TEMP ('miniapp-build-receipt-'+[guid]::NewGuid().ToString()+'.log'); & .\\scripts\\build-windows.ps1 *> $log; $code=$LASTEXITCODE; $lines=@(Get-Content -LiteralPath $log -ErrorAction SilentlyContinue); $markers=@($lines | Where-Object { $_ -match 'frida|zlib|native_|SHA256|miniapp-bridge\\.exe|miniapp-frida\\.dll|PASS|FAIL|build' }); if($markers.Count -gt 50){$markers=@($markers | Select-Object -Last 50)}; $markers | ForEach-Object {($_ -replace '[^\\x00-\\x7F]','?')}; Write-Output ('build-wrapper-exit=' + $code); Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue; exit $code"
+    ],
+    "cwd": ".",
+    "exitCode": 0,
+    "signal": null,
+    "timedOut": false,
+    "timeoutMs": 900000,
+    "startedAt": "2026-08-09T09:52:05.508Z",
+    "endedAt": "2026-08-09T09:53:20.109Z",
+    "worktree": {
+      "provider": "git",
+      "root": ".",
+      "beforeCommit": "625cdee135abb26c3ff79999b907f755fcb9c6a6",
+      "afterCommit": "625cdee135abb26c3ff79999b907f755fcb9c6a6"
+    },
+    "afterFence": {
+      "snapshotHash": "30f3335a876fbc4c81f9d2567952d6008b1199171032c1bc20a7091c462abb6e",
+      "scopeHash": "0fe5d8a61e3912dd4c47c582e9c9f7b9b4707d66765edef776e466589dea0b50",
+      "matched": true
+    },
+    "outputHash": "f632dee5edb81415614609b8b466db12aea3cf800a788988ad803396b20f8a8a",
+    "outputSummary": "frida_core_version=17.3.2\r\narchive_sha256=8AF15423D6E534626F91A67FAA0582E42C67A07A95A190F4C622695105549C72\r\narchive_expected_sha256=8AF15423D6E534626F91A67FAA0582E42C67A07A95A190F4C622695105549C72\r\nheader_sha256=6B4DEE14C19BDB03CAA4A25BE51564AA249BC1167AA8DED26F562E238D0B3462\r\nlibrary_sha256=D763BCF99EFDE43A3DE4138B19D70EC64B586286413473EAA21E6C59B7410A30\r\nzlib_version=1.3.1\r\narchive_sha256=9A93B2B7DFDAC77CEBA5A558A580E74667DD6FEDE4585B91EEFB60F03B72DF23\r\nlibrary_sha256=9DE45B674DA1FC9F11D3E1833CFC6FA98AE27468D5F0E222556E65FC9B950D2A\r\ngzlib.c\r\nminiapp_frida.c\r\n  ????? D:\\Code\\third-partry\\miniapp-bridge\\.worktree\\public-go-sdk\\third_party\\frida\\runtime-17.3.2\\miniapp-frida.lib ??? D:\\Code\\third-partry\\miniapp-bridge\\.worktree\\public-go-sdk\\third_party\\frida\\runtime-17.3.2\\miniapp-frida.exp\r\nnative_version=17.3.2-abi1\r\nfrida_core_version=17.3.2\r\ndll_sha256=05CF2B66A6A031E813FEB1C0A895A1272A68770233C3F270272243F48D11E846\r\nok  \tgithub.com/Follen/miniapp-bridge/frida\t1.078s\r\nok  \tgithub.com/Follen/miniapp-bridge/internal/frida\t18.679s\r\nasset=D:\\Code\\third-partry\\miniapp-bridge\\.worktree\\public-go-sdk\\dist\\native\\miniapp-frida-native-17.3.2-abi1-windows-amd64.zip\r\ndll_sha256=05CF2B66A6A031E813FEB1C0A895A1272A68770233C3F270272243F48D11E846\r\narchive_sha256=1597ADCC6B3B13B5BCBA910904046AB7D2E1E3D73AE16961C73E400373BDE87A\r\nsha256sums=D:\\Code\\third-partry\\miniapp-bridge\\.worktree\\public-go-sdk\\dist\\native\\SHA256SUMS\r\nSHA256          387ACA4EF33AF541BD6CBF10F6CB942F2997AD05972EF070C98D0DEAA393844E       D:\\Code\\third-partry\\miniapp-...\r\nSHA256          05CF2B66A6A031E813FEB1C0A895A1272A68770233C3F270272243F48D11E846       D:\\Code\\third-partry\\miniapp-...\r\nSHA256          1DBF6FAE90DD340AA01220DB5193B1C41F0CB793802696894B74F69EFB1C47B9       D:\\Code\\third-partry\\miniapp-...\r\nbuild-wrapper-exit=0",
+    "outputTruncated": false
+  },
+  "receiptHash": "0e0796f15c3d7aba10f2c5d8bc7c163b40785826bb936a0732cbfbc25f9c392d"
+}

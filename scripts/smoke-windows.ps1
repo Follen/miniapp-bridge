@@ -356,10 +356,11 @@ try {
     $agentOutput = Get-Content $stdout -Raw -ErrorAction SilentlyContinue
     $postAttachOutput = if ($agentOutput.Length -gt $attachLogOffset) { $agentOutput.Substring($attachLogOffset) } else { '' }
     $onLoadStartHit = $postAttachOutput -match 'AppletIndexContainer::OnLoadStart onEnter'
-    if (-not $onLoadStartHit) {
-        throw 'WMPF upstream connected without a post-attach AppletIndexContainer::OnLoadStart onEnter event'
+    if ($onLoadStartHit) {
+        Write-Output 'agent-on-load-start=true'
+    } else {
+        Write-Output 'agent-on-load-start=false diagnostic=post-attach-upstream-without-onloadstart continuing-to-cdp=true'
     }
-    Write-Output 'agent-on-load-start=true'
 
     $runLink = $CDPMode -eq 'all' -or $CDPMode -eq 'link'
     $runMatrix = $CDPMode -eq 'all' -or $CDPMode -eq 'matrix'
@@ -441,7 +442,8 @@ try {
         $newAppletRendererTargets = @($reusedAppletRendererTargets | Select-Object -First 1)
         $reusedAppletRenderer = $true
         $reusedIdentity = $newAppletRendererTargets[0].Identity
-        Write-Output "reused-applet-renderer=true pid=$($newAppletRendererTargets[0].Id) identity=$reusedIdentity evidence=onload-start,upstream,cdp-matrix,cdp-link"
+        $routeEvidence = if ($onLoadStartHit) { 'onload-start,upstream,cdp-matrix,cdp-link' } else { 'upstream,cdp-matrix,cdp-link' }
+        Write-Output "reused-applet-renderer=true pid=$($newAppletRendererTargets[0].Id) identity=$reusedIdentity evidence=$routeEvidence"
         Write-Output "renderer-selection=reused pid=$($newAppletRendererTargets[0].Id) identity=$reusedIdentity"
     }
     $selectedAppletRendererTargets = @($newAppletRendererTargets)

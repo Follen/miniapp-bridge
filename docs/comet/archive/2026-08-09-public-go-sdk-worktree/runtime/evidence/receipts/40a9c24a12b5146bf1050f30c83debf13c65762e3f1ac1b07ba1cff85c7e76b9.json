@@ -1,0 +1,53 @@
+{
+  "schema": "comet.native.verification-receipt.v3",
+  "kind": "automated-check",
+  "role": "acceptance-evidence",
+  "status": "failed",
+  "bindings": {
+    "change": "public-go-sdk-worktree",
+    "sourceRevision": 18,
+    "contractHash": "4613a8aa3f31c57ff4ecd5747e9281aedd3281f2473412ada3fceb06a7ca1274",
+    "scopeHash": "0fe5d8a61e3912dd4c47c582e9c9f7b9b4707d66765edef776e466589dea0b50",
+    "snapshotHash": "30f3335a876fbc4c81f9d2567952d6008b1199171032c1bc20a7091c462abb6e",
+    "artifactHash": "17f9e1f46a9863c636603af1634c3c2760fd4308872072a66a451e9c0e640dd0"
+  },
+  "acceptanceIds": [
+    "acceptance-31b0f5a042f67734358e305516168adc805443c5cdd121c77ee021e10518f8e4",
+    "acceptance-67a33bff9d58f064dcf2e04c4c60ac748b4f9dfb5fdf581b7622e78971c045a4"
+  ],
+  "actor": "native-runtime:command:powershell.exe",
+  "issuedAt": "2026-08-09T09:58:59.140Z",
+  "evidence": {
+    "executable": "powershell.exe",
+    "args": [
+      "-NoProfile",
+      "-NonInteractive",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-Command",
+      "$env:PSModulePath='C:\\Users\\follen\\Documents\\WindowsPowerShell\\Modules;C:\\Program Files\\WindowsPowerShell\\Modules;C:\\Windows\\system32\\WindowsPowerShell\\v1.0\\Modules'; $log=Join-Path $env:TEMP 'miniapp-live-smoke-rev18.log'; Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue; & .\\scripts\\smoke-windows.ps1 -UpstreamWaitSeconds 300 -CDPMode all *> $log; $ok=$?; $lines=@(Get-Content -LiteralPath $log -ErrorAction SilentlyContinue); $markers=@($lines | Where-Object { $_ -match '^(listeners:|action-required=|upstream-peer-validated=|agent-on-load-start=|live-cdp-matrix:|link-smoke:|interaction-live:|cdp-step=|cdp-coverage=|renderer-selection=|fallback-applet-renderer=|reused-applet-renderer=|port-rebind:|target-survives-shutdown=|ports-released=|smoke-success=|bridge-session-preserved=|teardown-markers=|child-exit-code=)' }); if($markers.Count -eq 0){$markers=@($lines | Select-Object -Last 12)}; if($markers.Count -gt 80){$markers=@($markers | Select-Object -Last 80)}; $markers | ForEach-Object {($_ -replace '[^\\x00-\\x7F]','?')}; Write-Output ('smoke-wrapper-exit=' + $(if($ok){0}else{1})); if($ok){exit 0}else{exit 1}"
+    ],
+    "cwd": ".",
+    "exitCode": 1,
+    "signal": null,
+    "timedOut": false,
+    "timeoutMs": 600000,
+    "startedAt": "2026-08-09T09:56:14.763Z",
+    "endedAt": "2026-08-09T09:58:59.140Z",
+    "worktree": {
+      "provider": "git",
+      "root": ".",
+      "beforeCommit": "625cdee135abb26c3ff79999b907f755fcb9c6a6",
+      "afterCommit": "625cdee135abb26c3ff79999b907f755fcb9c6a6"
+    },
+    "afterFence": {
+      "snapshotHash": "30f3335a876fbc4c81f9d2567952d6008b1199171032c1bc20a7091c462abb6e",
+      "scopeHash": "0fe5d8a61e3912dd4c47c582e9c9f7b9b4707d66765edef776e466589dea0b50",
+      "matched": true
+    },
+    "outputHash": "8a9133bc4e07c6078e25ca70e9ecb01ca238cabc02f42bc68c905edbf17d9a1f",
+    "outputSummary": "go : Runtime exception details missing: {\"result\":{\"type\":\"object\",\"subtype\":\"error\",\"className\":\"Error\",\"description\":\r\n\"Error: miniapp-bridge-matrix\",\"objectId\":\"-5487461335651202050.2.70\"},\"exceptionDetails\":{\"exceptionId\":1,\"text\":\"Unca\r\nught\",\"lineNumber\":0,\"columnNumber\":0,\"scriptId\":\"195\",\"stackTrace\":{\"callFrames\":[{\"functionName\":\"\",\"scriptId\":\"195\",\r\n\"url\":\"\",\"lineNumber\":0,\"columnNumber\":6}]},\"exception\":{\"type\":\"object\",\"subtype\":\"error\",\"className\":\"Error\",\"descrip\r\ntion\":\"Error: miniapp-bridge-matrix\",\"objectId\":\"-5487461335651202050.2.71\"}}}: <nil>\r\n����λ�� D:\\Code\\third-partry\\miniapp-bridge\\.worktree\\public-go-sdk\\scripts\\smoke-windows.ps1:369 �ַ�: 9\r\n+         go run scripts/smoke-client.go --url ws://127.0.0.1:62000 --m ...\r\n+         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (Runtime excepti...2.71\"}}}: <nil>:String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError",
+    "outputTruncated": false
+  },
+  "receiptHash": "40a9c24a12b5146bf1050f30c83debf13c65762e3f1ac1b07ba1cff85c7e76b9"
+}

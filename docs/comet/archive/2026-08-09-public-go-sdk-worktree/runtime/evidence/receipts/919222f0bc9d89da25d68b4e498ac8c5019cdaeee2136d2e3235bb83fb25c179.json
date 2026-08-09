@@ -1,0 +1,53 @@
+{
+  "schema": "comet.native.verification-receipt.v3",
+  "kind": "automated-check",
+  "role": "acceptance-evidence",
+  "status": "passed",
+  "bindings": {
+    "change": "public-go-sdk-worktree",
+    "sourceRevision": 20,
+    "contractHash": "4613a8aa3f31c57ff4ecd5747e9281aedd3281f2473412ada3fceb06a7ca1274",
+    "scopeHash": "dcca9e333afe3cb8fdbc81738e83410a139ca5abd444c7db37bec706e8166ae1",
+    "snapshotHash": "ddc90f5246fa8b3296abaad176893668dba0a640f770e1337e0a329ae6149e2c",
+    "artifactHash": "17f9e1f46a9863c636603af1634c3c2760fd4308872072a66a451e9c0e640dd0"
+  },
+  "acceptanceIds": [
+    "acceptance-121aa9ac52f8ca3ce5d57bd707277504f9c8ef4273aaee334400784f447408dd",
+    "acceptance-ae8b3367addf0fe612cab807bbb7ae7a5781031f6de0799560acc63fe8ef0e97"
+  ],
+  "actor": "native-runtime:command:powershell.exe",
+  "issuedAt": "2026-08-09T10:22:01.556Z",
+  "evidence": {
+    "executable": "powershell.exe",
+    "args": [
+      "-NoProfile",
+      "-NonInteractive",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-Command",
+      "=(Resolve-Path '.\\dist\\miniapp-frida.dll').Path; & go.exe test -tags frida ./internal/... -count=1; exit 0"
+    ],
+    "cwd": ".",
+    "exitCode": 0,
+    "signal": null,
+    "timedOut": false,
+    "timeoutMs": 180000,
+    "startedAt": "2026-08-09T10:21:42.890Z",
+    "endedAt": "2026-08-09T10:22:01.556Z",
+    "worktree": {
+      "provider": "git",
+      "root": ".",
+      "beforeCommit": "625cdee135abb26c3ff79999b907f755fcb9c6a6",
+      "afterCommit": "625cdee135abb26c3ff79999b907f755fcb9c6a6"
+    },
+    "afterFence": {
+      "snapshotHash": "ddc90f5246fa8b3296abaad176893668dba0a640f770e1337e0a329ae6149e2c",
+      "scopeHash": "dcca9e333afe3cb8fdbc81738e83410a139ca5abd444c7db37bec706e8166ae1",
+      "matched": true
+    },
+    "outputHash": "63c332d121a96c8e01b7ab454bd82e5701738cce8e3e5e69321e056f2bd27d10",
+    "outputSummary": "= : �޷�����=����ʶ��Ϊ cmdlet���������ű��ļ�������г�������ơ��������Ƶ�ƴд���������·������ȷ��·����ȷ��Ȼ������һ\r\n�Ρ�\r\n����λ�� ��:1 �ַ�: 1\r\n+ =(Resolve-Path '.\\dist\\miniapp-frida.dll').Path; & go.exe test -tags  ...\r\n+ ~\r\n    + CategoryInfo          : ObjectNotFound: (=:String) [], CommandNotFoundException\r\n    + FullyQualifiedErrorId : CommandNotFoundException\r\n \r\nok  \tgithub.com/Follen/miniapp-bridge/internal/app\t0.230s\nok  \tgithub.com/Follen/miniapp-bridge/internal/capture\t0.323s\nok  \tgithub.com/Follen/miniapp-bridge/internal/cdp\t0.049s\nok  \tgithub.com/Follen/miniapp-bridge/internal/config\t0.041s\nok  \tgithub.com/Follen/miniapp-bridge/internal/context\t0.037s\n--- FAIL: TestNativeEnumeratesWMPFTargetMetadata (0.00s)\n    native_windows_test.go:20: frida: native runtime: LoadLibraryExW failed (win32=126): �Ҳ���ָ����ģ�顣\n--- FAIL: TestNativeAgentLifecycleAndReattach (0.00s)\n    native_windows_test.go:41: frida: native runtime: LoadLibraryExW failed (win32=126): �Ҳ���ָ����ģ�顣\n--- FAIL: TestNativeReachableErrorAndIdempotencyBranches (0.00s)\n    native_windows_test.go:133: frida: native runtime: LoadLibraryExW failed (win32=126): �Ҳ���ָ����ģ�顣\n--- FAIL: TestNativeInjectedCFailuresAndCallbacks (0.00s)\n    native_windows_test.go:246: frida: native runtime: LoadLibraryExW failed (win32=126): �Ҳ���ָ����ģ�顣\n--- FAIL: TestNativeRuntimeRetainAndZlibRoundTrip (0.00s)\n    native_zlib_windows_test.go:17: frida: native runtime: LoadLibraryExW failed (win32=126): �Ҳ���ָ����ģ�顣\n--- FAIL: TestNativeZlibInputAndValidationErrors (0.00s)\n    native_zlib_windows_test.go:50: frida: native runtime: LoadLibraryExW failed (win32=126): �Ҳ���ָ����ģ�顣\nFAIL\nFAIL\tgithub.com/Follen/miniapp-bridge/internal/frida\t17.260s\nok  \tgithub.com/Follen/miniapp-bridge/internal/logging\t0.080s\nok  \tgithub.com/Follen/miniapp-bridge/internal/native\t3.907s\nok  \tgithub.com/Follen/miniapp-bridge/internal/process\t0.782s\nok  \tgithub.com/Follen/miniapp-bridge/internal/proxy\t0.129s\nok  \tgithub.com/Follen/miniapp-bridge/internal/version\t0.127s\n--- FAIL: TestDebugMessageRoundTrip (0.00s)\n    protocol_test.go:22: frida: native runtime: LoadLibraryExW failed (win32=126): �Ҳ���ָ����ģ�顣\n--- FAIL: TestReferenceCodexDebugObjectAndCompression (0.00s)\n    --- FAIL: TestReferenceCodexDebugObjectAndCompression/ping_zlib (0.00s)\n        reference_codex_differential_test.go:178: frida: native runtime: LoadLibraryExW failed (win32=126): �Ҳ���ָ����ģ�顣\n    --- FAIL: TestReferenceCodexDebugObjectAndCompression/ping_zlib_bitmask (0.00s)\n        reference_codex_differential_test.go:178: frida: native runtime: LoadLibraryExW failed (win32=126): �Ҳ���ָ����ģ�顣\n--- FAIL: TestReferenceCodexCompressionStatistics (0.00s)\n    reference_codex_differential_test.go:216: frida: native runtime: LoadLibraryExW failed (win32=126): �Ҳ���ָ����ģ�顣\n--- FAIL: TestReferenceCodexSpecialUnwrapSemantics (0.00s)\n    --- FAIL: TestReferenceCodexSpecialUnwrapSemantics/compressed_original_size_fallback (0.00s)\n        reference_codex_differential_test.go:255: frida: native runtime: LoadLibraryExW failed (win32=126): �Ҳ���ָ����ģ�顣\nFAIL\nFAIL\tgithub.com/Follen/miniapp-bridge/internal/wmpf\t0.066s\nFAIL",
+    "outputTruncated": false
+  },
+  "receiptHash": "919222f0bc9d89da25d68b4e498ac8c5019cdaeee2136d2e3235bb83fb25c179"
+}

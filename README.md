@@ -69,6 +69,12 @@ target discovery/attach/Agent load path. The 47 WMPF address configurations are
 compiled into the binary; SDK callers can set `Options.AddressConfigDir` only
 when an explicit configuration override is required.
 
+The public SDK follows Go module SemVer. `go.mod` currently sets the minimum
+toolchain to Go `1.23`; compatible minor and patch releases keep the
+`github.com/Follen/miniapp-bridge/sdk` API, structured errors, status values,
+subscription behavior, request ordering, default ports, and native version
+constants stable within the current major version.
+
 Consumer applications enable the Windows native backend with `go build -tags frida`.
 This requires a Windows cgo compiler, but no Frida or zlib development
 files. Deploy `miniapp-frida.dll` and `manifest.json` from the matching Release

@@ -1,0 +1,53 @@
+{
+  "schema": "comet.native.verification-receipt.v3",
+  "kind": "automated-check",
+  "role": "acceptance-evidence",
+  "status": "passed",
+  "bindings": {
+    "change": "public-go-sdk-worktree",
+    "sourceRevision": 18,
+    "contractHash": "4613a8aa3f31c57ff4ecd5747e9281aedd3281f2473412ada3fceb06a7ca1274",
+    "scopeHash": "0fe5d8a61e3912dd4c47c582e9c9f7b9b4707d66765edef776e466589dea0b50",
+    "snapshotHash": "30f3335a876fbc4c81f9d2567952d6008b1199171032c1bc20a7091c462abb6e",
+    "artifactHash": "17f9e1f46a9863c636603af1634c3c2760fd4308872072a66a451e9c0e640dd0"
+  },
+  "acceptanceIds": [
+    "acceptance-819bf1b23ee4330f5c192d362b105a80f81bc9cc58d7bdb0739d5ccba218b09d",
+    "acceptance-fb389f2bd226a79ae6f9115289d975196e338d7165b125d19ef1d4ca5fe88cb7",
+    "acceptance-fb7226fbac2a9cb5dc41cf5513574b1ff014a8f7b17cff20c768eb1eb701b374"
+  ],
+  "actor": "native-runtime:command:go.exe",
+  "issuedAt": "2026-08-09T09:39:45.046Z",
+  "evidence": {
+    "executable": "go.exe",
+    "args": [
+      "test",
+      "./scripts",
+      "-run",
+      "TestExternalModuleImportsOnlySDK",
+      "-count=1"
+    ],
+    "cwd": ".",
+    "exitCode": 0,
+    "signal": null,
+    "timedOut": false,
+    "timeoutMs": 120000,
+    "startedAt": "2026-08-09T09:39:41.780Z",
+    "endedAt": "2026-08-09T09:39:45.046Z",
+    "worktree": {
+      "provider": "git",
+      "root": ".",
+      "beforeCommit": "625cdee135abb26c3ff79999b907f755fcb9c6a6",
+      "afterCommit": "625cdee135abb26c3ff79999b907f755fcb9c6a6"
+    },
+    "afterFence": {
+      "snapshotHash": "30f3335a876fbc4c81f9d2567952d6008b1199171032c1bc20a7091c462abb6e",
+      "scopeHash": "0fe5d8a61e3912dd4c47c582e9c9f7b9b4707d66765edef776e466589dea0b50",
+      "matched": true
+    },
+    "outputHash": "06d9fa784d7809ee4c54369c21c645466b2676c827e9e7d1cddbeba13dd6a9fe",
+    "outputSummary": "ok  \tgithub.com/Follen/miniapp-bridge/scripts\t2.759s",
+    "outputTruncated": false
+  },
+  "receiptHash": "d37cd72833907319f70fdc2ec6b7e08e560dc978c5211dffba6c119da223ab3d"
+}

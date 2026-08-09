@@ -1,0 +1,51 @@
+{
+  "schema": "comet.native.verification-receipt.v3",
+  "kind": "automated-check",
+  "role": "acceptance-evidence",
+  "status": "passed",
+  "bindings": {
+    "change": "public-go-sdk-worktree",
+    "sourceRevision": 18,
+    "contractHash": "4613a8aa3f31c57ff4ecd5747e9281aedd3281f2473412ada3fceb06a7ca1274",
+    "scopeHash": "0fe5d8a61e3912dd4c47c582e9c9f7b9b4707d66765edef776e466589dea0b50",
+    "snapshotHash": "30f3335a876fbc4c81f9d2567952d6008b1199171032c1bc20a7091c462abb6e",
+    "artifactHash": "17f9e1f46a9863c636603af1634c3c2760fd4308872072a66a451e9c0e640dd0"
+  },
+  "acceptanceIds": [
+    "acceptance-31b0f5a042f67734358e305516168adc805443c5cdd121c77ee021e10518f8e4",
+    "acceptance-4f2d44b847c8dd8c719932a45b79731d1ad2d472b85482a605cdd02aed8f657a",
+    "acceptance-819bf1b23ee4330f5c192d362b105a80f81bc9cc58d7bdb0739d5ccba218b09d"
+  ],
+  "actor": "native-runtime:command:go.exe",
+  "issuedAt": "2026-08-09T09:39:19.845Z",
+  "evidence": {
+    "executable": "go.exe",
+    "args": [
+      "test",
+      "./...",
+      "-count=1"
+    ],
+    "cwd": ".",
+    "exitCode": 0,
+    "signal": null,
+    "timedOut": false,
+    "timeoutMs": 120000,
+    "startedAt": "2026-08-09T09:38:42.609Z",
+    "endedAt": "2026-08-09T09:39:19.845Z",
+    "worktree": {
+      "provider": "git",
+      "root": ".",
+      "beforeCommit": "625cdee135abb26c3ff79999b907f755fcb9c6a6",
+      "afterCommit": "625cdee135abb26c3ff79999b907f755fcb9c6a6"
+    },
+    "afterFence": {
+      "snapshotHash": "30f3335a876fbc4c81f9d2567952d6008b1199171032c1bc20a7091c462abb6e",
+      "scopeHash": "0fe5d8a61e3912dd4c47c582e9c9f7b9b4707d66765edef776e466589dea0b50",
+      "matched": true
+    },
+    "outputHash": "b46b76a4fcaa7423d4509f0885dc68e16731130d061fd3330eff47d8c6c019f4",
+    "outputSummary": "ok  \tgithub.com/Follen/miniapp-bridge/cmd/miniapp-bridge\t0.055s\n?   \tgithub.com/Follen/miniapp-bridge/examples/sdk\t[no test files]\nok  \tgithub.com/Follen/miniapp-bridge/frida\t0.040s\nok  \tgithub.com/Follen/miniapp-bridge/internal/app\t0.167s\nok  \tgithub.com/Follen/miniapp-bridge/internal/capture\t0.259s\nok  \tgithub.com/Follen/miniapp-bridge/internal/cdp\t0.038s\nok  \tgithub.com/Follen/miniapp-bridge/internal/config\t0.072s\nok  \tgithub.com/Follen/miniapp-bridge/internal/context\t0.052s\nok  \tgithub.com/Follen/miniapp-bridge/internal/frida\t14.561s\nok  \tgithub.com/Follen/miniapp-bridge/internal/logging\t0.036s\nok  \tgithub.com/Follen/miniapp-bridge/internal/native\t3.782s\nok  \tgithub.com/Follen/miniapp-bridge/internal/process\t0.725s\nok  \tgithub.com/Follen/miniapp-bridge/internal/proxy\t0.078s\nok  \tgithub.com/Follen/miniapp-bridge/internal/version\t0.048s\nok  \tgithub.com/Follen/miniapp-bridge/internal/wmpf\t0.096s\nok  \tgithub.com/Follen/miniapp-bridge/scripts\t35.937s\nok  \tgithub.com/Follen/miniapp-bridge/scripts/smoke-process-runner\t0.303s\nok  \tgithub.com/Follen/miniapp-bridge/sdk\t1.521s",
+    "outputTruncated": false
+  },
+  "receiptHash": "595eb0c6ff17d1da9836d5e6a977b9fb926e9314c65407b180e4cd01f1dc4fa2"
+}

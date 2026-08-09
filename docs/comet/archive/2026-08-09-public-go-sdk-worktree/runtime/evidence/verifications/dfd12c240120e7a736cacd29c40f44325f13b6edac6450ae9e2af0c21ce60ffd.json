@@ -1,0 +1,279 @@
+{
+  "schema": "comet.native.verification-evidence.v2",
+  "change": "public-go-sdk-worktree",
+  "sourceRevision": 22,
+  "result": "pass",
+  "freshness": "complete",
+  "contractHash": "4613a8aa3f31c57ff4ecd5747e9281aedd3281f2473412ada3fceb06a7ca1274",
+  "acceptanceCriteriaHash": "3e4852f6fa679588ea69c6b7390eccd9c21e9d3075906dc73150170e564cfa01",
+  "implementationScopeRef": "runtime/evidence/scopes/df341855cc5112bec61124ba65d0dea9de41b8fb117d694c52ea051b2d7a3ba1.json",
+  "implementationScopeHash": "df341855cc5112bec61124ba65d0dea9de41b8fb117d694c52ea051b2d7a3ba1",
+  "reportRef": "verification.md",
+  "reportHash": "3c18d175a8dff79d1bd27f751539683211f68c2623c607c9215a9d2fd66e95f6",
+  "acceptanceTrace": {
+    "schema": "comet.native.acceptance-trace.v2",
+    "nativeRootRef": "docs/comet",
+    "criteriaHash": "3e4852f6fa679588ea69c6b7390eccd9c21e9d3075906dc73150170e564cfa01",
+    "total": 19,
+    "evidenced": 19,
+    "skipped": 0,
+    "entries": [
+      {
+        "acceptanceId": "acceptance-121aa9ac52f8ca3ce5d57bd707277504f9c8ef4273aaee334400784f447408dd",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/public-go-sdk/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/0e6c4bb78f1823bcfdca6a2b6d7549c25a3ac89c3e6f113bd1d6cb0bc6773ca8.json",
+          "runtime/evidence/receipts/0fc479fb5285398e05d45fc1e0dc41c94b79b0045c683fdb9d70e7a06aaff6a4.json",
+          "runtime/evidence/receipts/b2bb38158fecc9ea8cf23344f25ff1f32e3e7314934888a350c2b776cdcdd5db.json",
+          "runtime/evidence/receipts/cadd6e2b566bd714eb929bb2b388d6d5f07cdd72e43a807b5831fe94fa294a79.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-1689ac69764ec97230e410f6319914ffc0c061ce304423668c7af31c1c278f86",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/public-go-sdk/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/01b3ea7dc6afeefe3d9aa7c5d0d141ef3d6cea92e0a2b7b0a4b90ac00884eca5.json",
+          "runtime/evidence/receipts/b2bb38158fecc9ea8cf23344f25ff1f32e3e7314934888a350c2b776cdcdd5db.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-2f73d3dc90c9d5d5becaa36fe1d0c63a8da5692bdcaaccc60fe3b66050784e48",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/public-go-sdk/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/01b3ea7dc6afeefe3d9aa7c5d0d141ef3d6cea92e0a2b7b0a4b90ac00884eca5.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-3142a0a03549f74290c8b80dfdc548a2fda3240da1a4d5a5481c24db4f7d0e36",
+        "status": "passed",
+        "kind": "brief-example",
+        "source": "brief.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/0e6c4bb78f1823bcfdca6a2b6d7549c25a3ac89c3e6f113bd1d6cb0bc6773ca8.json",
+          "runtime/evidence/receipts/59cded2440dd44f39a305512fb7b08ad03304770fce0acc056ed010d8a440bcb.json",
+          "runtime/evidence/receipts/67d7eed08d1190f5c477e8292212a37e3bb4c247bb13d9221bc28ff79e6240bd.json",
+          "runtime/evidence/receipts/7414320f2666b9a3da5a4bcb1f82d13352dbd1722c74a32ec52ca1edf122aafb.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-31b0f5a042f67734358e305516168adc805443c5cdd121c77ee021e10518f8e4",
+        "status": "passed",
+        "kind": "brief-example",
+        "source": "brief.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/0fc479fb5285398e05d45fc1e0dc41c94b79b0045c683fdb9d70e7a06aaff6a4.json",
+          "runtime/evidence/receipts/a979fcd979f667e1fc4adb59b0ab56b3e6a89d4243fe313725db523790b61328.json",
+          "runtime/evidence/receipts/b2bb38158fecc9ea8cf23344f25ff1f32e3e7314934888a350c2b776cdcdd5db.json",
+          "runtime/evidence/receipts/cadd6e2b566bd714eb929bb2b388d6d5f07cdd72e43a807b5831fe94fa294a79.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-45351ee15618083d13cd6e5fadb5fdd42ab95395eff25d02ed65926120ff1bb7",
+        "status": "passed",
+        "kind": "brief-example",
+        "source": "brief.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/01b3ea7dc6afeefe3d9aa7c5d0d141ef3d6cea92e0a2b7b0a4b90ac00884eca5.json",
+          "runtime/evidence/receipts/b2bb38158fecc9ea8cf23344f25ff1f32e3e7314934888a350c2b776cdcdd5db.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-4f2d44b847c8dd8c719932a45b79731d1ad2d472b85482a605cdd02aed8f657a",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/public-go-sdk/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/a979fcd979f667e1fc4adb59b0ab56b3e6a89d4243fe313725db523790b61328.json",
+          "runtime/evidence/receipts/b278289791735e14db8b8038b7b71cfa839ae8f39dbacd2710a6f679c3279d20.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-509d8a925b855bcbf774c57033562c26d5c9552eab56f290a92549f4d4ad9a7e",
+        "status": "passed",
+        "kind": "brief-example",
+        "source": "brief.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/01b3ea7dc6afeefe3d9aa7c5d0d141ef3d6cea92e0a2b7b0a4b90ac00884eca5.json",
+          "runtime/evidence/receipts/a979fcd979f667e1fc4adb59b0ab56b3e6a89d4243fe313725db523790b61328.json",
+          "runtime/evidence/receipts/b2bb38158fecc9ea8cf23344f25ff1f32e3e7314934888a350c2b776cdcdd5db.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-665bbd063f3891249a11ce692793045960619d1f326994d3008b6fd880ae9550",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/public-go-sdk/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/01b3ea7dc6afeefe3d9aa7c5d0d141ef3d6cea92e0a2b7b0a4b90ac00884eca5.json",
+          "runtime/evidence/receipts/b2bb38158fecc9ea8cf23344f25ff1f32e3e7314934888a350c2b776cdcdd5db.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-67a33bff9d58f064dcf2e04c4c60ac748b4f9dfb5fdf581b7622e78971c045a4",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/public-go-sdk/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/0fc479fb5285398e05d45fc1e0dc41c94b79b0045c683fdb9d70e7a06aaff6a4.json",
+          "runtime/evidence/receipts/59cded2440dd44f39a305512fb7b08ad03304770fce0acc056ed010d8a440bcb.json",
+          "runtime/evidence/receipts/67d7eed08d1190f5c477e8292212a37e3bb4c247bb13d9221bc28ff79e6240bd.json",
+          "runtime/evidence/receipts/7414320f2666b9a3da5a4bcb1f82d13352dbd1722c74a32ec52ca1edf122aafb.json",
+          "runtime/evidence/receipts/a979fcd979f667e1fc4adb59b0ab56b3e6a89d4243fe313725db523790b61328.json",
+          "runtime/evidence/receipts/b278289791735e14db8b8038b7b71cfa839ae8f39dbacd2710a6f679c3279d20.json",
+          "runtime/evidence/receipts/b2bb38158fecc9ea8cf23344f25ff1f32e3e7314934888a350c2b776cdcdd5db.json",
+          "runtime/evidence/receipts/cadd6e2b566bd714eb929bb2b388d6d5f07cdd72e43a807b5831fe94fa294a79.json",
+          "runtime/evidence/receipts/f6bf5b6fae45fd3b9f6ec092336735a322ef37ba0488ef981a1645aed0c9c09c.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-819bf1b23ee4330f5c192d362b105a80f81bc9cc58d7bdb0739d5ccba218b09d",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/public-go-sdk/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/391bc6bc9e87900fb7ee8e501badfce685a581ca3be85a7e52d31be2901ad715.json",
+          "runtime/evidence/receipts/67d7eed08d1190f5c477e8292212a37e3bb4c247bb13d9221bc28ff79e6240bd.json",
+          "runtime/evidence/receipts/7f1bd8c43fe1dfb63218866ea59311ed0bafdc3060ca5d35ba5266f3979b3b1a.json",
+          "runtime/evidence/receipts/b278289791735e14db8b8038b7b71cfa839ae8f39dbacd2710a6f679c3279d20.json",
+          "runtime/evidence/receipts/b2bb38158fecc9ea8cf23344f25ff1f32e3e7314934888a350c2b776cdcdd5db.json",
+          "runtime/evidence/receipts/cadd6e2b566bd714eb929bb2b388d6d5f07cdd72e43a807b5831fe94fa294a79.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-a42d0190e373980cb49c9575720643007674f28de81471cb1efecb3373f2061a",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/public-go-sdk/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/01b3ea7dc6afeefe3d9aa7c5d0d141ef3d6cea92e0a2b7b0a4b90ac00884eca5.json",
+          "runtime/evidence/receipts/0e6c4bb78f1823bcfdca6a2b6d7549c25a3ac89c3e6f113bd1d6cb0bc6773ca8.json",
+          "runtime/evidence/receipts/b2bb38158fecc9ea8cf23344f25ff1f32e3e7314934888a350c2b776cdcdd5db.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-ae8b3367addf0fe612cab807bbb7ae7a5781031f6de0799560acc63fe8ef0e97",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/public-go-sdk/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/0e6c4bb78f1823bcfdca6a2b6d7549c25a3ac89c3e6f113bd1d6cb0bc6773ca8.json",
+          "runtime/evidence/receipts/59cded2440dd44f39a305512fb7b08ad03304770fce0acc056ed010d8a440bcb.json",
+          "runtime/evidence/receipts/67d7eed08d1190f5c477e8292212a37e3bb4c247bb13d9221bc28ff79e6240bd.json",
+          "runtime/evidence/receipts/7414320f2666b9a3da5a4bcb1f82d13352dbd1722c74a32ec52ca1edf122aafb.json",
+          "runtime/evidence/receipts/cadd6e2b566bd714eb929bb2b388d6d5f07cdd72e43a807b5831fe94fa294a79.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-d3d1601b956f004627354c9b305daa3ff654a7a1f6870e4f0840c7eaf259c029",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/public-go-sdk/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/16586bcc946fdcce3e42267c7fa4c753389b12fff62ed99f2140ab659aa450a2.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-e183d1270a3b79ef3b7f4f65a44395aa030b3aa3e7909e6f6c596c681ab1bc7d",
+        "status": "passed",
+        "kind": "brief-example",
+        "source": "brief.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/01b3ea7dc6afeefe3d9aa7c5d0d141ef3d6cea92e0a2b7b0a4b90ac00884eca5.json",
+          "runtime/evidence/receipts/a979fcd979f667e1fc4adb59b0ab56b3e6a89d4243fe313725db523790b61328.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-e9cb527aa2f37b705f10729d3ba00a58f30d482d2c7a2e3a49e627dc567b5b03",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/public-go-sdk/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/01b3ea7dc6afeefe3d9aa7c5d0d141ef3d6cea92e0a2b7b0a4b90ac00884eca5.json",
+          "runtime/evidence/receipts/a979fcd979f667e1fc4adb59b0ab56b3e6a89d4243fe313725db523790b61328.json",
+          "runtime/evidence/receipts/b2bb38158fecc9ea8cf23344f25ff1f32e3e7314934888a350c2b776cdcdd5db.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-faac62c8e51c470eb8344a3e2abf6ae6756d83764087db5ddb58d778f898da58",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/public-go-sdk/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/01b3ea7dc6afeefe3d9aa7c5d0d141ef3d6cea92e0a2b7b0a4b90ac00884eca5.json",
+          "runtime/evidence/receipts/a979fcd979f667e1fc4adb59b0ab56b3e6a89d4243fe313725db523790b61328.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-fb389f2bd226a79ae6f9115289d975196e338d7165b125d19ef1d4ca5fe88cb7",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/public-go-sdk/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/1c7dd83d1f44364700bac2bf63be88525cc74e1cc6dadaf73881f47014e74813.json",
+          "runtime/evidence/receipts/391bc6bc9e87900fb7ee8e501badfce685a581ca3be85a7e52d31be2901ad715.json",
+          "runtime/evidence/receipts/7f1bd8c43fe1dfb63218866ea59311ed0bafdc3060ca5d35ba5266f3979b3b1a.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-fb7226fbac2a9cb5dc41cf5513574b1ff014a8f7b17cff20c768eb1eb701b374",
+        "status": "passed",
+        "kind": "brief-example",
+        "source": "brief.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/1c7dd83d1f44364700bac2bf63be88525cc74e1cc6dadaf73881f47014e74813.json",
+          "runtime/evidence/receipts/7f1bd8c43fe1dfb63218866ea59311ed0bafdc3060ca5d35ba5266f3979b3b1a.json"
+        ],
+        "skippedReason": null
+      }
+    ],
+    "traceHash": "5fee4cdcb9daba9a04ae8d2e2e0599ea90377c26fc196367848d0414b7f6d714"
+  },
+  "partialAllowanceRef": null,
+  "partialAllowanceHash": null,
+  "requiredReceiptRefs": [
+    "runtime/evidence/receipts/cdbdbf44ed98227e97d0a0d73e09b7570be2d5aaddbf17e7bfbb249db9d23e15.json"
+  ],
+  "receiptRefs": [
+    "runtime/evidence/receipts/01b3ea7dc6afeefe3d9aa7c5d0d141ef3d6cea92e0a2b7b0a4b90ac00884eca5.json",
+    "runtime/evidence/receipts/0e6c4bb78f1823bcfdca6a2b6d7549c25a3ac89c3e6f113bd1d6cb0bc6773ca8.json",
+    "runtime/evidence/receipts/0fc479fb5285398e05d45fc1e0dc41c94b79b0045c683fdb9d70e7a06aaff6a4.json",
+    "runtime/evidence/receipts/16586bcc946fdcce3e42267c7fa4c753389b12fff62ed99f2140ab659aa450a2.json",
+    "runtime/evidence/receipts/1c7dd83d1f44364700bac2bf63be88525cc74e1cc6dadaf73881f47014e74813.json",
+    "runtime/evidence/receipts/391bc6bc9e87900fb7ee8e501badfce685a581ca3be85a7e52d31be2901ad715.json",
+    "runtime/evidence/receipts/59cded2440dd44f39a305512fb7b08ad03304770fce0acc056ed010d8a440bcb.json",
+    "runtime/evidence/receipts/67d7eed08d1190f5c477e8292212a37e3bb4c247bb13d9221bc28ff79e6240bd.json",
+    "runtime/evidence/receipts/7414320f2666b9a3da5a4bcb1f82d13352dbd1722c74a32ec52ca1edf122aafb.json",
+    "runtime/evidence/receipts/7f1bd8c43fe1dfb63218866ea59311ed0bafdc3060ca5d35ba5266f3979b3b1a.json",
+    "runtime/evidence/receipts/a979fcd979f667e1fc4adb59b0ab56b3e6a89d4243fe313725db523790b61328.json",
+    "runtime/evidence/receipts/b278289791735e14db8b8038b7b71cfa839ae8f39dbacd2710a6f679c3279d20.json",
+    "runtime/evidence/receipts/b2bb38158fecc9ea8cf23344f25ff1f32e3e7314934888a350c2b776cdcdd5db.json",
+    "runtime/evidence/receipts/cadd6e2b566bd714eb929bb2b388d6d5f07cdd72e43a807b5831fe94fa294a79.json",
+    "runtime/evidence/receipts/f6bf5b6fae45fd3b9f6ec092336735a322ef37ba0488ef981a1645aed0c9c09c.json"
+  ],
+  "createdAt": "2026-08-09T11:26:46.157Z",
+  "envelopeHash": "dfd12c240120e7a736cacd29c40f44325f13b6edac6450ae9e2af0c21ce60ffd"
+}

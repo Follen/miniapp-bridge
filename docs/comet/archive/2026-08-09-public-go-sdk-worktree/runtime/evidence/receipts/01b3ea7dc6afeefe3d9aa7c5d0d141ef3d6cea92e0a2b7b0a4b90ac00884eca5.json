@@ -1,0 +1,57 @@
+{
+  "schema": "comet.native.verification-receipt.v3",
+  "kind": "automated-check",
+  "role": "acceptance-evidence",
+  "status": "passed",
+  "bindings": {
+    "change": "public-go-sdk-worktree",
+    "sourceRevision": 22,
+    "contractHash": "4613a8aa3f31c57ff4ecd5747e9281aedd3281f2473412ada3fceb06a7ca1274",
+    "scopeHash": "df341855cc5112bec61124ba65d0dea9de41b8fb117d694c52ea051b2d7a3ba1",
+    "snapshotHash": "4554b0b88e00f905484fa513ef4550a53db02456c95306c529458be5110881e9",
+    "artifactHash": "b898cb63d9a2fd3a28dd6e1948d178a6243df65c073132df261f77b2e3cf7bb5"
+  },
+  "acceptanceIds": [
+    "acceptance-1689ac69764ec97230e410f6319914ffc0c061ce304423668c7af31c1c278f86",
+    "acceptance-2f73d3dc90c9d5d5becaa36fe1d0c63a8da5692bdcaaccc60fe3b66050784e48",
+    "acceptance-45351ee15618083d13cd6e5fadb5fdd42ab95395eff25d02ed65926120ff1bb7",
+    "acceptance-509d8a925b855bcbf774c57033562c26d5c9552eab56f290a92549f4d4ad9a7e",
+    "acceptance-665bbd063f3891249a11ce692793045960619d1f326994d3008b6fd880ae9550",
+    "acceptance-a42d0190e373980cb49c9575720643007674f28de81471cb1efecb3373f2061a",
+    "acceptance-e183d1270a3b79ef3b7f4f65a44395aa030b3aa3e7909e6f6c596c681ab1bc7d",
+    "acceptance-e9cb527aa2f37b705f10729d3ba00a58f30d482d2c7a2e3a49e627dc567b5b03",
+    "acceptance-faac62c8e51c470eb8344a3e2abf6ae6756d83764087db5ddb58d778f898da58"
+  ],
+  "actor": "native-runtime:command:go.exe",
+  "issuedAt": "2026-08-09T10:52:59.544Z",
+  "evidence": {
+    "executable": "go.exe",
+    "args": [
+      "test",
+      "./sdk",
+      "-count=1"
+    ],
+    "cwd": ".",
+    "exitCode": 0,
+    "signal": null,
+    "timedOut": false,
+    "timeoutMs": 180000,
+    "startedAt": "2026-08-09T10:52:57.743Z",
+    "endedAt": "2026-08-09T10:52:59.544Z",
+    "worktree": {
+      "provider": "git",
+      "root": ".",
+      "beforeCommit": "625cdee135abb26c3ff79999b907f755fcb9c6a6",
+      "afterCommit": "625cdee135abb26c3ff79999b907f755fcb9c6a6"
+    },
+    "afterFence": {
+      "snapshotHash": "4554b0b88e00f905484fa513ef4550a53db02456c95306c529458be5110881e9",
+      "scopeHash": "df341855cc5112bec61124ba65d0dea9de41b8fb117d694c52ea051b2d7a3ba1",
+      "matched": true
+    },
+    "outputHash": "62944a45b35ba461dbfccec1ff0c82d49c8d50a02c6ee82be5f884f0d5190888",
+    "outputSummary": "ok  \tgithub.com/Follen/miniapp-bridge/sdk\t1.281s",
+    "outputTruncated": false
+  },
+  "receiptHash": "01b3ea7dc6afeefe3d9aa7c5d0d141ef3d6cea92e0a2b7b0a4b90ac00884eca5"
+}

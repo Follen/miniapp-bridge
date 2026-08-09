@@ -1,0 +1,52 @@
+{
+  "schema": "comet.native.verification-receipt.v3",
+  "kind": "automated-check",
+  "role": "acceptance-evidence",
+  "status": "failed",
+  "bindings": {
+    "change": "public-go-sdk-worktree",
+    "sourceRevision": 18,
+    "contractHash": "4613a8aa3f31c57ff4ecd5747e9281aedd3281f2473412ada3fceb06a7ca1274",
+    "scopeHash": "0fe5d8a61e3912dd4c47c582e9c9f7b9b4707d66765edef776e466589dea0b50",
+    "snapshotHash": "30f3335a876fbc4c81f9d2567952d6008b1199171032c1bc20a7091c462abb6e",
+    "artifactHash": "17f9e1f46a9863c636603af1634c3c2760fd4308872072a66a451e9c0e640dd0"
+  },
+  "acceptanceIds": [
+    "acceptance-121aa9ac52f8ca3ce5d57bd707277504f9c8ef4273aaee334400784f447408dd",
+    "acceptance-ae8b3367addf0fe612cab807bbb7ae7a5781031f6de0799560acc63fe8ef0e97"
+  ],
+  "actor": "native-runtime:command:go.exe",
+  "issuedAt": "2026-08-09T09:40:19.210Z",
+  "evidence": {
+    "executable": "go.exe",
+    "args": [
+      "test",
+      "-tags",
+      "frida",
+      "./internal/...",
+      "-count=1"
+    ],
+    "cwd": ".",
+    "exitCode": 1,
+    "signal": null,
+    "timedOut": false,
+    "timeoutMs": 120000,
+    "startedAt": "2026-08-09T09:40:02.036Z",
+    "endedAt": "2026-08-09T09:40:19.210Z",
+    "worktree": {
+      "provider": "git",
+      "root": ".",
+      "beforeCommit": "625cdee135abb26c3ff79999b907f755fcb9c6a6",
+      "afterCommit": "625cdee135abb26c3ff79999b907f755fcb9c6a6"
+    },
+    "afterFence": {
+      "snapshotHash": "30f3335a876fbc4c81f9d2567952d6008b1199171032c1bc20a7091c462abb6e",
+      "scopeHash": "0fe5d8a61e3912dd4c47c582e9c9f7b9b4707d66765edef776e466589dea0b50",
+      "matched": true
+    },
+    "outputHash": "9a9cb725cdec9a23d5405ddc0c9aedf722e765458b5fc549b149c702ac6c7f32",
+    "outputSummary": "ok  \tgithub.com/Follen/miniapp-bridge/internal/app\t0.218s\nok  \tgithub.com/Follen/miniapp-bridge/internal/capture\t0.282s\nok  \tgithub.com/Follen/miniapp-bridge/internal/cdp\t0.039s\nok  \tgithub.com/Follen/miniapp-bridge/internal/config\t0.055s\nok  \tgithub.com/Follen/miniapp-bridge/internal/context\t0.051s\n--- FAIL: TestNativeEnumeratesWMPFTargetMetadata (0.00s)\n    native_windows_test.go:20: frida: native runtime: LoadLibraryExW failed (win32=126): �Ҳ���ָ����ģ�顣\n--- FAIL: TestNativeAgentLifecycleAndReattach (0.00s)\n    native_windows_test.go:41: frida: native runtime: LoadLibraryExW failed (win32=126): �Ҳ���ָ����ģ�顣\n--- FAIL: TestNativeReachableErrorAndIdempotencyBranches (0.00s)\n    native_windows_test.go:133: frida: native runtime: LoadLibraryExW failed (win32=126): �Ҳ���ָ����ģ�顣\n--- FAIL: TestNativeInjectedCFailuresAndCallbacks (0.00s)\n    native_windows_test.go:246: frida: native runtime: LoadLibraryExW failed (win32=126): �Ҳ���ָ����ģ�顣\n--- FAIL: TestNativeRuntimeRetainAndZlibRoundTrip (0.00s)\n    native_zlib_windows_test.go:17: frida: native runtime: LoadLibraryExW failed (win32=126): �Ҳ���ָ����ģ�顣\n--- FAIL: TestNativeZlibInputAndValidationErrors (0.00s)\n    native_zlib_windows_test.go:50: frida: native runtime: LoadLibraryExW failed (win32=126): �Ҳ���ָ����ģ�顣\nFAIL\nFAIL\tgithub.com/Follen/miniapp-bridge/internal/frida\t15.928s\nok  \tgithub.com/Follen/miniapp-bridge/internal/logging\t0.039s\nok  \tgithub.com/Follen/miniapp-bridge/internal/native\t3.773s\nok  \tgithub.com/Follen/miniapp-bridge/internal/process\t0.701s\nok  \tgithub.com/Follen/miniapp-bridge/internal/proxy\t0.095s\nok  \tgithub.com/Follen/miniapp-bridge/internal/version\t0.116s\n--- FAIL: TestDebugMessageRoundTrip (0.00s)\n    protocol_test.go:22: frida: native runtime: LoadLibraryExW failed (win32=126): �Ҳ���ָ����ģ�顣\n--- FAIL: TestReferenceCodexDebugObjectAndCompression (0.00s)\n    --- FAIL: TestReferenceCodexDebugObjectAndCompression/ping_zlib (0.00s)\n        reference_codex_differential_test.go:178: frida: native runtime: LoadLibraryExW failed (win32=126): �Ҳ���ָ����ģ�顣\n    --- FAIL: TestReferenceCodexDebugObjectAndCompression/ping_zlib_bitmask (0.00s)\n        reference_codex_differential_test.go:178: frida: native runtime: LoadLibraryExW failed (win32=126): �Ҳ���ָ����ģ�顣\n--- FAIL: TestReferenceCodexCompressionStatistics (0.00s)\n    reference_codex_differential_test.go:216: frida: native runtime: LoadLibraryExW failed (win32=126): �Ҳ���ָ����ģ�顣\n--- FAIL: TestReferenceCodexSpecialUnwrapSemantics (0.00s)\n    --- FAIL: TestReferenceCodexSpecialUnwrapSemantics/compressed_original_size_fallback (0.00s)\n        reference_codex_differential_test.go:255: frida: native runtime: LoadLibraryExW failed (win32=126): �Ҳ���ָ����ģ�顣\nFAIL\nFAIL\tgithub.com/Follen/miniapp-bridge/internal/wmpf\t0.095s\nFAIL",
+    "outputTruncated": false
+  },
+  "receiptHash": "1ee6d25021644e232fced8ec0fbadd9d74624478384f257624fe47bd8c0f409c"
+}

@@ -1,0 +1,216 @@
+{
+  "schema": "comet.native.verification-evidence.v2",
+  "change": "public-go-sdk-worktree",
+  "sourceRevision": 20,
+  "result": "fail",
+  "freshness": "complete",
+  "contractHash": "4613a8aa3f31c57ff4ecd5747e9281aedd3281f2473412ada3fceb06a7ca1274",
+  "acceptanceCriteriaHash": "3e4852f6fa679588ea69c6b7390eccd9c21e9d3075906dc73150170e564cfa01",
+  "implementationScopeRef": "runtime/evidence/scopes/dcca9e333afe3cb8fdbc81738e83410a139ca5abd444c7db37bec706e8166ae1.json",
+  "implementationScopeHash": "dcca9e333afe3cb8fdbc81738e83410a139ca5abd444c7db37bec706e8166ae1",
+  "reportRef": "verification.md",
+  "reportHash": "a0b1dbc18b99df6582b79ab4e1ec59e58a594deda552ef35229a9583b52e11c0",
+  "acceptanceTrace": {
+    "schema": "comet.native.acceptance-trace.v2",
+    "nativeRootRef": "docs/comet",
+    "criteriaHash": "3e4852f6fa679588ea69c6b7390eccd9c21e9d3075906dc73150170e564cfa01",
+    "total": 19,
+    "evidenced": 14,
+    "skipped": 5,
+    "entries": [
+      {
+        "acceptanceId": "acceptance-121aa9ac52f8ca3ce5d57bd707277504f9c8ef4273aaee334400784f447408dd",
+        "status": "failed",
+        "kind": "spec-must",
+        "source": "specs/public-go-sdk/spec.md",
+        "evidenceRefs": [],
+        "skippedReason": "The first revision 20 tagged receipt was invalid because its PowerShell wrapper swallowed the environment assignment and exit code; it must be rerun."
+      },
+      {
+        "acceptanceId": "acceptance-1689ac69764ec97230e410f6319914ffc0c061ce304423668c7af31c1c278f86",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/public-go-sdk/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/d3c694ac296a5fa122aee6da743bbe00168eb1d444c90b83ccaa3610d8bdd089.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-2f73d3dc90c9d5d5becaa36fe1d0c63a8da5692bdcaaccc60fe3b66050784e48",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/public-go-sdk/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/d3c694ac296a5fa122aee6da743bbe00168eb1d444c90b83ccaa3610d8bdd089.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-3142a0a03549f74290c8b80dfdc548a2fda3240da1a4d5a5481c24db4f7d0e36",
+        "status": "passed",
+        "kind": "brief-example",
+        "source": "brief.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/c04542261dbd53b0ad3fb8500395b82851511c01185078b1b54c555d420eabc6.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-31b0f5a042f67734358e305516168adc805443c5cdd121c77ee021e10518f8e4",
+        "status": "failed",
+        "kind": "brief-example",
+        "source": "brief.md",
+        "evidenceRefs": [],
+        "skippedReason": "Revision 20 live smoke has not been rerun after audit found legitimate asynchronous CDP variants that the client can misclassify."
+      },
+      {
+        "acceptanceId": "acceptance-45351ee15618083d13cd6e5fadb5fdd42ab95395eff25d02ed65926120ff1bb7",
+        "status": "passed",
+        "kind": "brief-example",
+        "source": "brief.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/d3c694ac296a5fa122aee6da743bbe00168eb1d444c90b83ccaa3610d8bdd089.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-4f2d44b847c8dd8c719932a45b79731d1ad2d472b85482a605cdd02aed8f657a",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/public-go-sdk/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/f145e06271ca7b5e2f1844682df12e554b319bf81a77b501d1beb810cf800fee.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-509d8a925b855bcbf774c57033562c26d5c9552eab56f290a92549f4d4ad9a7e",
+        "status": "passed",
+        "kind": "brief-example",
+        "source": "brief.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/d3c694ac296a5fa122aee6da743bbe00168eb1d444c90b83ccaa3610d8bdd089.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-665bbd063f3891249a11ce692793045960619d1f326994d3008b6fd880ae9550",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/public-go-sdk/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/d3c694ac296a5fa122aee6da743bbe00168eb1d444c90b83ccaa3610d8bdd089.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-67a33bff9d58f064dcf2e04c4c60ac748b4f9dfb5fdf581b7622e78971c045a4",
+        "status": "failed",
+        "kind": "spec-must",
+        "source": "specs/public-go-sdk/spec.md",
+        "evidenceRefs": [],
+        "skippedReason": "Live CDP matrix, reconnect, interaction, graceful shutdown, target survival, and port rebinding require one fresh successful run after the smoke-client audit fixes."
+      },
+      {
+        "acceptanceId": "acceptance-819bf1b23ee4330f5c192d362b105a80f81bc9cc58d7bdb0739d5ccba218b09d",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/public-go-sdk/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/0745ba087cfd7b0a5400a0a9de23e6a1cf62ba745930ed912b81f68266e77c86.json",
+          "runtime/evidence/receipts/c04542261dbd53b0ad3fb8500395b82851511c01185078b1b54c555d420eabc6.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-a42d0190e373980cb49c9575720643007674f28de81471cb1efecb3373f2061a",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/public-go-sdk/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/d3c694ac296a5fa122aee6da743bbe00168eb1d444c90b83ccaa3610d8bdd089.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-ae8b3367addf0fe612cab807bbb7ae7a5781031f6de0799560acc63fe8ef0e97",
+        "status": "failed",
+        "kind": "spec-must",
+        "source": "specs/public-go-sdk/spec.md",
+        "evidenceRefs": [],
+        "skippedReason": "A valid tagged Frida test receipt must replace the invalid PowerShell wrapper receipt."
+      },
+      {
+        "acceptanceId": "acceptance-d3d1601b956f004627354c9b305daa3ff654a7a1f6870e4f0840c7eaf259c029",
+        "status": "failed",
+        "kind": "spec-must",
+        "source": "specs/public-go-sdk/spec.md",
+        "evidenceRefs": [],
+        "skippedReason": "A dedicated New-only receipt will be rerun with the final smoke-client implementation scope."
+      },
+      {
+        "acceptanceId": "acceptance-e183d1270a3b79ef3b7f4f65a44395aa030b3aa3e7909e6f6c596c681ab1bc7d",
+        "status": "passed",
+        "kind": "brief-example",
+        "source": "brief.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/d3c694ac296a5fa122aee6da743bbe00168eb1d444c90b83ccaa3610d8bdd089.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-e9cb527aa2f37b705f10729d3ba00a58f30d482d2c7a2e3a49e627dc567b5b03",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/public-go-sdk/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/d3c694ac296a5fa122aee6da743bbe00168eb1d444c90b83ccaa3610d8bdd089.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-faac62c8e51c470eb8344a3e2abf6ae6756d83764087db5ddb58d778f898da58",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/public-go-sdk/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/d3c694ac296a5fa122aee6da743bbe00168eb1d444c90b83ccaa3610d8bdd089.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-fb389f2bd226a79ae6f9115289d975196e338d7165b125d19ef1d4ca5fe88cb7",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/public-go-sdk/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/0745ba087cfd7b0a5400a0a9de23e6a1cf62ba745930ed912b81f68266e77c86.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-fb7226fbac2a9cb5dc41cf5513574b1ff014a8f7b17cff20c768eb1eb701b374",
+        "status": "passed",
+        "kind": "brief-example",
+        "source": "brief.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/0745ba087cfd7b0a5400a0a9de23e6a1cf62ba745930ed912b81f68266e77c86.json"
+        ],
+        "skippedReason": null
+      }
+    ],
+    "traceHash": "fb7d9d0a5d9259362cfe6eaa2af1208d86c14923da1fa0f1c688bb0744123e52"
+  },
+  "partialAllowanceRef": null,
+  "partialAllowanceHash": null,
+  "requiredReceiptRefs": [],
+  "receiptRefs": [
+    "runtime/evidence/receipts/0745ba087cfd7b0a5400a0a9de23e6a1cf62ba745930ed912b81f68266e77c86.json",
+    "runtime/evidence/receipts/c04542261dbd53b0ad3fb8500395b82851511c01185078b1b54c555d420eabc6.json",
+    "runtime/evidence/receipts/d3c694ac296a5fa122aee6da743bbe00168eb1d444c90b83ccaa3610d8bdd089.json",
+    "runtime/evidence/receipts/f145e06271ca7b5e2f1844682df12e554b319bf81a77b501d1beb810cf800fee.json"
+  ],
+  "createdAt": "2026-08-09T10:27:56.474Z",
+  "envelopeHash": "cec3a407b3c6ab5883b8692d425d557385cce529a1d9a06576f81d57bb395df9"
+}

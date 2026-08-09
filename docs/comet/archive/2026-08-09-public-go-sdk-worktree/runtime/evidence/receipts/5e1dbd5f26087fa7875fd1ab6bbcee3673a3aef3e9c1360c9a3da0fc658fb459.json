@@ -1,0 +1,52 @@
+{
+  "schema": "comet.native.verification-receipt.v3",
+  "kind": "automated-check",
+  "role": "acceptance-evidence",
+  "status": "failed",
+  "bindings": {
+    "change": "public-go-sdk-worktree",
+    "sourceRevision": 18,
+    "contractHash": "4613a8aa3f31c57ff4ecd5747e9281aedd3281f2473412ada3fceb06a7ca1274",
+    "scopeHash": "0fe5d8a61e3912dd4c47c582e9c9f7b9b4707d66765edef776e466589dea0b50",
+    "snapshotHash": "30f3335a876fbc4c81f9d2567952d6008b1199171032c1bc20a7091c462abb6e",
+    "artifactHash": "17f9e1f46a9863c636603af1634c3c2760fd4308872072a66a451e9c0e640dd0"
+  },
+  "acceptanceIds": [
+    "acceptance-31b0f5a042f67734358e305516168adc805443c5cdd121c77ee021e10518f8e4"
+  ],
+  "actor": "native-runtime:command:powershell.exe",
+  "issuedAt": "2026-08-09T09:45:16.498Z",
+  "evidence": {
+    "executable": "powershell.exe",
+    "args": [
+      "-NoProfile",
+      "-NonInteractive",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-Command",
+      "$log=Join-Path $env:TEMP ('miniapp-coverage-receipt-'+[guid]::NewGuid().ToString()+'.log'); & .\\scripts\\coverage-gate.ps1 *> $log; $code=$LASTEXITCODE; $lines=@(Get-Content -LiteralPath $log -ErrorAction SilentlyContinue); $markers=@($lines | Where-Object { $_ -match 'coverage_gate=|statements=|unit/race|100\\.0%|PASS|FAIL' }); if($markers.Count -gt 40){$markers=@($markers | Select-Object -Last 40)}; $markers | ForEach-Object {($_ -replace '[^\\x00-\\x7F]','?')}; Write-Output ('coverage-wrapper-exit=' + $code); Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue; exit $code"
+    ],
+    "cwd": ".",
+    "exitCode": 1,
+    "signal": null,
+    "timedOut": false,
+    "timeoutMs": 900000,
+    "startedAt": "2026-08-09T09:44:20.740Z",
+    "endedAt": "2026-08-09T09:45:16.498Z",
+    "worktree": {
+      "provider": "git",
+      "root": ".",
+      "beforeCommit": "625cdee135abb26c3ff79999b907f755fcb9c6a6",
+      "afterCommit": "625cdee135abb26c3ff79999b907f755fcb9c6a6"
+    },
+    "afterFence": {
+      "snapshotHash": "30f3335a876fbc4c81f9d2567952d6008b1199171032c1bc20a7091c462abb6e",
+      "scopeHash": "0fe5d8a61e3912dd4c47c582e9c9f7b9b4707d66765edef776e466589dea0b50",
+      "matched": true
+    },
+    "outputHash": "71fe97d009800bd9e0b0aa1bfb4e926d0531ee57eb785adeabfdc4c0337979f4",
+    "outputSummary": "Get-FileHash : �޷�����Get-FileHash����ʶ��Ϊ cmdlet���������ű��ļ�������г�������ơ��������Ƶ�ƴд���������·������ȷ\r\n��·����ȷ��Ȼ������һ�Ρ�\r\n����λ�� D:\\Code\\third-partry\\miniapp-bridge\\.worktree\\public-go-sdk\\scripts\\ensure-frida-devkit.ps1:43 �ַ�: 50\r\n+     return (Test-Path -LiteralPath $Path) -and ((Get-FileHash -Algori ...\r\n+                                                  ~~~~~~~~~~~~\r\n    + CategoryInfo          : ObjectNotFound: (Get-FileHash:String) [], ParentContainsErrorRecordException\r\n    + FullyQualifiedErrorId : CommandNotFoundException",
+    "outputTruncated": false
+  },
+  "receiptHash": "5e1dbd5f26087fa7875fd1ab6bbcee3673a3aef3e9c1360c9a3da0fc658fb459"
+}

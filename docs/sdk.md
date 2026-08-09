@@ -111,6 +111,19 @@ Use `errors.Is` for sentinel errors such as `ErrClosed`,
 hash/architecture/manifest errors. Use `errors.As` for `*sdk.Error` and
 `*sdk.NativeRuntimeError` to inspect operation/component/path/version details.
 
+The public SDK follows Go module SemVer. The `github.com/Follen/miniapp-bridge/sdk`
+API, structured error types, status values, subscription contracts, request
+correlation behavior, native version constants, and documented default ports are
+stable within a major version. Breaking SDK changes require a new major module
+version; additive options, status fields, event fields, and error details may be
+introduced in minor releases without changing existing behavior.
+
+The minimum supported Go version is the `go` directive in `go.mod`; this
+release requires Go `1.23` or newer. Patch releases keep the same minimum Go
+version unless a security or toolchain fix requires otherwise. A future increase
+to the minimum Go version is treated as a compatibility item and is documented
+in the release notes before publishing.
+
 The SDK keeps the reference ports, listener-before-attach startup sequence,
 WMPF protobuf/zlib framing, CDP conversion, request/event semantics, context
 routing, Agent embedding, and reverse-order shutdown. Windows is the first
@@ -132,5 +145,5 @@ go test ./scripts -run TestExternalModuleImportsOnlySDK -count=1 -v
 
 Lifecycle, subscriptions, correlation, contexts, capture/replay, and native
 manifest error contracts are covered by package tests. See
-[`verification.md`](verification.md) for the commands actually run and the
-native/live checks that still require a prepared Windows runtime.
+[`verification.md`](verification.md) for the stable command contract and its
+linked Native report containing exact exits, outputs, receipts, and live result.

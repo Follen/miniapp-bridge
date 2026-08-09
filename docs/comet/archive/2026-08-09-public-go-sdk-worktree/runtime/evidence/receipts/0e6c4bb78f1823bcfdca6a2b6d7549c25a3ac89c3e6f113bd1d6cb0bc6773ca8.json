@@ -1,0 +1,55 @@
+{
+  "schema": "comet.native.verification-receipt.v3",
+  "kind": "automated-check",
+  "role": "acceptance-evidence",
+  "status": "passed",
+  "bindings": {
+    "change": "public-go-sdk-worktree",
+    "sourceRevision": 22,
+    "contractHash": "4613a8aa3f31c57ff4ecd5747e9281aedd3281f2473412ada3fceb06a7ca1274",
+    "scopeHash": "df341855cc5112bec61124ba65d0dea9de41b8fb117d694c52ea051b2d7a3ba1",
+    "snapshotHash": "4554b0b88e00f905484fa513ef4550a53db02456c95306c529458be5110881e9",
+    "artifactHash": "b898cb63d9a2fd3a28dd6e1948d178a6243df65c073132df261f77b2e3cf7bb5"
+  },
+  "acceptanceIds": [
+    "acceptance-121aa9ac52f8ca3ce5d57bd707277504f9c8ef4273aaee334400784f447408dd",
+    "acceptance-3142a0a03549f74290c8b80dfdc548a2fda3240da1a4d5a5481c24db4f7d0e36",
+    "acceptance-a42d0190e373980cb49c9575720643007674f28de81471cb1efecb3373f2061a",
+    "acceptance-ae8b3367addf0fe612cab807bbb7ae7a5781031f6de0799560acc63fe8ef0e97"
+  ],
+  "actor": "native-runtime:command:powershell.exe",
+  "issuedAt": "2026-08-09T10:57:24.700Z",
+  "evidence": {
+    "executable": "powershell.exe",
+    "args": [
+      "-NoLogo",
+      "-NoProfile",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-Command",
+      "$env:MINIAPP_BRIDGE_NATIVE_PATH=(Resolve-Path '.\\dist\\miniapp-frida.dll').Path; & go.exe test -v -tags frida ./internal/frida ./sdk -run 'Test(WindowsLoaderFakeDLLAcceptance|PlatformNativeShutdownOrderIsExactAndIdempotent)$' -count=1; exit $LASTEXITCODE"
+    ],
+    "cwd": ".",
+    "exitCode": 0,
+    "signal": null,
+    "timedOut": false,
+    "timeoutMs": 180000,
+    "startedAt": "2026-08-09T10:57:09.328Z",
+    "endedAt": "2026-08-09T10:57:24.700Z",
+    "worktree": {
+      "provider": "git",
+      "root": ".",
+      "beforeCommit": "625cdee135abb26c3ff79999b907f755fcb9c6a6",
+      "afterCommit": "625cdee135abb26c3ff79999b907f755fcb9c6a6"
+    },
+    "afterFence": {
+      "snapshotHash": "4554b0b88e00f905484fa513ef4550a53db02456c95306c529458be5110881e9",
+      "scopeHash": "df341855cc5112bec61124ba65d0dea9de41b8fb117d694c52ea051b2d7a3ba1",
+      "matched": true
+    },
+    "outputHash": "16c9b564e4bb80ca2f7641f723e2fdd19fbd5c467a046cf2d479bdf2b6a9d617",
+    "outputSummary": "=== RUN   TestWindowsLoaderFakeDLLAcceptance\n--- PASS: TestWindowsLoaderFakeDLLAcceptance (14.20s)\nPASS\nok  \tgithub.com/Follen/miniapp-bridge/internal/frida\t14.232s\n=== RUN   TestPlatformNativeShutdownOrderIsExactAndIdempotent\n--- PASS: TestPlatformNativeShutdownOrderIsExactAndIdempotent (0.00s)\nPASS\nok  \tgithub.com/Follen/miniapp-bridge/sdk\t0.048s",
+    "outputTruncated": false
+  },
+  "receiptHash": "0e6c4bb78f1823bcfdca6a2b6d7549c25a3ac89c3e6f113bd1d6cb0bc6773ca8"
+}
