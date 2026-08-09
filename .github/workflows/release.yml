@@ -226,6 +226,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # shellcheck disable=SC2153
 
           work="$(mktemp -d)"
           trap 'rm -rf "$work"' EXIT
@@ -252,7 +253,7 @@ jobs:
             payload="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$tag")"
             object_type="$(jq -r '.object.type' <<<"$payload")"
             object_sha="$(jq -r '.object.sha' <<<"$payload")"
-            for depth in $(seq 1 16); do
+            for ((depth = 1; depth <= 16; depth++)); do
               case "$object_type" in
                 commit)
                   printf '%s\n' "$object_sha"

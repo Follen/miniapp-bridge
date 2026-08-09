@@ -42,7 +42,7 @@ func TestGitHubCIWorkflowContract(t *testing.T) {
 		"git diff --exit-code -- go.mod go.sum",
 		"git ls-files -z -- '*.go'",
 		"gofmt -l \"${go_files[@]}\"",
-		"go run github.com/rhysd/actionlint/cmd/actionlint@v${ACTIONLINT_VERSION} -ignore 'unexpected key.*queue.*concurrency'",
+		"go run \"github.com/rhysd/actionlint/cmd/actionlint@v${ACTIONLINT_VERSION}\" -ignore 'unexpected key.*queue.*concurrency'",
 		"go test ./... -count=1 -timeout 120s",
 		"go vet ./...",
 		"go test -race ./... -count=1 -timeout 240s",
@@ -139,7 +139,7 @@ func TestGitHubCIWorkflowContract(t *testing.T) {
 	}
 	moduleGate := strings.Index(workflow, "go mod download")
 	formatGate := strings.Index(workflow, "git ls-files -z -- '*.go'")
-	actionlintGate := strings.Index(workflow, "go run github.com/rhysd/actionlint/cmd/actionlint@v${ACTIONLINT_VERSION} -ignore 'unexpected key.*queue.*concurrency'")
+	actionlintGate := strings.Index(workflow, "go run \"github.com/rhysd/actionlint/cmd/actionlint@v${ACTIONLINT_VERSION}\" -ignore 'unexpected key.*queue.*concurrency'")
 	unitTests := strings.Index(workflow, "go test ./... -count=1 -timeout 120s")
 	if moduleGate < 0 || formatGate < moduleGate || actionlintGate < formatGate || unitTests < actionlintGate {
 		t.Fatal("module, gofmt, and actionlint gates must run before Linux tests")

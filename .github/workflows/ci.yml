@@ -56,7 +56,7 @@ jobs:
 
       - name: Lint GitHub Actions workflows
         shell: bash
-        run: go run github.com/rhysd/actionlint/cmd/actionlint@v${ACTIONLINT_VERSION} -ignore 'unexpected key.*queue.*concurrency'
+        run: go run "github.com/rhysd/actionlint/cmd/actionlint@v${ACTIONLINT_VERSION}" -ignore 'unexpected key.*queue.*concurrency'
 
       - name: Unit tests
         shell: bash
