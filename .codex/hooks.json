@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"D:/Code/third-partry/miniapp-bridge/.agents/skills/comet/scripts/comet-hook-router.mjs\" --platform \"codex\" --project-root \"D:/Code/third-partry/miniapp-bridge\""
+            "command": "node \"D:/Code/third-partry/miniapp-bridge/.worktree/public-go-sdk/.agents/skills/comet/scripts/comet-hook-router.mjs\" --platform \"codex\" --project-root \"D:/Code/third-partry/miniapp-bridge/.worktree/public-go-sdk\""
           }
         ]
       }

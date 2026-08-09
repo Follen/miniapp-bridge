@@ -1,0 +1,14 @@
+{
+  "schema": "comet.native.workspace.v3",
+  "capturedAt": "2026-08-08T21:11:46.769Z",
+  "capturedRevision": 1,
+  "nativeRootRef": "docs/comet",
+  "projectRootId": "2db2ad004b42f830c00c7ffca675d003eb50ab61e852eab806a793b59b0447b5",
+  "nativeRootId": "d43216ae2e52a7509cc2c1257e4139f563a444be607f75bb8355689e67503b0e",
+  "projectRootPathId": "c9b00e11974cedd3c5b156891b421a270d5af0a9a13007d50d35be9c711a8e0c",
+  "nativeRootPathId": "e5bc7a01d97f5874287b3b703771630a5b118ae74a38f891b10b7d519f37a5a5",
+  "isolation": "current",
+  "changeBranch": "comet/public-go-sdk",
+  "targetBranch": "comet/public-go-sdk",
+  "finish": null
+}

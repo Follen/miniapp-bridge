@@ -324,6 +324,34 @@ func runMatrix(url string) error {
 	if err != nil {
 		return err
 	}
+	var propertiesResult struct {
+		Result []struct {
+			Name  string `json:"name"`
+			Value struct {
+				Value       any    `json:"value"`
+				Description string `json:"description"`
+			} `json:"value"`
+		} `json:"result"`
+	}
+	if err := json.Unmarshal(properties.Result, &propertiesResult); err != nil || len(propertiesResult.Result) == 0 {
+		return fmt.Errorf("Runtime.getProperties missing descriptors: %s: %v", properties.Result, err)
+	}
+	seenProperties := map[string]bool{}
+	for _, property := range propertiesResult.Result {
+		seenProperties[property.Name] = true
+		if property.Name == "alpha" {
+			value, ok := property.Value.Value.(float64)
+			if !ok || value != 1 {
+				return fmt.Errorf("Runtime.getProperties alpha=%v want=1: %s", property.Value.Value, properties.Result)
+			}
+		}
+		if property.Name == "nested" && property.Value.Description == "" && property.Value.Value == nil {
+			return fmt.Errorf("Runtime.getProperties nested is not object: %s", properties.Result)
+		}
+	}
+	if !seenProperties["alpha"] || !seenProperties["nested"] {
+		return fmt.Errorf("Runtime.getProperties missing alpha/nested: %s", properties.Result)
+	}
 	if _, err := c.expectReceiveOrder(objectCheckpoint,
 		receiveExpectation{Kind: "response", ID: *object.ID, Method: "Runtime.evaluate"},
 		receiveExpectation{Kind: "response", ID: *properties.ID, Method: "Runtime.getProperties"},
@@ -340,9 +368,18 @@ func runMatrix(url string) error {
 		return err
 	}
 	var exceptionResult struct {
-		ExceptionDetails json.RawMessage `json:"exceptionDetails"`
+		ExceptionDetails struct {
+			Text       string `json:"text"`
+			StackTrace struct {
+				Description string `json:"description"`
+			} `json:"stackTrace"`
+			Exception struct {
+				Description string `json:"description"`
+				ClassName   string `json:"className"`
+			} `json:"exception"`
+		} `json:"exceptionDetails"`
 	}
-	if err := json.Unmarshal(exception.Result, &exceptionResult); err != nil || len(exceptionResult.ExceptionDetails) == 0 {
+	if err := json.Unmarshal(exception.Result, &exceptionResult); err != nil || exceptionResult.ExceptionDetails.Text == "" || exceptionResult.ExceptionDetails.StackTrace.Description == "" || (exceptionResult.ExceptionDetails.Exception.Description == "" && exceptionResult.ExceptionDetails.Exception.ClassName == "") {
 		return fmt.Errorf("Runtime exception details missing: %s: %v", exception.Result, err)
 	}
 	if _, err := c.expectReceiveOrder(exceptionCheckpoint,
@@ -360,8 +397,16 @@ func runMatrix(url string) error {
 	if err != nil {
 		return err
 	}
-	if _, _, err := c.event("Runtime.consoleAPICalled", consoleAfter, 10*time.Second); err != nil {
+	consoleEvent, _, err := c.event("Runtime.consoleAPICalled", consoleAfter, 10*time.Second)
+	if err != nil {
 		return err
+	}
+	var consoleParams struct {
+		Type string            `json:"type"`
+		Args []json.RawMessage `json:"args"`
+	}
+	if err := json.Unmarshal(consoleEvent.Params, &consoleParams); err != nil || consoleParams.Type == "" || len(consoleParams.Args) == 0 {
+		return fmt.Errorf("Runtime.consoleAPICalled malformed: %s: %v", consoleEvent.Params, err)
 	}
 	consoleOrder, err := c.expectReceiveOrder(consoleCheckpoint,
 		receiveExpectation{Kind: "event", Method: "Runtime.consoleAPICalled"},
@@ -380,8 +425,15 @@ func runMatrix(url string) error {
 	if err != nil {
 		return err
 	}
-	if _, _, err := c.event("Debugger.scriptParsed", scriptAfter, 10*time.Second); err != nil {
+	scriptEvent, _, err := c.event("Debugger.scriptParsed", scriptAfter, 10*time.Second)
+	if err != nil {
 		return err
+	}
+	var scriptParams struct {
+		URL string `json:"url"`
+	}
+	if err := json.Unmarshal(scriptEvent.Params, &scriptParams); err != nil || scriptParams.URL != "miniapp-bridge-matrix.js" {
+		return fmt.Errorf("Debugger.scriptParsed sourceURL mismatch: %s: %v", scriptEvent.Params, err)
 	}
 	scriptOrder, err := c.expectReceiveOrder(scriptCheckpoint,
 		receiveExpectation{Kind: "event", Method: "Debugger.scriptParsed"},
@@ -392,10 +444,23 @@ func runMatrix(url string) error {
 	}
 	orderAssertions += len(scriptOrder)
 
+	breakpoint, err := c.call("Debugger.setBreakpointByUrl", map[string]any{
+		"url": "miniapp-bridge-matrix.js", "lineNumber": 0,
+	}, 15*time.Second)
+	if err != nil {
+		return err
+	}
+	var breakpointResult struct {
+		BreakpointID string            `json:"breakpointId"`
+		Locations    []json.RawMessage `json:"locations"`
+	}
+	if err := json.Unmarshal(breakpoint.Result, &breakpointResult); err != nil || breakpointResult.BreakpointID == "" {
+		return fmt.Errorf("Debugger.setBreakpointByUrl missing breakpointId: %s: %v", breakpoint.Result, err)
+	}
 	pausedAfter := c.eventCount()
 	pauseCheckpoint := c.receiveCount()
 	_, pausedResponse, err := c.send("Runtime.evaluate", map[string]any{
-		"expression": "debugger; miniappBridgeMatrix()", "returnByValue": true,
+		"expression": "miniappBridgeMatrix()", "returnByValue": true,
 	})
 	if err != nil {
 		return err
@@ -405,11 +470,25 @@ func runMatrix(url string) error {
 		return err
 	}
 	var pausedParams struct {
-		CallFrames []json.RawMessage `json:"callFrames"`
+		Reason         string   `json:"reason"`
+		HitBreakpoints []string `json:"hitBreakpoints"`
+		CallFrames     []struct {
+			CallFrameID string `json:"callFrameId"`
+		} `json:"callFrames"`
 	}
-	if err := json.Unmarshal(paused.Params, &pausedParams); err != nil || len(pausedParams.CallFrames) == 0 {
+	if err := json.Unmarshal(paused.Params, &pausedParams); err != nil || pausedParams.Reason != "breakpoint" || len(pausedParams.CallFrames) == 0 || pausedParams.CallFrames[0].CallFrameID == "" {
 		return fmt.Errorf("Debugger.paused callFrames missing: %s: %v", paused.Params, err)
 	}
+	hit := false
+	for _, id := range pausedParams.HitBreakpoints {
+		if id == breakpointResult.BreakpointID {
+			hit = true
+		}
+	}
+	if !hit {
+		return fmt.Errorf("Debugger.paused hitBreakpoints=%v missing %s", pausedParams.HitBreakpoints, breakpointResult.BreakpointID)
+	}
+	resumedAfter := c.eventCount()
 	resumeResponse, err := c.call("Debugger.resume", map[string]any{}, 15*time.Second)
 	if err != nil {
 		return err
@@ -423,6 +502,12 @@ func runMatrix(url string) error {
 		pausedEvaluation = response
 	case <-time.After(15 * time.Second):
 		return errors.New("paused Runtime.evaluate did not complete after resume")
+	}
+	if _, _, err := c.event("Debugger.resumed", resumedAfter, 10*time.Second); err != nil {
+		return err
+	}
+	if _, err := c.call("Debugger.removeBreakpoint", map[string]any{"breakpointId": breakpointResult.BreakpointID}, 15*time.Second); err != nil {
+		return err
 	}
 	pauseOrder, err := c.expectReceiveOrder(pauseCheckpoint,
 		receiveExpectation{Kind: "event", Method: "Debugger.paused"},
@@ -456,6 +541,54 @@ func runMatrix(url string) error {
 		}
 		orderAssertions++
 		methods = append(methods, check.method)
+		switch check.method {
+		case "Page.getFrameTree":
+			var value struct {
+				FrameTree struct {
+					Frame struct {
+						ID  string `json:"id"`
+						URL string `json:"url"`
+					} `json:"frame"`
+				} `json:"frameTree"`
+			}
+			if err := json.Unmarshal(response.Result, &value); err != nil || value.FrameTree.Frame.ID == "" {
+				return fmt.Errorf("Page.getFrameTree missing frame: %s: %v", response.Result, err)
+			}
+		case "DOM.getDocument":
+			var value struct {
+				Root struct {
+					NodeID int `json:"nodeId"`
+				} `json:"root"`
+			}
+			if err := json.Unmarshal(response.Result, &value); err != nil || value.Root.NodeID == 0 {
+				return fmt.Errorf("DOM.getDocument missing root nodeId: %s: %v", response.Result, err)
+			}
+		case "Network.getCookies":
+			var value struct {
+				Cookies []struct {
+					Name  string `json:"name"`
+					Value string `json:"value"`
+				} `json:"cookies"`
+			}
+			if err := json.Unmarshal(response.Result, &value); err != nil || value.Cookies == nil {
+				return fmt.Errorf("Network.getCookies cookies must be array: %s: %v", response.Result, err)
+			}
+		case "Performance.getMetrics":
+			var value struct {
+				Metrics []struct {
+					Name  string  `json:"name"`
+					Value float64 `json:"value"`
+				} `json:"metrics"`
+			}
+			if err := json.Unmarshal(response.Result, &value); err != nil || len(value.Metrics) == 0 {
+				return fmt.Errorf("Performance.getMetrics metrics missing: %s: %v", response.Result, err)
+			}
+			for _, metric := range value.Metrics {
+				if metric.Name == "" {
+					return fmt.Errorf("Performance.getMetrics metric name empty: %s", response.Result)
+				}
+			}
+		}
 	}
 
 	longCheckpoint := c.receiveCount()
@@ -493,8 +626,15 @@ func runMatrix(url string) error {
 			response, err := c.call("Runtime.evaluate", map[string]any{
 				"expression": fmt.Sprintf("%d * %d", i, i), "returnByValue": true,
 			}, 15*time.Second)
-			if err == nil && len(response.Result) == 0 {
-				err = fmt.Errorf("concurrent Runtime.evaluate %d has empty result", i)
+			if err == nil {
+				var result struct {
+					Result struct {
+						Value float64 `json:"value"`
+					} `json:"result"`
+				}
+				if decodeErr := json.Unmarshal(response.Result, &result); decodeErr != nil || result.Result.Value != float64(i*i) {
+					err = fmt.Errorf("concurrent Runtime.evaluate %d result=%s want=%d: %v", i, response.Result, i*i, decodeErr)
+				}
 			}
 			if err != nil {
 				errCh <- err
@@ -568,7 +708,7 @@ func runMatrix(url string) error {
 	}
 	orderAssertions += 2
 
-	fmt.Printf("live-cdp-matrix: domains=Runtime,Debugger,Page,DOM,Network,Console,Performance init=%d objects=true exceptions=true console=true scripts=true pause-resume=true callframes=true long-bytes=%d concurrent=%d error-response=true contexts=true reconnect=true events=%d receive-order=true order-assertions=%d console-seq=%d<%d script-seq=%d<%d pause-seq=%d<%d<%d received=%d reconnect-received=%d\n",
+	fmt.Printf("live-cdp-matrix: domains=Runtime,Debugger,Page,DOM,Network,Console,Performance init=%d objects=true exceptions=true console=Runtime.consoleAPICalled scripts=true pause-resume=true callframes=true long-bytes=%d concurrent=%d error-response=true contexts=true reconnect=true events=%d receive-order=true order-assertions=%d console-seq=%d<%d script-seq=%d<%d pause-seq=%d<%d<%d received=%d reconnect-received=%d\n",
 		len(initializers), len(longValue), concurrent, firstEventCount, orderAssertions,
 		consoleOrder[0], consoleOrder[1], scriptOrder[0], scriptOrder[1], pauseOrder[0], pauseOrder[1], pauseOrder[2],
 		c.receiveCount(), reconnected.receiveCount())

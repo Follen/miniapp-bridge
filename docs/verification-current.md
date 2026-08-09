@@ -1,4 +1,7 @@
-# 当前验证记录
+# 历史验证记录（SDK 改造前基线）
+
+> 本文件保留 SDK 改造前的历史验证证据，不代表当前发布候选。
+> 当前结果、产物哈希和剩余风险以 [`verification.md`](verification.md) 为准。
 
 参考仓库：`evi0s/WMPFDebugger`
 
@@ -49,13 +52,13 @@ ports-released=true
 
 smoke runner 使用新 Windows 进程组和 `CTRL_BREAK_EVENT`，bridge 日志为 `stop-requested=true`、`child-exit-status=0`、`child-exit-code=0`，stderr 为空；未使用强杀 fallback。上游 peer PID 66620 在退出后仍存活；本轮打开 miniapp 后新 renderer PID 55016 在 bridge 退出数分钟后的延时检查中仍存活且 `Responding=True`，旧 preload PID 61248 被替换。该进程级证据排除了原先的打开后立即闪退。
 
-## 构建产物
+## 历史构建产物
 
 - `dist/miniapp-bridge.exe`: `EBE8D6994801E019442BF9CA14E7C154DB2223D5C807D558191FA13A915E6E72`
 - `dist/miniapp-frida.dll`: `EBBA08E33735094D597CEC1E2A978D98D9B790FAA3BE56570746777A1848967A`
 - `third_party/zlib/lib/windows-x86_64/libz.a`: `9DE45B674DA1FC9F11D3E1833CFC6FA98AE27468D5F0E222556E65FC9B950D2A`
 - zlib 1.3.1 source archive: `9A93B2B7DFDAC77CEBA5A558A580E74667DD6FEDE4585B91EEFB60F03B72DF23`
 
-当前结论（本轮）
+历史基线结论
 
 Go production scope（`internal/...`）、Frida tagged scope 与 smoke runner 语句覆盖率均严格达到 100%；协议 differential、模拟端到端 CDP matrix、构建和 race/vet 均通过。真实 Windows 扩展 live CDP matrix 需要在本轮 attach 后刷新小程序，当前不能提交 Verify pass。

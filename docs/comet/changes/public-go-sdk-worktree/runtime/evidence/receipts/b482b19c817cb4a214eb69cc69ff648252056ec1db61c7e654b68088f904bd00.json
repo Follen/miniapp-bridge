@@ -1,0 +1,63 @@
+{
+  "schema": "comet.native.verification-receipt.v3",
+  "kind": "automated-check",
+  "role": "acceptance-evidence",
+  "status": "passed",
+  "bindings": {
+    "change": "public-go-sdk-worktree",
+    "sourceRevision": 3,
+    "contractHash": "4613a8aa3f31c57ff4ecd5747e9281aedd3281f2473412ada3fceb06a7ca1274",
+    "scopeHash": "585dfdcf31f1983ef6f29c662b9ccbd0942c6acc7171ec36d0e68e94259ef360",
+    "snapshotHash": "eba9c1cf26856fcd03af789a380d3b9346c440c883f20860a1d4eb3a5b9bf064",
+    "artifactHash": "122805de5b41cd69c75a02d9a65faf8614804cd6fc4b6b5c1753878986c0d3c9"
+  },
+  "acceptanceIds": [
+    "acceptance-1689ac69764ec97230e410f6319914ffc0c061ce304423668c7af31c1c278f86",
+    "acceptance-2f73d3dc90c9d5d5becaa36fe1d0c63a8da5692bdcaaccc60fe3b66050784e48",
+    "acceptance-3142a0a03549f74290c8b80dfdc548a2fda3240da1a4d5a5481c24db4f7d0e36",
+    "acceptance-45351ee15618083d13cd6e5fadb5fdd42ab95395eff25d02ed65926120ff1bb7",
+    "acceptance-4f2d44b847c8dd8c719932a45b79731d1ad2d472b85482a605cdd02aed8f657a",
+    "acceptance-509d8a925b855bcbf774c57033562c26d5c9552eab56f290a92549f4d4ad9a7e",
+    "acceptance-665bbd063f3891249a11ce692793045960619d1f326994d3008b6fd880ae9550",
+    "acceptance-819bf1b23ee4330f5c192d362b105a80f81bc9cc58d7bdb0739d5ccba218b09d",
+    "acceptance-a42d0190e373980cb49c9575720643007674f28de81471cb1efecb3373f2061a",
+    "acceptance-ae8b3367addf0fe612cab807bbb7ae7a5781031f6de0799560acc63fe8ef0e97",
+    "acceptance-e183d1270a3b79ef3b7f4f65a44395aa030b3aa3e7909e6f6c596c681ab1bc7d",
+    "acceptance-e9cb527aa2f37b705f10729d3ba00a58f30d482d2c7a2e3a49e627dc567b5b03",
+    "acceptance-faac62c8e51c470eb8344a3e2abf6ae6756d83764087db5ddb58d778f898da58",
+    "acceptance-fb389f2bd226a79ae6f9115289d975196e338d7165b125d19ef1d4ca5fe88cb7",
+    "acceptance-fb7226fbac2a9cb5dc41cf5513574b1ff014a8f7b17cff20c768eb1eb701b374"
+  ],
+  "actor": "native-runtime:command:go.exe",
+  "issuedAt": "2026-08-08T23:38:43.258Z",
+  "evidence": {
+    "executable": "go.exe",
+    "args": [
+      "test",
+      "./...",
+      "-count=1"
+    ],
+    "cwd": ".",
+    "exitCode": 0,
+    "signal": null,
+    "timedOut": false,
+    "timeoutMs": 120000,
+    "startedAt": "2026-08-08T23:38:33.382Z",
+    "endedAt": "2026-08-08T23:38:43.258Z",
+    "worktree": {
+      "provider": "git",
+      "root": ".",
+      "beforeCommit": "d9e7c19817ff5f253b25236b72088b0ef7366c54",
+      "afterCommit": "d9e7c19817ff5f253b25236b72088b0ef7366c54"
+    },
+    "afterFence": {
+      "snapshotHash": "eba9c1cf26856fcd03af789a380d3b9346c440c883f20860a1d4eb3a5b9bf064",
+      "scopeHash": "585dfdcf31f1983ef6f29c662b9ccbd0942c6acc7171ec36d0e68e94259ef360",
+      "matched": true
+    },
+    "outputHash": "4048a51db5ca40f3dbc431be8dc3f7258b7a06ac132b6138c1d133063b030522",
+    "outputSummary": "ok  \tgithub.com/Follen/miniapp-bridge/cmd/miniapp-bridge\t0.077s\n?   \tgithub.com/Follen/miniapp-bridge/examples/sdk\t[no test files]\nok  \tgithub.com/Follen/miniapp-bridge/frida\t0.048s\nok  \tgithub.com/Follen/miniapp-bridge/internal/app\t0.217s\nok  \tgithub.com/Follen/miniapp-bridge/internal/capture\t0.072s\nok  \tgithub.com/Follen/miniapp-bridge/internal/cdp\t0.039s\nok  \tgithub.com/Follen/miniapp-bridge/internal/config\t0.086s\nok  \tgithub.com/Follen/miniapp-bridge/internal/context\t0.098s\nok  \tgithub.com/Follen/miniapp-bridge/internal/frida\t0.077s\nok  \tgithub.com/Follen/miniapp-bridge/internal/logging\t0.052s\nok  \tgithub.com/Follen/miniapp-bridge/internal/native\t2.351s\nok  \tgithub.com/Follen/miniapp-bridge/internal/process\t0.947s\nok  \tgithub.com/Follen/miniapp-bridge/internal/proxy\t0.146s\nok  \tgithub.com/Follen/miniapp-bridge/internal/version\t0.095s\nok  \tgithub.com/Follen/miniapp-bridge/internal/wmpf\t0.130s\nok  \tgithub.com/Follen/miniapp-bridge/scripts\t8.514s\nok  \tgithub.com/Follen/miniapp-bridge/scripts/smoke-process-runner\t0.329s\nok  \tgithub.com/Follen/miniapp-bridge/sdk\t2.266s",
+    "outputTruncated": false
+  },
+  "receiptHash": "b482b19c817cb4a214eb69cc69ff648252056ec1db61c7e654b68088f904bd00"
+}

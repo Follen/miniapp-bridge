@@ -1,0 +1,1218 @@
+{
+  "schema": "comet.native.content-snapshot-projection.v1",
+  "origin": "explicit",
+  "capture": {
+    "provider": "git"
+  },
+  "complete": true,
+  "limits": {
+    "maxFiles": 10000,
+    "maxFileBytes": 268435456,
+    "maxTotalBytes": 268435456,
+    "maxManifestBytes": 1048576,
+    "maxDurationMs": 60000
+  },
+  "policy": {
+    "schema": "comet.native.snapshot-policy.v1",
+    "include": [
+      "**/*"
+    ],
+    "exclude": [
+      ".agents/skills/**",
+      ".amazonq/skills/**",
+      ".augment/skills/**",
+      ".bob/skills/**",
+      ".claude/skills/**",
+      ".cline/skills/**",
+      ".codebuddy/skills/**",
+      ".continue/skills/**",
+      ".cospec/skills/**",
+      ".crush/skills/**",
+      ".cursor/skills/**",
+      ".factory/skills/**",
+      ".forge/skills/**",
+      ".gemini/skills/**",
+      ".github/skills/**",
+      ".iflow/skills/**",
+      ".junie/skills/**",
+      ".kilocode/skills/**",
+      ".kimi-code/skills/**",
+      ".kiro/skills/**",
+      ".lingma/skills/**",
+      ".mimocode/skills/**",
+      ".opencode/skills/**",
+      ".pi/skills/**",
+      ".qoder/skills/**",
+      ".qwen/skills/**",
+      ".roo/skills/**",
+      ".trae-cn/skills/**",
+      ".trae/skills/**",
+      ".windsurf/skills/**",
+      ".zcode/skills/**",
+      "third_party/zlib/zlib-1.3.1.tar.gz"
+    ],
+    "hash": "7835b6319d45b0d06d349fcbbd4fa892ad708571fc8a8380577f9364b10f2774"
+  },
+  "entries": [
+    {
+      "path": "$p",
+      "hash": "15e39ee7d1ea1e23c2caa82c7fa07907bc8ae826847b1499a894308734780a89",
+      "size": 13,
+      "type": "file"
+    },
+    {
+      "path": ".codex/hooks.json",
+      "hash": "cb3211caaa55479697112e3ca00f481bb36e26638d0c444f97bcd73d370d9e18",
+      "size": 425,
+      "type": "file"
+    },
+    {
+      "path": ".codex/rules/comet-workflow-guard.md",
+      "hash": "c5d384d162d9b97dbd2892b84d6d9dca515311a0d664d002346c8d95c1df1d99",
+      "size": 2661,
+      "type": "file"
+    },
+    {
+      "path": ".gitignore",
+      "hash": "861a42504485e2d507242865019282a340f3d93c89031ad8f5be26be51cafb49",
+      "size": 371,
+      "type": "file"
+    },
+    {
+      "path": "AGENTS.md",
+      "hash": "eb6c8bbaac996b72248e1961183d429c51349ccf3bacae17a1ba7ff77860b3dd",
+      "size": 1462,
+      "type": "file"
+    },
+    {
+      "path": "CLAUDE.md",
+      "hash": "eb6c8bbaac996b72248e1961183d429c51349ccf3bacae17a1ba7ff77860b3dd",
+      "size": 1462,
+      "type": "file"
+    },
+    {
+      "path": "KNOWN-DIFFERENCES.md",
+      "hash": "054449d737a6b7e62510568e5c1e88d01931d8cd4aba160f49a7694eb8d5cce9",
+      "size": 3147,
+      "type": "file"
+    },
+    {
+      "path": "LICENSE",
+      "hash": "498d32907f132c2cd7d3ae269f304aed87156293f63e724b83d9f62ed787d55a",
+      "size": 18322,
+      "type": "file"
+    },
+    {
+      "path": "README.md",
+      "hash": "ea9e79b5ba699680f0c66490e9db114c4aff1abe46fc1ab8f709b2a4ec49219a",
+      "size": 7039,
+      "type": "file"
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES.md",
+      "hash": "0a8d2b0b67e354b14bb8b274b56487d7f10b1ea13687dd9bbf417a766a33aa87",
+      "size": 2106,
+      "type": "file"
+    },
+    {
+      "path": "artifacts-sdk-cover",
+      "hash": "a4ece4dba2c0549367596b246b5a5ebc63da97578c6cd3c4856b7dd754deec4d",
+      "size": 14978,
+      "type": "file"
+    },
+    {
+      "path": "cmd/miniapp-bridge/logger_audit_test.go",
+      "hash": "ae6b585adcbcceadeb8f93f9bcc9b834e0b1b3d32c1716ffdcd0dc464dc58a54",
+      "size": 981,
+      "type": "file"
+    },
+    {
+      "path": "cmd/miniapp-bridge/main.go",
+      "hash": "c7b07dc9c60893d42c5765f82f0f1a9a879f215569bf499eeaacddb9824bb079",
+      "size": 1598,
+      "type": "file"
+    },
+    {
+      "path": "cmd/miniapp-bridge/native_disabled.go",
+      "hash": "94578c54fc063a0693822cd367de2ad9b02cbccba79f9671fda090d31ef16c59",
+      "size": 296,
+      "type": "file"
+    },
+    {
+      "path": "cmd/miniapp-bridge/native_disabled_test.go",
+      "hash": "34c799ae15b6209dedb797addf07c1b9cf9dde105e4d36be0e257e739b9b124b",
+      "size": 616,
+      "type": "file"
+    },
+    {
+      "path": "cmd/miniapp-bridge/native_windows.go",
+      "hash": "b2ab5024d5c44ddd5a341379344a98138018fc25a19c739f55011ba0d83a1f45",
+      "size": 1529,
+      "type": "file"
+    },
+    {
+      "path": "cmd/miniapp-bridge/startup_contract_audit_test.go",
+      "hash": "8faf0eadd31cbba51e01778ce70a4b3eb0ba910882be425feec296822e4b27ac",
+      "size": 2221,
+      "type": "file"
+    },
+    {
+      "path": "configs/addresses/addresses.11581.json",
+      "hash": "ce43c6e5ab5ebf32169c6364ff5f2ecebf0fb22a1cc957d547b03be41a6f8bc3",
+      "size": 161,
+      "type": "file"
+    },
+    {
+      "path": "configs/addresses/addresses.11633.json",
+      "hash": "ed494ee1f79d012101e1a3c3f8ef2619452d71b4ed6ab10a30dca4009cfe5948",
+      "size": 161,
+      "type": "file"
+    },
+    {
+      "path": "configs/addresses/addresses.13331.json",
+      "hash": "fc6a6523e46dc0ddc80349170b4a6c3713b38dfdc756d4086583197fce8c6383",
+      "size": 161,
+      "type": "file"
+    },
+    {
+      "path": "configs/addresses/addresses.13341.json",
+      "hash": "26a30baba439305ee747a268b878c0f1d40aef4477290fc66e3400e91dcd6b0b",
+      "size": 161,
+      "type": "file"
+    },
+    {
+      "path": "configs/addresses/addresses.13487.json",
+      "hash": "295df8d90a54d6fef2d5f8abf3cb3ccae723067ee69611f8fb4cfd65aaa4abda",
+      "size": 161,
+      "type": "file"
+    },
+    {
+      "path": "configs/addresses/addresses.13639.json",
+      "hash": "5553b9860d88c5bf66e7635ebd7ace00ba9039de868f9fbf1a44c762a4a7c0f6",
+      "size": 161,
+      "type": "file"
+    },
+    {
+      "path": "configs/addresses/addresses.13655.json",
+      "hash": "f4d30a1b0e653413567c26b92b9a11e9e5a25bbe1f36ca975e626ebf72c838e2",
+      "size": 161,
+      "type": "file"
+    },
+    {
+      "path": "configs/addresses/addresses.13871.json",
+      "hash": "8ba55a85f1851f804c24cc9949b35f815dcb15f71985d4fa9778debaf28cf792",
+      "size": 161,
+      "type": "file"
+    },
+    {
+      "path": "configs/addresses/addresses.13909.json",
+      "hash": "769cab36615b90aa905cbe9f5078321ba47906f4f8f1b2a2c2709668d668983a",
+      "size": 161,
+      "type": "file"
+    },
+    {
+      "path": "configs/addresses/addresses.14161.json",
+      "hash": "27fb89a852b7df1dcad185f2729bfe2ad2e54cf7d8893454f22d73732878f49f",
+      "size": 161,
+      "type": "file"
+    },
+    {
+      "path": "configs/addresses/addresses.14199.json",
+      "hash": "4e25cf7f7325381fde8419c56e9ebe1d0be675c11964b75275effceb85872b21",
+      "size": 161,
+      "type": "file"
+    },
+    {
+      "path": "configs/addresses/addresses.14315.json",
+      "hash": "e6f849afc4ce8a77a6e3d0f276533145b79e77d184b38f3885a6052560f386ba",
+      "size": 161,
+      "type": "file"
+    },
+    {
+      "path": "configs/addresses/addresses.16133.json",
+      "hash": "8177e4b4b845cc0ce3f1739303e64b07c343fc9285fe183b02f7537e00c2fed8",
+      "size": 161,
+      "type": "file"
+    },
+    {
+      "path": "configs/addresses/addresses.16203.json",
+      "hash": "57d10774836e3162fe455c3d00c3d00e805fc6c4e2d8117de3803af971b11033",
+      "size": 161,
+      "type": "file"
+    },
+    {
+      "path": "configs/addresses/addresses.16389.json",
+      "hash": "46689f60bdb98d4a78e331960df77f3325ccf79614500272e4db0cbefc56fa0c",
+      "size": 161,
+      "type": "file"
+    },
+    {
+      "path": "configs/addresses/addresses.16467.json",
+      "hash": "5586232b88457a9f04aeb5228d07ff5fec1859651a55b103e9753d889a597ffb",
+      "size": 161,
+      "type": "file"
+    },
+    {
+      "path": "configs/addresses/addresses.16771.json",
+      "hash": "e117bc7731eaec8d257ff6a20075836a921f76c5c687bbd63ea99d22a40c76aa",
+      "size": 161,
+      "type": "file"
+    },
+    {
+      "path": "configs/addresses/addresses.16815.json",
+      "hash": "b00174cd08d5f77375f8a9d6234bdfbdcc2d39f43ec36410cc5e9dd5545e4a09",
+      "size": 161,
+      "type": "file"
+    },
+    {
+      "path": "configs/addresses/addresses.16965.json",
+      "hash": "86bd8ad8937525f35a5ef6d946c2959688bbb3c16bba0c1c209a191dd717fa01",
+      "size": 161,
+      "type": "file"
+    },
+    {
+      "path": "configs/addresses/addresses.17037.json",
+      "hash": "44b63968663a9ea0faf00754b26d3c0175f71511cb395c8f0c4649049de42513",
+      "size": 161,
+      "type": "file"
+    },
+    {
+      "path": "configs/addresses/addresses.17071.json",
+      "hash": "94f690238e1243f2bc907394529e1995df68f831a70d0c52b9720140f7efabcf",
+      "size": 161,
+      "type": "file"
+    },
+    {
+      "path": "configs/addresses/addresses.17127.json",
+      "hash": "f192f78d200a3c2e4a8bf1cf22ff605120e22d0e8ebe4ce06159fd3591483c0f",
+      "size": 161,
+      "type": "file"
+    },
+    {
+      "path": "configs/addresses/addresses.18055.json",
+      "hash": "1e9b815b4a84d6d391058c7b19262d7f740ac3cb1e3d8b0b8f3dbe81cdd4849b",
+      "size": 161,
+      "type": "file"
+    },
+    {
+      "path": "configs/addresses/addresses.18151.json",
+      "hash": "8522901ed56721bcda09edea6b9c74efb31db5c883c5313a824c16577f9af15e",
+      "size": 161,
+      "type": "file"
+    },
+    {
+      "path": "configs/addresses/addresses.18787.json",
+      "hash": "e1f963580cc7657862bb9624341a762fb95b1f3f4214131b6de05b5fd6b0181c",
+      "size": 161,
+      "type": "file"
+    },
+    {
+      "path": "configs/addresses/addresses.18891.json",
+      "hash": "810097b0ffd0ff99990f0e21648d11788627284482ab980a1fbd58b3f1814ffa",
+      "size": 161,
+      "type": "file"
+    },
+    {
+      "path": "configs/addresses/addresses.18955.json",
+      "hash": "bceb8a0f0b76311d275d187a6264390a20da18f7668fdd70ae0ac8b49319a137",
+      "size": 161,
+      "type": "file"
+    },
+    {
+      "path": "configs/addresses/addresses.19027.json",
+      "hash": "6a48beb02571befcbbaf54a7627db40b35afcfbfd138a454b69dbc3bdf25c5d2",
+      "size": 161,
+      "type": "file"
+    },
+    {
+      "path": "configs/addresses/addresses.19201.json",
+      "hash": "1fec2aea3424aab57318bf8e2f70bdcaec56c2ad0da583534b9e7422a4723448",
+      "size": 161,
+      "type": "file"
+    },
+    {
+      "path": "configs/addresses/addresses.19339.json",
+      "hash": "ef3d0fb6233128035ff820774f7756690c2c5fac8236bb397269777176c2a662",
+      "size": 161,
+      "type": "file"
+    },
+    {
+      "path": "configs/addresses/addresses.19459.json",
+      "hash": "2909858378ab12ba600dcb29ab3c1885768e0c32d031b180b7c67603b7202591",
+      "size": 161,
+      "type": "file"
+    },
+    {
+      "path": "configs/addresses/addresses.19481.json",
+      "hash": "57942000e2ffefab941a655adbace196425052e7ed6b3eadac96164b08115edf",
+      "size": 161,
+      "type": "file"
+    },
+    {
+      "path": "configs/addresses/addresses.19749.json",
+      "hash": "33c2039fc87137227dcae10ce7c178ac70d23078782b9e3815e74b95c54b8eca",
+      "size": 161,
+      "type": "file"
+    },
+    {
+      "path": "configs/addresses/addresses.19769.json",
+      "hash": "620cb63fad6d692e8a0d98b50cf70046e339e875b41319e7a0893d08dc58475f",
+      "size": 161,
+      "type": "file"
+    },
+    {
+      "path": "configs/addresses/addresses.19823.json",
+      "hash": "2312ad403a27d84aa61442045fe2b8b45af59ca7535da856f515de2ee14255ff",
+      "size": 161,
+      "type": "file"
+    },
+    {
+      "path": "configs/addresses/addresses.19841.json",
+      "hash": "8ff3a7f6c4ffb0881250a9c92a920475eb28662d16d7a31f676b4bc0f568df14",
+      "size": 161,
+      "type": "file"
+    },
+    {
+      "path": "configs/addresses/addresses.19871.json",
+      "hash": "5aaa9d8ef95848f7ebc434245902cfa669826b361e94c8dc93c60a5203cb5ff1",
+      "size": 161,
+      "type": "file"
+    },
+    {
+      "path": "configs/addresses/addresses.19881.json",
+      "hash": "7aa22049d909e558153cae4aa5b4144a42c0f2eba91dfb0200509557f81a2911",
+      "size": 161,
+      "type": "file"
+    },
+    {
+      "path": "configs/addresses/addresses.19899.json",
+      "hash": "e5983bfd505dc4b0e6f0b23430d5178999e62b35a1b25b39995e95d8226024b8",
+      "size": 161,
+      "type": "file"
+    },
+    {
+      "path": "configs/addresses/addresses.19921.json",
+      "hash": "3f9a55e61375a2af9ac39d80a58f9359306d9685c12a27fd04b4e8c4a3b54d97",
+      "size": 161,
+      "type": "file"
+    },
+    {
+      "path": "configs/addresses/addresses.19977.json",
+      "hash": "29f3d475e4dfff2beb77d473e398b66596e7b70f4b894ea947477737b8370497",
+      "size": 161,
+      "type": "file"
+    },
+    {
+      "path": "configs/addresses/addresses.20001.json",
+      "hash": "b5713d9ca2b32cb200752ba44ed6df5b47d4e84be1dc419e595cf7edb4f8fd27",
+      "size": 161,
+      "type": "file"
+    },
+    {
+      "path": "configs/addresses/addresses.20005.json",
+      "hash": "7d81254b1cc8556686bc491f794a266c761a8855a65bf96ed6994da6438cd911",
+      "size": 161,
+      "type": "file"
+    },
+    {
+      "path": "configs/addresses/addresses.20079.json",
+      "hash": "956a2894b519c55a77d44ddf157c28265b38a67aef0ced66e55455c311e829a0",
+      "size": 161,
+      "type": "file"
+    },
+    {
+      "path": "configs/addresses/addresses.20089.json",
+      "hash": "44ad15f1b4a4d970a0e109e0e41fde89c7cb1e95168d3a89f91c6375ed8b15ab",
+      "size": 161,
+      "type": "file"
+    },
+    {
+      "path": "configs/addresses/addresses.25268.json",
+      "hash": "d474e1c87426a4d6579afa7cd9dfbde262c0f56e5e4c074099a14e5f815ecb60",
+      "size": 220,
+      "type": "file"
+    },
+    {
+      "path": "configs/addresses/addresses.25297.json",
+      "hash": "285120e0b0cafd5564175c535d0866888d08a2bb774213b63db50be745cf69a0",
+      "size": 161,
+      "type": "file"
+    },
+    {
+      "path": "docs/behavior-matrix.md",
+      "hash": "d631f5b393d8d749f3335e962df5f570ce0cf94ca9e86c68f960794d372993b4",
+      "size": 5955,
+      "type": "file"
+    },
+    {
+      "path": "docs/native-release.md",
+      "hash": "ed1cddf47e6fb4b0f04031f3cf9eef69e658343df04bdf3898958e2d5cb453de",
+      "size": 1197,
+      "type": "file"
+    },
+    {
+      "path": "docs/sdk.md",
+      "hash": "0bb456889002d63e7310a8939df5f4d3586211124bdd409e03625e90b1b1b4fd",
+      "size": 4604,
+      "type": "file"
+    },
+    {
+      "path": "docs/verification-current.md",
+      "hash": "5d7fced51d7499afc22a9e3c0fcbd4ae778bdee11f66b0da762fd817703d35c1",
+      "size": 5075,
+      "type": "file"
+    },
+    {
+      "path": "docs/verification.md",
+      "hash": "2975f39770095272cf86b1ad12f4874478755e1d870f31161533e42b200e9489",
+      "size": 5059,
+      "type": "file"
+    },
+    {
+      "path": "examples/sdk/main.go",
+      "hash": "dbc12eefea9f4d3ce63fddb56a18bb87ce4f8ec6c9223dae4ca56031d7dff8bd",
+      "size": 504,
+      "type": "file"
+    },
+    {
+      "path": "frida/agent.go",
+      "hash": "67304ed8e8c5e992d1f5c8e0b778829f34943b7e30cd59a97c6088b130685c78",
+      "size": 325,
+      "type": "file"
+    },
+    {
+      "path": "frida/agent_test.go",
+      "hash": "49d287cdc616eae93bbdb75f465dc224795970d24a71a13ca2e56a5762f1a6f2",
+      "size": 706,
+      "type": "file"
+    },
+    {
+      "path": "frida/hook.js",
+      "hash": "3278db6cce182619d87a19756c83f1081f237859ff214560df1b1758e67c53d5",
+      "size": 4132,
+      "type": "file"
+    },
+    {
+      "path": "go.mod",
+      "hash": "beacdeaae5cc4361b7dceade13ce1a8f39c755337b17d700ac93dcbb592f5e53",
+      "size": 94,
+      "type": "file"
+    },
+    {
+      "path": "go.sum",
+      "hash": "2bd15b2627db753859692b1f7ab6b39e0a129c2e9df11584d5c6de56d31ed275",
+      "size": 177,
+      "type": "file"
+    },
+    {
+      "path": "internal/app/app.go",
+      "hash": "30258282e6eb49397e8f91b2fbae6c68b141022fda7c1348dc51f984c046d6bb",
+      "size": 12557,
+      "type": "file"
+    },
+    {
+      "path": "internal/app/app_test.go",
+      "hash": "2d666875686a0f1ea784118c3a4c4dadf6f1a99c35577c0c334db395deaffc5d",
+      "size": 3838,
+      "type": "file"
+    },
+    {
+      "path": "internal/app/bridge_audit_test.go",
+      "hash": "3054bfed41aff36c432af13878e5449c471e8e08241a9a0d06f546bca0548d7e",
+      "size": 4835,
+      "type": "file"
+    },
+    {
+      "path": "internal/app/category_audit_test.go",
+      "hash": "fd691da4b65c3981b0af1c3abd0488e2dba4a75d5abb44ccd80973a92e6d18b2",
+      "size": 7049,
+      "type": "file"
+    },
+    {
+      "path": "internal/app/cdp_matrix_test.go",
+      "hash": "68e425be0ad46a0bcdb70cb9fee4c50eb69ed02a9d6218c720e25c7c8b7f1f2e",
+      "size": 6055,
+      "type": "file"
+    },
+    {
+      "path": "internal/app/coverage_complete_test.go",
+      "hash": "c1699e6f5cdf4f53cac32d72db8ad539f9983623d96420283704468c4a4c11fc",
+      "size": 4391,
+      "type": "file"
+    },
+    {
+      "path": "internal/app/coverage_sdk_test.go",
+      "hash": "6d84632abc7745be045a9fe144dea3b3ffb59b6f0f526fb800e51c6f85d6de26",
+      "size": 8921,
+      "type": "file"
+    },
+    {
+      "path": "internal/app/serial_audit_test.go",
+      "hash": "3f07745cb99ad9f058cc983acc7436c84b5efc57203ff451a2afe50f065f8fd3",
+      "size": 2009,
+      "type": "file"
+    },
+    {
+      "path": "internal/app/startup_audit_test.go",
+      "hash": "d4baf31e93241cd24415fef0db08d9fa28f38d66f51bdf2a21d18e271b43085c",
+      "size": 1703,
+      "type": "file"
+    },
+    {
+      "path": "internal/capture/capture.go",
+      "hash": "3b9c38e1e8cad9e9e59b8435e3a4ad0f52f6c114eb59fb605ca2d45a6e989546",
+      "size": 1692,
+      "type": "file"
+    },
+    {
+      "path": "internal/capture/capture_audit_test.go",
+      "hash": "528d5b6ec26f66a908831f020778c03820848835f4bdc9b2ebe2f66f8b45d0c0",
+      "size": 1862,
+      "type": "file"
+    },
+    {
+      "path": "internal/capture/capture_test.go",
+      "hash": "9021925c7576ecdd64c0c32c659c97c9d9551e3e54d18d81074989d26dc0c621",
+      "size": 2296,
+      "type": "file"
+    },
+    {
+      "path": "internal/capture/coverage_complete_test.go",
+      "hash": "5443ea17bb02ac04d36258b5a4f9021267627ab9eb92c54c9c63c5e6f6113189",
+      "size": 2190,
+      "type": "file"
+    },
+    {
+      "path": "internal/cdp/correlator.go",
+      "hash": "fef45199c9f3aaa707f09f56bec434af9c6b7f67172a9f2101ccf2e0ca0776df",
+      "size": 1476,
+      "type": "file"
+    },
+    {
+      "path": "internal/cdp/correlator_audit_test.go",
+      "hash": "66e25dff5ab3cec23f13aa04314916f4a1cf5bc78f609682c9be5ece13896fe5",
+      "size": 1581,
+      "type": "file"
+    },
+    {
+      "path": "internal/cdp/correlator_test.go",
+      "hash": "046113aab319694a199ca2222bf5a8a15f40bb0c76ded5bb9d3b6c8c650721ee",
+      "size": 398,
+      "type": "file"
+    },
+    {
+      "path": "internal/cdp/coverage_complete_test.go",
+      "hash": "24f189211b289b5c466ffca91229d5a99b71f7bacc9d5ca6196d6998eab5a4da",
+      "size": 345,
+      "type": "file"
+    },
+    {
+      "path": "internal/config/cli_reference_audit_test.go",
+      "hash": "15b7601b8ff6dddc158cdfe49e7890a5b0cf2f57b20bb2a54279b2f2a8166a8f",
+      "size": 2122,
+      "type": "file"
+    },
+    {
+      "path": "internal/config/config.go",
+      "hash": "9463f175aead8cdfc1475223203bd4bf225dae00589beefe6dea0c81c8dbbdea",
+      "size": 4367,
+      "type": "file"
+    },
+    {
+      "path": "internal/config/config_test.go",
+      "hash": "05b34ae7abab213d36d6704884c529cf0b6b32317ebb40115877319bffb23608",
+      "size": 1124,
+      "type": "file"
+    },
+    {
+      "path": "internal/config/coverage_test.go",
+      "hash": "cb09e6c00e60e390937f9d953c5e81d0fb990f908190e0a5dfd2dc56e722f17e",
+      "size": 1370,
+      "type": "file"
+    },
+    {
+      "path": "internal/context/coverage_complete_test.go",
+      "hash": "8d8dabdf359e59d27bfee604226defdc9138eae35ef6f381f694b1a69b09d48e",
+      "size": 355,
+      "type": "file"
+    },
+    {
+      "path": "internal/context/registry.go",
+      "hash": "272366b2efb237c31fec720f0b3026d45b9310f035d8804aeb677c7b41254f34",
+      "size": 1711,
+      "type": "file"
+    },
+    {
+      "path": "internal/context/registry_audit_test.go",
+      "hash": "951037be1073ff0f55ef0fb438d49c9c98b296fc7d6bae9bdcef5bb4951c4a01",
+      "size": 1772,
+      "type": "file"
+    },
+    {
+      "path": "internal/context/registry_test.go",
+      "hash": "66a9acedfc8b5b43f206d1b31a18cdd2d0461d10297ed055aa2a05d46a319394",
+      "size": 1218,
+      "type": "file"
+    },
+    {
+      "path": "internal/frida/agent_embed_audit_test.go",
+      "hash": "e7cfc01a9c2929a9bca5fd4e34390f2bb73b5de7415f951e1fdaa5732fb25e31",
+      "size": 3797,
+      "type": "file"
+    },
+    {
+      "path": "internal/frida/bootstrap.go",
+      "hash": "27839a78555018655cc6b01ae244c6c426f79eab8c56ffc8637f8db0d48ba616",
+      "size": 1705,
+      "type": "file"
+    },
+    {
+      "path": "internal/frida/bootstrap_audit_test.go",
+      "hash": "8b4099c50f99a24ad833915cf7d47fb18c64df2b7d574fc82fd384bbc05b144b",
+      "size": 5067,
+      "type": "file"
+    },
+    {
+      "path": "internal/frida/bootstrap_test.go",
+      "hash": "e31c3f97e8f681333dde0d8ee73c34789a8be5033b3b6d26d9359907c5e025bc",
+      "size": 1428,
+      "type": "file"
+    },
+    {
+      "path": "internal/frida/cgo_stub.go",
+      "hash": "1154b0212689690f5a0db25d34ef922869c5b856101a08bc28f863c88c496299",
+      "size": 185,
+      "type": "file"
+    },
+    {
+      "path": "internal/frida/coverage_test.go",
+      "hash": "c8f55077072fda6d81c3bd1747d934ea5083966eda81a731e2aee6eaec46d61a",
+      "size": 1724,
+      "type": "file"
+    },
+    {
+      "path": "internal/frida/loader_stub_windows.go",
+      "hash": "acbf88c7cd24c41b8fffdf4a27d22a9fbb305f08d734226074f0630549346fa2",
+      "size": 206,
+      "type": "file"
+    },
+    {
+      "path": "internal/frida/loader_windows.go",
+      "hash": "15427221fa3745982b5caf89b66aadd620eecd4ef894c735ba7b0c6f14e5a214",
+      "size": 169,
+      "type": "file"
+    },
+    {
+      "path": "internal/frida/loader_windows.h",
+      "hash": "a9eb341e6423ae01da9e5d33768d5507692ab3bd4046374c798687f4afa5e3e4",
+      "size": 1568,
+      "type": "file"
+    },
+    {
+      "path": "internal/frida/loader_windows.inc",
+      "hash": "56bb1c6c19dddf829b55c24496c4c87523e145ea286babbdb4785eea6712c729",
+      "size": 7558,
+      "type": "file"
+    },
+    {
+      "path": "internal/frida/native_api_audit_test.go",
+      "hash": "5faf80cbc64fe900f81fa558949bcd46c98b0c06569ad8edf6fce5ec4eab7d3b",
+      "size": 3158,
+      "type": "file"
+    },
+    {
+      "path": "internal/frida/native_windows.go",
+      "hash": "16951e19bc26760d44b9dbbff932077719113ad24ca004e58b3a4664153c8e0d",
+      "size": 8225,
+      "type": "file"
+    },
+    {
+      "path": "internal/frida/native_windows_coverage_test.go",
+      "hash": "06d3701b9f6bf65a755959f0203fab1cefeb297ccf8e0681f7caeebcaccd9523",
+      "size": 1598,
+      "type": "file"
+    },
+    {
+      "path": "internal/frida/native_windows_test.go",
+      "hash": "972aa5398b0cac74b5e024556b0739edc9c097820f2cacbaba7bcc78a6621613",
+      "size": 8289,
+      "type": "file"
+    },
+    {
+      "path": "internal/frida/session.go",
+      "hash": "96cb5492416df01702973b85e9ef0dfe7b428d6094c46d44f036e637f35cb3d3",
+      "size": 1579,
+      "type": "file"
+    },
+    {
+      "path": "internal/frida/shim/miniapp_frida.c",
+      "hash": "7013a73bd4e0301417152183069a8a466f31a2ac32452ffcb6cebbbb9b76f258",
+      "size": 7169,
+      "type": "file"
+    },
+    {
+      "path": "internal/frida/shim/miniapp_frida.def",
+      "hash": "8b5d6e951e50466380ef94b6d99b6d8f2860029c4296b9813a444baec0f8982d",
+      "size": 317,
+      "type": "file"
+    },
+    {
+      "path": "internal/frida/shim/miniapp_frida.h",
+      "hash": "9511b484eb7946d05e6d94d26baf6188ded93f9f4b20d92fcb38be6289c31e6a",
+      "size": 1620,
+      "type": "file"
+    },
+    {
+      "path": "internal/logging/coverage_test.go",
+      "hash": "99eed1c2ee3d1dd2523cadc466a8830386876f8832da937d568a85cda1fec17a",
+      "size": 202,
+      "type": "file"
+    },
+    {
+      "path": "internal/logging/logger.go",
+      "hash": "d9025b1c541c736ff57fdb9ecd819c64c9ca61a76d7528f544043116c46c6566",
+      "size": 784,
+      "type": "file"
+    },
+    {
+      "path": "internal/logging/logger_test.go",
+      "hash": "a6ee842a52ec8909893d11bd4b5a6591ae463d32355cf9ecb1f52acde2043bc3",
+      "size": 909,
+      "type": "file"
+    },
+    {
+      "path": "internal/native/runtime.go",
+      "hash": "013ffafdfb63d691b2238e4d4ae7de31be2a05fb4c8608748cd44ae1d35c4a4b",
+      "size": 11922,
+      "type": "file"
+    },
+    {
+      "path": "internal/native/runtime_additional_test.go",
+      "hash": "d8af9a7fe2f64496b17b682ca96715cb607e43a3ea8789bfd015742b64798de2",
+      "size": 19468,
+      "type": "file"
+    },
+    {
+      "path": "internal/native/runtime_other.go",
+      "hash": "32887a2e59b8ff3c9c8f5ce70d50961ae06e007665a3efe90c1ab364e3cece20",
+      "size": 90,
+      "type": "file"
+    },
+    {
+      "path": "internal/native/runtime_test.go",
+      "hash": "ee91d84db0d0206577e58e277afc66d3b072d6701a0009a8aefedabd8922a1a7",
+      "size": 6380,
+      "type": "file"
+    },
+    {
+      "path": "internal/native/runtime_windows.go",
+      "hash": "403155db745ac3f25dc879e2fe934d77770d274b0baeeb12dae4329bd71c07ea",
+      "size": 541,
+      "type": "file"
+    },
+    {
+      "path": "internal/process/coverage_test.go",
+      "hash": "9029465ff4669c3ffcebd77d5ed4e8fa505fd4bd2185e62d520fb287b22a0897",
+      "size": 1669,
+      "type": "file"
+    },
+    {
+      "path": "internal/process/discovery.go",
+      "hash": "2b42863899f565db7e71ed7e065bb6263bbe2d976ffde4ac65c7feb549cfe69c",
+      "size": 2434,
+      "type": "file"
+    },
+    {
+      "path": "internal/process/discovery_audit_test.go",
+      "hash": "3b117757985f3db4eb572a301a3b74e6d6ef87c31d0b77c6749001f053480060",
+      "size": 2143,
+      "type": "file"
+    },
+    {
+      "path": "internal/process/discovery_test.go",
+      "hash": "6fa18fec630cd3d38369718f28ad9f79c222f75a01e042f5b76f6431c1a43024",
+      "size": 723,
+      "type": "file"
+    },
+    {
+      "path": "internal/process/tasklist_windows_coverage_test.go",
+      "hash": "e01d3ca34357b01dbeb863b155f99590feea7c77fb47022bfc03ddb2c1f256f8",
+      "size": 417,
+      "type": "file"
+    },
+    {
+      "path": "internal/proxy/coverage_complete_test.go",
+      "hash": "33847973f5db407527b12aedc9374731d6ed0496ae765419cdc48bd7253e013b",
+      "size": 3217,
+      "type": "file"
+    },
+    {
+      "path": "internal/proxy/hub.go",
+      "hash": "d9a4ebff642495a2d69fc729ddc81b117038567a4f0b2c8fb63290456c87c306",
+      "size": 3200,
+      "type": "file"
+    },
+    {
+      "path": "internal/proxy/hub_audit_test.go",
+      "hash": "1353ca972966afca1a52d5d67ee31c1cd6dcaf41da7c3038d9e88b6a561d10b6",
+      "size": 4010,
+      "type": "file"
+    },
+    {
+      "path": "internal/proxy/hub_test.go",
+      "hash": "31635c625f10cafc3089afae1058027f1901f920ded5dafa592c7553b312d1e6",
+      "size": 780,
+      "type": "file"
+    },
+    {
+      "path": "internal/version/config.go",
+      "hash": "6820f049f6ded9239da02ba7a3dcc7b034b4ea65b0c6989c26699286d3f28291",
+      "size": 2524,
+      "type": "file"
+    },
+    {
+      "path": "internal/version/config_audit_test.go",
+      "hash": "07a4234b8866a56396e3545e059108efa7aca43dd352f53a47492df9b3335c46",
+      "size": 2592,
+      "type": "file"
+    },
+    {
+      "path": "internal/version/config_test.go",
+      "hash": "17d1f89e70eb345ce01211091575a4776f56757124574170f9d6aee7e1cc5057",
+      "size": 443,
+      "type": "file"
+    },
+    {
+      "path": "internal/version/coverage_test.go",
+      "hash": "197b48ca0def9b9512555d491efd67153206765613f1fe05591d19896116cb59",
+      "size": 2852,
+      "type": "file"
+    },
+    {
+      "path": "internal/wmpf/coverage_test.go",
+      "hash": "7347cd47bccd0c4fe1f9f8c555c4e0878f9a6bdb65599b78c03f0d92b68b51bc",
+      "size": 8305,
+      "type": "file"
+    },
+    {
+      "path": "internal/wmpf/coverage_windows_test.go",
+      "hash": "413c1db6818d7f79d31f586b3bf117bfd32c84a12e5aef8d8a84755f333369b2",
+      "size": 696,
+      "type": "file"
+    },
+    {
+      "path": "internal/wmpf/generic.go",
+      "hash": "7b2b62f819c3bde6906540b0efca11fd47038a210d0316e4e6c3fbbfa8128a6a",
+      "size": 2439,
+      "type": "file"
+    },
+    {
+      "path": "internal/wmpf/generic_test.go",
+      "hash": "0076b1c3a6f9970b0cea712e476aa26c09b3748c1cbb927a2c1ba0be70b673ac",
+      "size": 887,
+      "type": "file"
+    },
+    {
+      "path": "internal/wmpf/messages.go",
+      "hash": "ef5f9bb5af34b4756c852f3c618a9bb20d4806072ac062aeb7540700cd3efac7",
+      "size": 13044,
+      "type": "file"
+    },
+    {
+      "path": "internal/wmpf/messages_test.go",
+      "hash": "1730878804a397717ac3c5df37810c9b5a5c05158fa9b3a6a1f0d38a8afef04e",
+      "size": 2765,
+      "type": "file"
+    },
+    {
+      "path": "internal/wmpf/protobuf_audit_test.go",
+      "hash": "78a341e0be9c41f5299daa5d23da93910e8dc82098094c8b19b477dc01424fc1",
+      "size": 4026,
+      "type": "file"
+    },
+    {
+      "path": "internal/wmpf/protocol.go",
+      "hash": "420debff5aa5919a32095a20e6ff9bcbf9e7d0ded6ef9cea2ddaaa3c17a474ea",
+      "size": 14612,
+      "type": "file"
+    },
+    {
+      "path": "internal/wmpf/protocol_test.go",
+      "hash": "9516ed1eabbe13ae4cb0f126166f49442694ec5dec8d2df3fc95393282c859ee",
+      "size": 3095,
+      "type": "file"
+    },
+    {
+      "path": "internal/wmpf/reference_codex_differential_test.go",
+      "hash": "ee065755673a9a63e7c906946208c41a8481e1a5847128cc0347c575aaea617b",
+      "size": 18604,
+      "type": "file"
+    },
+    {
+      "path": "internal/wmpf/reference_golden_test.go",
+      "hash": "a86644df71f0fe60c7af7412a7bf2b7ca97dda1eaadb763c8e4d252ce7ea568d",
+      "size": 5262,
+      "type": "file"
+    },
+    {
+      "path": "internal/wmpf/registry.go",
+      "hash": "3b159408e951b451fb85ca3b9f2627302dd736283cac955ea38c98d20cf40164",
+      "size": 4995,
+      "type": "file"
+    },
+    {
+      "path": "internal/wmpf/schema.proto",
+      "hash": "6c8962eaf526069b96b1838bf1e11dbd39d4a898ddfd78e76c0a2bb8d8ef3bbe",
+      "size": 6472,
+      "type": "file"
+    },
+    {
+      "path": "internal/wmpf/transport.go",
+      "hash": "06c12091fa8027fe1a96ce27dff70ef33935d913d03602925fce51c2743605c8",
+      "size": 13305,
+      "type": "file"
+    },
+    {
+      "path": "internal/wmpf/transport_test.go",
+      "hash": "036feb9c15fe492ee64eabb88e7d81884cb75952f362f177d8667c50d716d76d",
+      "size": 4828,
+      "type": "file"
+    },
+    {
+      "path": "internal/wmpf/unknown_fields_test.go",
+      "hash": "7c00040a2a363227b149aa6f803f23a9fd8e8217231d129994c1f8ffc9446898",
+      "size": 1300,
+      "type": "file"
+    },
+    {
+      "path": "internal/wmpf/zlib_fallback.go",
+      "hash": "4b2ab5fa29f2cda91549c5ae1ecda9f1729d83b4689af3168b95a7bd50919070",
+      "size": 639,
+      "type": "file"
+    },
+    {
+      "path": "internal/wmpf/zlib_windows_cgo.go",
+      "hash": "5f7d94e89d08f193b5d406b2d741fe7797f5ebe804ec26caf78e0c9d88f48cdb",
+      "size": 1487,
+      "type": "file"
+    },
+    {
+      "path": "proto/wmpf_remote_debug.proto",
+      "hash": "6c8962eaf526069b96b1838bf1e11dbd39d4a898ddfd78e76c0a2bb8d8ef3bbe",
+      "size": 6472,
+      "type": "file"
+    },
+    {
+      "path": "scripts/build-frida-shim.ps1",
+      "hash": "d929c05421577b78ecde5c70b315829ef7551672d51e330064f3fda358228666",
+      "size": 1721,
+      "type": "file"
+    },
+    {
+      "path": "scripts/build-windows.ps1",
+      "hash": "69d789994a417ed70db1615a07c9aa11d8478d94d55ca88b69a03248dc53bee5",
+      "size": 919,
+      "type": "file"
+    },
+    {
+      "path": "scripts/build-zlib.ps1",
+      "hash": "bd34c8bc0a8378110bcbd41ad00c9de04cb2e50558cb6363a4dd6c82f06bd060",
+      "size": 3925,
+      "type": "file"
+    },
+    {
+      "path": "scripts/build_zlib_contract_test.go",
+      "hash": "39b632f3461bb5e7d59b4816a42e507d52dd10becfccb10acc1cb54d185680c0",
+      "size": 5314,
+      "type": "file"
+    },
+    {
+      "path": "scripts/build_zlib_offline_integration_test.go",
+      "hash": "eae81dc1f5b634c870dac0738a8385aa42080e13f87bd39e6bb12157ef0a575d",
+      "size": 2863,
+      "type": "file"
+    },
+    {
+      "path": "scripts/coverage-gate.ps1",
+      "hash": "7878c4ad4120141a083fca838b07481f1761bf07c088c01f22e258a3f053977f",
+      "size": 5354,
+      "type": "file"
+    },
+    {
+      "path": "scripts/coverage_gate_contract_test.go",
+      "hash": "fb15d803b4ee42509fa6872b4d1fe8529a2bc7b5ae435c3ab7ea7918d554ef80",
+      "size": 1555,
+      "type": "file"
+    },
+    {
+      "path": "scripts/ensure-frida-devkit.ps1",
+      "hash": "aecf9364bc9d90b3250b55e8791922602f42f3dda40e5833fc1325189cd45da4",
+      "size": 6643,
+      "type": "file"
+    },
+    {
+      "path": "scripts/ensure_frida_devkit_contract_test.go",
+      "hash": "a78ed4e0c73b2bfe998585c37c0190f264bdfd8b858164bb930af3cd8aa6c011",
+      "size": 2255,
+      "type": "file"
+    },
+    {
+      "path": "scripts/ensure_frida_devkit_integration_test.go",
+      "hash": "f59c1577191004909d9da69ff1091611a2d2627ee9f4c783d60a502730ee96de",
+      "size": 8487,
+      "type": "file"
+    },
+    {
+      "path": "scripts/generate-reference-codex-fixtures.js",
+      "hash": "518f41eedb63ed2281c5b2f4470c0f5c148cacedb9c7bfa55efe7123f8fdb7cd",
+      "size": 17972,
+      "type": "file"
+    },
+    {
+      "path": "scripts/generate-reference-fixtures.js",
+      "hash": "a0499954d23b8b1637cf52360bd546d8342f7603e2894af485609be6b25d4ecf",
+      "size": 5332,
+      "type": "file"
+    },
+    {
+      "path": "scripts/native-prepare.ps1",
+      "hash": "5916aac143b0298fba0db08112b92404e877db4b007b0b1a52d59776fff34b5a",
+      "size": 4341,
+      "type": "file"
+    },
+    {
+      "path": "scripts/native-release.ps1",
+      "hash": "58510415d8b34c58ca48bfca32e97985a0623d7c9f105a32ced55fbcddae302a",
+      "size": 3087,
+      "type": "file"
+    },
+    {
+      "path": "scripts/sdk_external_module_test.go",
+      "hash": "ca8628ff265e59e559270f8c65fe74206d604c4d6a016155ad144b2d9cbe1a15",
+      "size": 1640,
+      "type": "file"
+    },
+    {
+      "path": "scripts/smoke-client.go",
+      "hash": "6bdfcf9c2eabb81dd5d67df1bd37cd4b017def367ac49acf2e014168cddf3a51",
+      "size": 23250,
+      "type": "file"
+    },
+    {
+      "path": "scripts/smoke-client_test.go",
+      "hash": "cade85442bc84d7a9b98b0145df0f5edf973d38a5997d8dfff9979a2c4e7ebe6",
+      "size": 5423,
+      "type": "file"
+    },
+    {
+      "path": "scripts/smoke-process-runner/main.go",
+      "hash": "eb9701cf15959e04d2425e71010cbbe455165de8b7cbfa7ec504f092206e1f77",
+      "size": 1091,
+      "type": "file"
+    },
+    {
+      "path": "scripts/smoke-process-runner/platform_other.go",
+      "hash": "3ae9454b4eb63bbfe38cc33de4da84a9cd9beb16dac3b1cc3c711176732109ce",
+      "size": 394,
+      "type": "file"
+    },
+    {
+      "path": "scripts/smoke-process-runner/platform_windows.go",
+      "hash": "4b8e600a87457613e9c7cb9504fcf32becf697da47bee69a3dd8e68a38899109",
+      "size": 1642,
+      "type": "file"
+    },
+    {
+      "path": "scripts/smoke-process-runner/platform_windows_test.go",
+      "hash": "8a4411b3367cb56278025d2b9221fc20338d70374042155e4a2fe36ed37151ee",
+      "size": 3770,
+      "type": "file"
+    },
+    {
+      "path": "scripts/smoke-process-runner/runner.go",
+      "hash": "06dedec9ab646db2764faaf124b837268b02b88eebc45647fd0f00bc84bd42b2",
+      "size": 3506,
+      "type": "file"
+    },
+    {
+      "path": "scripts/smoke-process-runner/runner_test.go",
+      "hash": "3692a86353abca19fe6922afe3618d8e20a633ba4de4e8a393ff9df244b52198",
+      "size": 8091,
+      "type": "file"
+    },
+    {
+      "path": "scripts/smoke-windows.ps1",
+      "hash": "30bfc2e7ce742ca54ed439457966d4555ffb8c53e012feff21990f34e0d2b97f",
+      "size": 31912,
+      "type": "file"
+    },
+    {
+      "path": "scripts/smoke_windows_contract_test.go",
+      "hash": "7a72d7237b349ed8b02f17cac5ee4d69a500d9ff5b08e9badac1f570e41d63eb",
+      "size": 11872,
+      "type": "file"
+    },
+    {
+      "path": "sdk-cover",
+      "hash": "8b120ef02e7adfad76c982699cee83db9079d129ffb31a7e52b05a04623420cc",
+      "size": 15653,
+      "type": "file"
+    },
+    {
+      "path": "sdk/connection_test.go",
+      "hash": "cd0547f53374ac3432f0cdc8a49f4d73bf7d8c38923d1205eb6d2e27527abac9",
+      "size": 1805,
+      "type": "file"
+    },
+    {
+      "path": "sdk/coverage_test.go",
+      "hash": "a2bcd3cad3262b8204c11260c7d4be82ecfe1c9ddc97d8d3d10976de19439727",
+      "size": 18620,
+      "type": "file"
+    },
+    {
+      "path": "sdk/native.go",
+      "hash": "e08befa4345c6d83423b98b6ca374b88b26bb79316bb3b3bc3a3a549ac9ac8c7",
+      "size": 2889,
+      "type": "file"
+    },
+    {
+      "path": "sdk/service.go",
+      "hash": "ec01d94a869bca9479289392a7dfdd7246200111c5f49149c9713ed670291893",
+      "size": 18090,
+      "type": "file"
+    },
+    {
+      "path": "sdk/service_test.go",
+      "hash": "a669d2dcb012a9188fd5a847d982c6ae04d4b759b3c48f4c31b221d5e7f69709",
+      "size": 2953,
+      "type": "file"
+    },
+    {
+      "path": "sdk/target.go",
+      "hash": "05d394b53d7b0ed5d0f75a5f779b0340bda88a40c4009152a938d7a58ac5626a",
+      "size": 1886,
+      "type": "file"
+    },
+    {
+      "path": "testdata/golden/chrome_devtools.json",
+      "hash": "47b952d4db0cb55ea4148f5cec7325f80cae8be3589185833ca67e92c899af88",
+      "size": 191,
+      "type": "file"
+    },
+    {
+      "path": "testdata/golden/reference_codex.json",
+      "hash": "8487e17d893fe2d602eaacc129c6e5fd992640b4d7a870a4bc6ab11b3ec960ea",
+      "size": 40277,
+      "type": "file"
+    },
+    {
+      "path": "testdata/golden/reference_messages.json",
+      "hash": "c6119b632d29cc1f871c973d20674eda804eb9445c66988feaf03002a18aa54f",
+      "size": 88127,
+      "type": "file"
+    }
+  ],
+  "omitted": [],
+  "omittedCount": 0
+}

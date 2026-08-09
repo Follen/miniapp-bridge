@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	agent "miniapp-bridge/frida"
-	"miniapp-bridge/internal/version"
+	agent "github.com/Follen/miniapp-bridge/frida"
+	"github.com/Follen/miniapp-bridge/internal/version"
 )
 
 func TestAuditEmbeddedAgentMatchesPinnedReference(t *testing.T) {

@@ -12,10 +12,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Follen/miniapp-bridge/internal/capture"
+	"github.com/Follen/miniapp-bridge/internal/logging"
+	"github.com/Follen/miniapp-bridge/internal/wmpf"
 	"github.com/gorilla/websocket"
-	"miniapp-bridge/internal/capture"
-	"miniapp-bridge/internal/logging"
-	"miniapp-bridge/internal/wmpf"
 )
 
 func TestCoverageAppFrameAndReplayErrors(t *testing.T) {

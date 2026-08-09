@@ -116,6 +116,7 @@ try {
             if (-not (Test-ExpectedHash -Path $stagingLibrary -Expected $librarySHA256)) {
                 throw 'Frida SDK library SHA-256 mismatch after extraction'
             }
+            New-Item -ItemType Directory -Force -Path (Split-Path -Parent $devkit) | Out-Null
             if (Test-Path -LiteralPath $devkit) { Remove-Item -LiteralPath $devkit -Recurse -Force }
             Move-Item -LiteralPath $stagingDevkit -Destination $devkit
         } finally {

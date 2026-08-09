@@ -1,0 +1,23 @@
+schema: comet.native.v3
+minimum_runtime_version: 3
+revision: 4
+verification_protocol: legacy-v1
+name: public-go-sdk-worktree
+language: zh-CN
+phase: build
+brief: brief.md
+approval: confirmed
+approved_contract_hash: 4613a8aa3f31c57ff4ecd5747e9281aedd3281f2473412ada3fceb06a7ca1274
+spec_changes:
+  - capability: public-go-sdk
+    operation: create
+    source: specs/public-go-sdk/spec.md
+    base_hash: null
+verification_result: pending
+verification_report: null
+implementation_scope: null
+verification_evidence: null
+partial_allowance: null
+archived: false
+created_at: 2026-08-08
+run_id: 29edbe63-0606-46d2-a7f0-f120c181559c

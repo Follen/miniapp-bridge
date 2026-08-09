@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Follen/miniapp-bridge/internal/logging"
+	"github.com/Follen/miniapp-bridge/internal/wmpf"
 	"github.com/gorilla/websocket"
-	"miniapp-bridge/internal/logging"
-	"miniapp-bridge/internal/wmpf"
 )
 
 func TestAuditConcurrentCDPDispatchHasStrictGlobalSequence(t *testing.T) {

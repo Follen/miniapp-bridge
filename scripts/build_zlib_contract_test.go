@@ -80,6 +80,31 @@ func TestZlibBuildSupportsVerifiedOfflineCache(t *testing.T) {
 	}
 }
 
+func TestZlibBuildUsesIsolatedObjectDirectory(t *testing.T) {
+	_, source, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("runtime.Caller failed")
+	}
+	root := filepath.Dir(filepath.Dir(source))
+	script := readContractFile(t, filepath.Join(root, "scripts", "build-zlib.ps1"))
+	for _, token := range []string{
+		"[Guid]::NewGuid().ToString('N')",
+		"$stagedLibrary = Join-Path $build 'libz.a'",
+		"zlib compile did not produce object",
+		"zlib archive creation did not produce library",
+		"Move-Item -LiteralPath $stagedLibrary -Destination $library -Force",
+		"finally {",
+		"Remove-Item -LiteralPath $build -Recurse -Force",
+	} {
+		if !strings.Contains(script, token) {
+			t.Errorf("build-zlib.ps1 is missing isolated-build contract %q", token)
+		}
+	}
+	if strings.Contains(script, "Get-ChildItem -LiteralPath $build -Filter '*.o'") {
+		t.Fatal("build-zlib.ps1 still cleans a shared object directory")
+	}
+}
+
 func TestFridaShimBuildIsReproducible(t *testing.T) {
 	_, source, _, ok := runtime.Caller(0)
 	if !ok {
@@ -92,6 +117,18 @@ func TestFridaShimBuildIsReproducible(t *testing.T) {
 	}
 	if !strings.Contains(script, "ensure-frida-devkit.ps1") {
 		t.Fatal("Frida shim build does not bootstrap the pinned SDK")
+	}
+	for _, token := range []string{
+		"build-zlib.ps1",
+		"third_party\\zlib\\src-1.3.1",
+		"$zlibObjectDirectory",
+		"$zlibObjects",
+		"'adler32', 'compress', 'crc32', 'deflate'",
+		`"{3}" {9} "{4}" setupapi.lib`,
+	} {
+		if !strings.Contains(script, token) {
+			t.Errorf("Frida shim build does not embed pinned zlib contract %q", token)
+		}
 	}
 	bootstrap := readContractFile(t, filepath.Join(root, "scripts", "ensure-frida-devkit.ps1"))
 	for _, token := range []string{

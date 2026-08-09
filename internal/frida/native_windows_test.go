@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	agent "miniapp-bridge/frida"
-	"miniapp-bridge/internal/process"
+	agent "github.com/Follen/miniapp-bridge/frida"
+	"github.com/Follen/miniapp-bridge/internal/process"
 )
 
 func TestNativeEnumeratesWMPFTargetMetadata(t *testing.T) {
@@ -71,6 +71,57 @@ func TestNativeAgentLifecycleAndReattach(t *testing.T) {
 	if err := second.Close(); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func TestNativeLoadErrorContract(t *testing.T) {
+	detail := errors.New("loader detail")
+	loadErr := &NativeLoadError{Code: NativeLoadExportMissing, Err: detail}
+	if loadErr.Error() != detail.Error() || !errors.Is(loadErr, detail) {
+		t.Fatalf("native load error=%v", loadErr)
+	}
+}
+
+func TestNativeMessageQueueIsNonBlockingAndDrains(t *testing.T) {
+	received := make(chan Message, 4)
+	device := &NativeDevice{
+		handler:      func(message Message) { received <- message },
+		messageQueue: make(chan Message, 2),
+		messageStop:  make(chan struct{}),
+		messageDone:  make(chan struct{}),
+	}
+	device.dispatch(Message{Type: "first"})
+	device.dispatch(Message{Type: "second"})
+	close(device.messageStop)
+	go device.runMessageQueue()
+	<-device.messageDone
+	if first, second := <-received, <-received; first.Type != "first" || second.Type != "second" {
+		t.Fatalf("queued order=%q,%q", first.Type, second.Type)
+	}
+
+	full := &NativeDevice{messageQueue: make(chan Message, 1)}
+	full.messageQueue <- Message{Type: "occupied"}
+	returned := make(chan struct{})
+	go func() {
+		full.dispatch(Message{Type: "dropped"})
+		close(returned)
+	}()
+	select {
+	case <-returned:
+	case <-time.After(time.Second):
+		t.Fatal("full native message queue blocked callback")
+	}
+	full.closed = true
+	full.dispatch(Message{Type: "closed"})
+
+	fallbackCalled := false
+	fallback := &NativeDevice{handler: func(Message) { fallbackCalled = true }}
+	fallback.dispatch(Message{Type: "fallback"})
+	if !fallbackCalled {
+		t.Fatal("test fallback handler was not called")
+	}
+	fallback.SetMessageHandler(nil)
+	fallback.dispatch(Message{Type: "ignored"})
+	fallback.deliverMessage(Message{Type: "ignored-worker"})
 }
 
 func TestNativeReachableErrorAndIdempotencyBranches(t *testing.T) {

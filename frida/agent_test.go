@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"miniapp-bridge/internal/version"
+	"github.com/Follen/miniapp-bridge/internal/version"
 )
 
 func TestSourceForConfigEmbedsJSONConfiguration(t *testing.T) {

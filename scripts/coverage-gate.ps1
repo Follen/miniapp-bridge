@@ -29,6 +29,19 @@ if ($rows.Count -ne 13 -or ($rows | Where-Object { $_ -notmatch $implemented }).
 }
 
 Run 'unit' { go test ./... -count=1 -timeout 90s }
+$publicCoverage = Join-Path $env:TEMP "miniapp-bridge-public-coverage-$([guid]::NewGuid().ToString('N')).out"
+try {
+    Run 'public CLI and Frida statement coverage' { go test ./cmd/... ./frida -count=1 -timeout 90s "-coverprofile=$publicCoverage" }
+    $publicReport = & go tool cover "-func=$publicCoverage"
+    if ($LASTEXITCODE -ne 0) { throw "public coverage report failed with exit $LASTEXITCODE" }
+    $publicReport | Write-Output
+    $publicTotal = $publicReport | Select-Object -Last 1
+    if ($publicTotal -notmatch '^total:\s+\(statements\)\s+100\.0%$') {
+        throw "public CLI and Frida Go statement coverage must be 100.0%; got: $publicTotal"
+    }
+} finally {
+    Remove-Item -LiteralPath $publicCoverage -Force -ErrorAction SilentlyContinue
+}
 $coverage = Join-Path $env:TEMP "miniapp-bridge-coverage-$([guid]::NewGuid().ToString('N')).out"
 try {
     Run 'statement coverage' { go test ./internal/... -count=1 -timeout 90s "-coverprofile=$coverage" }
@@ -55,12 +68,28 @@ try {
 } finally {
     Remove-Item -LiteralPath $runnerCoverage -Force -ErrorAction SilentlyContinue
 }
+$sdkCoverage = Join-Path $env:TEMP "miniapp-bridge-sdk-coverage-$([guid]::NewGuid().ToString('N')).out"
+try {
+    Run 'sdk statement coverage' { go test ./sdk -count=1 -timeout 90s "-coverprofile=$sdkCoverage" }
+    $sdkReport = & go tool cover "-func=$sdkCoverage"
+    if ($LASTEXITCODE -ne 0) { throw "sdk coverage report failed with exit $LASTEXITCODE" }
+    $sdkReport | Write-Output
+    $sdkTotal = $sdkReport | Select-Object -Last 1
+    if ($sdkTotal -notmatch '^total:\s+\(statements\)\s+100\.0%$') {
+        throw "SDK Go statement coverage must be 100.0%; got: $sdkTotal"
+    }
+} finally {
+    Remove-Item -LiteralPath $sdkCoverage -Force -ErrorAction SilentlyContinue
+}
 $taggedCoverage = Join-Path $env:TEMP "miniapp-bridge-coverage-frida-$([guid]::NewGuid().ToString('N')).out"
 $oldPath = $env:PATH
-$dist = Join-Path $repo 'dist'
+$oldNativePath = $env:MINIAPP_BRIDGE_NATIVE_PATH
 try {
-    if (Test-Path $dist) { $env:PATH = (Resolve-Path $dist).Path + ';' + $env:PATH }
-    Run 'tagged statement coverage' { go test -tags frida ./internal/... -count=1 -timeout 180s "-coverprofile=$taggedCoverage" }
+    Run 'native shim build' { & $PSScriptRoot\build-frida-shim.ps1 }
+    $runtime = (Resolve-Path (Join-Path $repo 'third_party\frida\runtime-17.3.2')).Path
+    $env:PATH = $runtime + ';' + $env:PATH
+    $env:MINIAPP_BRIDGE_NATIVE_PATH = Join-Path $runtime 'miniapp-frida.dll'
+    Run 'tagged internal and SDK statement coverage' { go test -tags frida ./internal/... ./sdk -count=1 -timeout 180s "-coverprofile=$taggedCoverage" }
     $taggedReport = & go tool cover "-func=$taggedCoverage"
     if ($LASTEXITCODE -ne 0) { throw "tagged coverage report failed with exit $LASTEXITCODE" }
     $taggedReport | Write-Output
@@ -71,8 +100,9 @@ try {
     Run 'tagged race' { go test -tags frida -race ./... -count=1 -timeout 240s }
 } finally {
     $env:PATH = $oldPath
+    $env:MINIAPP_BRIDGE_NATIVE_PATH = $oldNativePath
     Remove-Item -LiteralPath $taggedCoverage -Force -ErrorAction SilentlyContinue
 }
 Run 'race' { go test -race ./... -count=1 -timeout 180s }
 Run 'vet' { go vet ./... }
-Write-Output 'coverage_gate=100% reference behaviors; internal_go_statements=100.0%; smoke_runner_go_statements=100.0%; unit/race/tagged-race/vet=passed'
+Write-Output 'coverage_gate=100% reference behaviors; cli_frida_go_statements=100.0%; internal_go_statements=100.0%; sdk_go_statements=100.0%; tagged_internal_sdk_go_statements=100.0%; smoke_runner_go_statements=100.0%; unit/race/tagged-race/vet=passed'

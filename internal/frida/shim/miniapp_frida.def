@@ -1,5 +1,12 @@
 LIBRARY miniapp-frida
 EXPORTS
+  mb_abi_version
+  mb_native_version
+  mb_frida_core_version
+  mb_zlib_version
+  mb_zlib_compress
+  mb_zlib_decompress
+  mb_bytes_free
   mb_device_open
   mb_device_enumerate
   mb_processes_free

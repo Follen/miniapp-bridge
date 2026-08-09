@@ -1,0 +1,49 @@
+{
+  "schema": "comet.native.verification-receipt.v3",
+  "kind": "automated-check",
+  "role": "acceptance-evidence",
+  "status": "passed",
+  "bindings": {
+    "change": "public-go-sdk-worktree",
+    "sourceRevision": 3,
+    "contractHash": "4613a8aa3f31c57ff4ecd5747e9281aedd3281f2473412ada3fceb06a7ca1274",
+    "scopeHash": "585dfdcf31f1983ef6f29c662b9ccbd0942c6acc7171ec36d0e68e94259ef360",
+    "snapshotHash": "eba9c1cf26856fcd03af789a380d3b9346c440c883f20860a1d4eb3a5b9bf064",
+    "artifactHash": "122805de5b41cd69c75a02d9a65faf8614804cd6fc4b6b5c1753878986c0d3c9"
+  },
+  "acceptanceIds": [
+    "acceptance-d3d1601b956f004627354c9b305daa3ff654a7a1f6870e4f0840c7eaf259c029"
+  ],
+  "actor": "native-runtime:command:go.exe",
+  "issuedAt": "2026-08-08T23:35:18.088Z",
+  "evidence": {
+    "executable": "go.exe",
+    "args": [
+      "test",
+      "./sdk",
+      "-count=1"
+    ],
+    "cwd": ".",
+    "exitCode": 0,
+    "signal": null,
+    "timedOut": false,
+    "timeoutMs": 120000,
+    "startedAt": "2026-08-08T23:35:15.898Z",
+    "endedAt": "2026-08-08T23:35:18.088Z",
+    "worktree": {
+      "provider": "git",
+      "root": ".",
+      "beforeCommit": "d9e7c19817ff5f253b25236b72088b0ef7366c54",
+      "afterCommit": "d9e7c19817ff5f253b25236b72088b0ef7366c54"
+    },
+    "afterFence": {
+      "snapshotHash": "eba9c1cf26856fcd03af789a380d3b9346c440c883f20860a1d4eb3a5b9bf064",
+      "scopeHash": "585dfdcf31f1983ef6f29c662b9ccbd0942c6acc7171ec36d0e68e94259ef360",
+      "matched": true
+    },
+    "outputHash": "d45d21381ca324c3ae556396d53ef42eb86c56e506e46e7cb1c01eb552523b71",
+    "outputSummary": "ok  \tgithub.com/Follen/miniapp-bridge/sdk\t1.193s",
+    "outputTruncated": false
+  },
+  "receiptHash": "78395458eb47687cca1db8847158f351d0e50327ea113f183da7fb56ada1bdda"
+}

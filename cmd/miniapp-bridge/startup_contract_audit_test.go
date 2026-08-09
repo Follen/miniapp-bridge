@@ -6,55 +6,34 @@ import (
 	"testing"
 )
 
-func TestAuditMainStartsListenersBeforeNativeAttach(t *testing.T) {
+func TestAuditMainIsThinSDKAdapter(t *testing.T) {
 	t.Parallel()
 	source := readMainAuditSource(t, "main.go")
-	listener := strings.Index(source, "a.Start()")
-	native := strings.Index(source, "startNative(")
-	if listener < 0 || native < 0 || listener >= native {
-		t.Fatalf("listener index=%d native index=%d", listener, native)
+	last := -1
+	for _, token := range []string{"config.Parse(", "newService(", "notify(", "service.Start(", "<-lifetime.Done()", "service.Close(context.Background())"} {
+		relative := strings.Index(source[last+1:], token)
+		if relative < 0 {
+			t.Fatalf("token %q not found after=%d", token, last)
+		}
+		index := last + 1 + relative
+		if index <= last {
+			t.Fatalf("token %q index=%d after=%d", token, index, last)
+		}
+		last = index
+	}
+	for _, forbidden := range []string{"startNative(", "nativeCloser", "NativeStarter", "internal/frida", "internal/logging"} {
+		if strings.Contains(source, forbidden) {
+			t.Fatalf("CLI owns forbidden implementation %q", forbidden)
+		}
 	}
 }
 
-func TestAuditMainClosesAppBeforeNativeDetach(t *testing.T) {
+func TestAuditMainForwardsCLIOptionsToSDK(t *testing.T) {
 	t.Parallel()
 	source := readMainAuditSource(t, "main.go")
-	signalIndex := strings.Index(source, "<-sig")
-	appCloseIndex := strings.Index(source[signalIndex:], "a.Close(context.Background())")
-	nativeCloseIndex := strings.Index(source[signalIndex:], "closeNative()")
-	if signalIndex < 0 || appCloseIndex < 0 || nativeCloseIndex < 0 {
-		t.Fatalf("shutdown calls not found: signal=%d app=%d native=%d", signalIndex, appCloseIndex, nativeCloseIndex)
-	}
-	if appCloseIndex >= nativeCloseIndex {
-		t.Fatalf("shutdown must close App before native detach: app=%d native=%d", appCloseIndex, nativeCloseIndex)
-	}
-}
-
-func TestAuditWindowsShutdownOrderAndFailureRelease(t *testing.T) {
-	t.Parallel()
-	source := readMainAuditSource(t, "native_windows.go")
-	successStart := strings.Index(source, "return func() error")
-	if successStart < 0 {
-		t.Fatal("shutdown closure not found")
-	}
-	attachFailureStart := strings.Index(source, "session, script, target, err := bootstrap.Attach(ctx)")
-	if attachFailureStart < 0 || attachFailureStart >= successStart {
-		t.Fatal("attach failure branch not found")
-	}
-	for _, candidate := range []struct {
-		text    string
-		ordered []string
-	}{
-		{source[successStart:], []string{"script.Unload()", "session.Detach()", "device.Close()", "fridacore.ShutdownRuntime()"}},
-		{source[attachFailureStart:successStart], []string{"_ = device.Close()", "fridacore.ShutdownRuntime()", "return nil, err"}},
-	} {
-		last := -1
-		for _, token := range candidate.ordered {
-			index := strings.Index(candidate.text, token)
-			if index < 0 || index <= last {
-				t.Fatalf("shutdown token %q index=%d after=%d", token, index, last)
-			}
-			last = index
+	for _, token := range []string{"DebugPort: o.DebugPort", "CDPPort: o.CDPPort", "RecordPath: o.RecordPath", "ReplayPath: o.ReplayPath", "DebugMain: o.DebugMain", "DebugFrida: o.DebugFrida"} {
+		if !strings.Contains(source, token) {
+			t.Fatalf("SDK option %q is not forwarded", token)
 		}
 	}
 }

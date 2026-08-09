@@ -1,13 +1,90 @@
 #include "miniapp_frida.h"
 #include "frida-core.h"
+#include <limits.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+typedef unsigned char mb_z_byte;
+typedef unsigned long mb_z_ulong;
+extern const char *zlibVersion(void);
+extern mb_z_ulong compressBound(mb_z_ulong source_length);
+extern int compress2(mb_z_byte *dest, mb_z_ulong *dest_length, const mb_z_byte *source, mb_z_ulong source_length, int level);
+extern int uncompress2(mb_z_byte *dest, mb_z_ulong *dest_length, const mb_z_byte *source, mb_z_ulong *source_length);
+
+#define MB_Z_OK 0
+#define MB_Z_BUF_ERROR (-5)
+#define MB_Z_DEFAULT_COMPRESSION (-1)
 
 struct mb_device { FridaDeviceManager *manager; FridaDevice *device; };
 struct mb_session { FridaSession *session; uintptr_t handle; mb_detached_cb detached; };
 struct mb_script { FridaScript *script; uintptr_t handle; mb_message_cb message; };
 static volatile gint mb_frida_refs = 0;
 static volatile gint mb_frida_initialized = 0;
+
+uint32_t mb_abi_version(void) { return MB_ABI_VERSION; }
+const char *mb_native_version(void) { return MB_NATIVE_VERSION; }
+const char *mb_frida_core_version(void) { return MB_FRIDA_CORE_VERSION; }
+const char *mb_zlib_version(void) { return zlibVersion(); }
+
+static void mb_set_text_error(char **out, const char *message) {
+  if (out != NULL) *out = _strdup(message != NULL ? message : "native operation failed");
+}
+
+int mb_zlib_compress(const uint8_t *input, size_t input_size, uint8_t **output, size_t *output_size, char **error) {
+  static const uint8_t empty = 0;
+  if (output == NULL || output_size == NULL) { mb_set_text_error(error, "zlib output arguments are required"); return 0; }
+  *output = NULL; *output_size = 0;
+  if ((input == NULL && input_size != 0) || input_size > ULONG_MAX) { mb_set_text_error(error, "zlib input is invalid or too large"); return 0; }
+  mb_z_ulong capacity = compressBound((mb_z_ulong) input_size);
+  if (capacity == 0) capacity = 1;
+  uint8_t *buffer = malloc((size_t) capacity);
+  if (buffer == NULL) { mb_set_text_error(error, "zlib output allocation failed"); return 0; }
+  mb_z_ulong size = capacity;
+  int result = compress2(buffer, &size, input != NULL ? input : &empty, (mb_z_ulong) input_size, MB_Z_DEFAULT_COMPRESSION);
+  if (result != MB_Z_OK) {
+    char message[96]; snprintf(message, sizeof(message), "zlib compress failed: %d", result);
+    free(buffer); mb_set_text_error(error, message); return 0;
+  }
+  *output = buffer; *output_size = (size_t) size; return 1;
+}
+
+int mb_zlib_decompress(const uint8_t *input, size_t input_size, size_t expected_size, size_t max_output, uint8_t **output, size_t *output_size, char **error) {
+  static const uint8_t empty = 0;
+  if (output == NULL || output_size == NULL) { mb_set_text_error(error, "zlib output arguments are required"); return 0; }
+  *output = NULL; *output_size = 0;
+  if ((input == NULL && input_size != 0) || input_size > ULONG_MAX || max_output == 0 || max_output > ULONG_MAX || expected_size > max_output) {
+    mb_set_text_error(error, "zlib input or output limit is invalid"); return 0;
+  }
+  size_t capacity = expected_size;
+  if (capacity == 0) {
+    capacity = max_output <= 256 ? max_output : (input_size <= (max_output - 256) / 4 ? input_size * 4 + 256 : max_output);
+    if (capacity > max_output) capacity = max_output;
+  }
+  if (capacity == 0) capacity = 1;
+  for (;;) {
+    uint8_t *buffer = malloc(capacity);
+    if (buffer == NULL) { mb_set_text_error(error, "zlib output allocation failed"); return 0; }
+    mb_z_ulong size = (mb_z_ulong) capacity;
+    mb_z_ulong source_size = (mb_z_ulong) input_size;
+    int result = uncompress2(buffer, &size, input != NULL ? input : &empty, &source_size);
+    if (result == MB_Z_OK) {
+      if (expected_size != 0 && size != (mb_z_ulong) expected_size) {
+        char message[128]; snprintf(message, sizeof(message), "zlib decompressed size mismatch: expected=%zu actual=%lu", expected_size, size);
+        free(buffer); mb_set_text_error(error, message); return 0;
+      }
+      *output = buffer; *output_size = (size_t) size; return 1;
+    }
+    free(buffer);
+    if (result != MB_Z_BUF_ERROR || expected_size != 0 || capacity >= max_output) {
+      char message[96]; snprintf(message, sizeof(message), "zlib decompress failed: %d", result);
+      mb_set_text_error(error, message); return 0;
+    }
+    capacity = capacity > max_output / 2 ? max_output : capacity * 2;
+  }
+}
+
+void mb_bytes_free(uint8_t *bytes) { free(bytes); }
 
 static void mb_frida_release(void) {
   if (g_atomic_int_get(&mb_frida_refs) > 0) g_atomic_int_add(&mb_frida_refs, -1);

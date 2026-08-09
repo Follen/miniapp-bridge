@@ -51,39 +51,43 @@ if (!(Select-String -LiteralPath (Join-Path $source 'zlib.h') -SimpleMatch '#def
 
 $gcc = (Get-Command gcc.exe -ErrorAction Stop).Source
 $ar = (Get-Command ar.exe -ErrorAction Stop).Source
-$build = Join-Path $output 'obj'
+$build = Join-Path $output ("obj-" + [Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Force -Path $build | Out-Null
-Get-ChildItem -LiteralPath $build -Filter '*.o' -File -ErrorAction SilentlyContinue | Remove-Item -Force
-
-$sources = @(
-    'adler32.c', 'crc32.c', 'deflate.c', 'infback.c', 'inffast.c',
-    'inflate.c', 'inftrees.c', 'trees.c', 'zutil.c', 'compress.c',
-    'uncompr.c', 'gzclose.c', 'gzlib.c', 'gzread.c', 'gzwrite.c'
-)
-$objects = @()
-foreach ($name in $sources) {
-    $object = Join-Path $build (([IO.Path]::GetFileNameWithoutExtension($name)) + '.o')
-    & $gcc -O3 -D_LARGEFILE64_SOURCE=1 -I $source -c (Join-Path $source $name) -o $object
-    if ($LASTEXITCODE -ne 0) {
-        throw "zlib compile failed for $name with exit $LASTEXITCODE"
-    }
-    $objects += $object
-}
 
 $library = Join-Path $output 'libz.a'
-if (Test-Path -LiteralPath $library) {
-    Remove-Item -LiteralPath $library -Force
-}
-& $ar rcs $library @objects
-if ($LASTEXITCODE -ne 0) {
-    throw "zlib archive creation failed with exit $LASTEXITCODE"
-}
-foreach ($object in $objects) {
-    if ([IO.File]::Exists($object)) {
-        [IO.File]::Delete($object)
+$stagedLibrary = Join-Path $build 'libz.a'
+try {
+    $sources = @(
+        'adler32.c', 'crc32.c', 'deflate.c', 'infback.c', 'inffast.c',
+        'inflate.c', 'inftrees.c', 'trees.c', 'zutil.c', 'compress.c',
+        'uncompr.c', 'gzclose.c', 'gzlib.c', 'gzread.c', 'gzwrite.c'
+    )
+    $objects = @()
+    foreach ($name in $sources) {
+        $object = Join-Path $build (([IO.Path]::GetFileNameWithoutExtension($name)) + '.o')
+        & $gcc -O3 -D_LARGEFILE64_SOURCE=1 -I $source -c (Join-Path $source $name) -o $object
+        if ($LASTEXITCODE -ne 0) {
+            throw "zlib compile failed for $name with exit $LASTEXITCODE"
+        }
+        if (![IO.File]::Exists($object)) {
+            throw "zlib compile did not produce object for ${name}: $object"
+        }
+        $objects += $object
     }
-}
 
-Write-Output "zlib_version=1.3.1"
-Write-Output "archive_sha256=$expectedArchiveHash"
-Write-Output "library_sha256=$((Get-FileHash -Algorithm SHA256 -LiteralPath $library).Hash)"
+    & $ar rcs $stagedLibrary @objects
+    if ($LASTEXITCODE -ne 0) {
+        throw "zlib archive creation failed with exit $LASTEXITCODE"
+    }
+    if (![IO.File]::Exists($stagedLibrary)) {
+        throw "zlib archive creation did not produce library: $stagedLibrary"
+    }
+    Move-Item -LiteralPath $stagedLibrary -Destination $library -Force
+
+    Write-Output "zlib_version=1.3.1"
+    Write-Output "archive_sha256=$expectedArchiveHash"
+    Write-Output "library_sha256=$((Get-FileHash -Algorithm SHA256 -LiteralPath $library).Hash)"
+}
+finally {
+    Remove-Item -LiteralPath $build -Recurse -Force -ErrorAction SilentlyContinue
+}

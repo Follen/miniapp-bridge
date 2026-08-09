@@ -1,4 +1,4 @@
-//go:build !windows || !cgo
+//go:build !windows || !frida
 
 package wmpf
 
@@ -8,9 +8,13 @@ import (
 	"io"
 )
 
+var zlibWriterFactory = func(output io.Writer) io.WriteCloser {
+	return zlib.NewWriter(output)
+}
+
 func zlibCompress(data []byte) ([]byte, error) {
 	var output bytes.Buffer
-	writer := zlib.NewWriter(&output)
+	writer := zlibWriterFactory(&output)
 	if _, err := writer.Write(data); err != nil {
 		return nil, err
 	}

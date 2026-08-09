@@ -4,22 +4,47 @@ import (
 	"context"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"github.com/Follen/miniapp-bridge/internal/capture"
+	"github.com/Follen/miniapp-bridge/internal/cdp"
+	bridgecontext "github.com/Follen/miniapp-bridge/internal/context"
+	"github.com/Follen/miniapp-bridge/internal/logging"
+	"github.com/Follen/miniapp-bridge/internal/proxy"
+	"github.com/Follen/miniapp-bridge/internal/wmpf"
 	"github.com/gorilla/websocket"
 	"math"
 	"math/rand"
-	"miniapp-bridge/internal/capture"
-	"miniapp-bridge/internal/cdp"
-	bridgecontext "miniapp-bridge/internal/context"
-	"miniapp-bridge/internal/logging"
-	"miniapp-bridge/internal/proxy"
-	"miniapp-bridge/internal/wmpf"
 	"net"
 	"net/http"
 	"sync"
 	"sync/atomic"
 	"time"
 )
+
+var (
+	ErrClosed            = errors.New("app is closed")
+	ErrInvalidCDPPayload = errors.New("invalid CDP payload")
+	ErrNoContext         = errors.New("no JavaScript context is selected")
+	ErrUnknownContext    = errors.New("unknown JavaScript context")
+)
+
+// Observer is an optional, non-blocking hook used by the public SDK.
+type Observer struct {
+	OnCDP        func([]byte)
+	OnContext    func(ContextEvent)
+	OnConnection func(ConnectionEvent)
+}
+
+type ContextEvent struct {
+	Kind    string
+	Context bridgecontext.Context
+}
+
+type ConnectionEvent struct {
+	Kind      string
+	Connected bool
+}
 
 type App struct {
 	DebugPort, CDPPort int
@@ -28,54 +53,151 @@ type App struct {
 	Contexts           *bridgecontext.Registry
 	Requests           *cdp.Correlator
 	Recorder           *capture.Recorder
+	recorderMu         sync.RWMutex
 	debugSrv, cdpSrv   *http.Server
 	closeOnce          sync.Once
+	closeErr           error
 	closing            atomic.Bool
 	connMu             sync.RWMutex
 	dispatchMu         sync.Mutex
+	observerMu         sync.RWMutex
+	observer           Observer
+	replayMu           sync.Mutex
+	replayCancel       context.CancelFunc
+	replayID           uint64
+	replayWG           sync.WaitGroup
 	seq                atomic.Uint32
 	listen             func(string, string) (net.Listener, error)
 	serve              func(*http.Server, net.Listener) error
 }
 type wsClient struct {
-	conn   *websocket.Conn
-	mu     sync.Mutex
-	typeID int
+	conn      websocketConnection
+	mu        sync.Mutex
+	closeOnce sync.Once
+	closeErr  error
+	closed    atomic.Bool
+	typeID    int
 }
 
+type websocketConnection interface {
+	ReadMessage() (messageType int, p []byte, err error)
+	WriteMessage(messageType int, data []byte) error
+	WriteControl(messageType int, data []byte, deadline time.Time) error
+	SetWriteDeadline(t time.Time) error
+	Close() error
+}
+
+const websocketWriteTimeout = 5 * time.Second
+
 func (c *wsClient) Send(b []byte) error {
+	if c.closed.Load() {
+		return ErrClosed
+	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	return c.sendLocked(b)
+}
+
+func (c *wsClient) sendLocked(b []byte) error {
+	if c.closed.Load() {
+		return ErrClosed
+	}
+	if err := c.conn.SetWriteDeadline(time.Now().Add(websocketWriteTimeout)); err != nil {
+		return err
+	}
 	return c.conn.WriteMessage(c.typeID, b)
 }
 func (c *wsClient) Close() error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	_ = c.conn.WriteControl(websocket.CloseMessage,
-		websocket.FormatCloseMessage(websocket.CloseNormalClosure, "shutdown"),
-		time.Now().Add(250*time.Millisecond))
-	return c.conn.Close()
+	c.closeOnce.Do(func() {
+		c.closed.Store(true)
+		_ = c.conn.WriteControl(websocket.CloseMessage,
+			websocket.FormatCloseMessage(websocket.CloseNormalClosure, "shutdown"),
+			time.Now().Add(250*time.Millisecond))
+		c.closeErr = c.conn.Close()
+	})
+	return c.closeErr
 }
 func New(dp, cp int, l *logging.Logger) *App {
 	return &App{DebugPort: dp, CDPPort: cp, Log: l, DebugHub: proxy.NewHub(), CDPHub: proxy.NewHub(), Contexts: bridgecontext.NewRegistry(), Requests: cdp.NewCorrelator(), listen: net.Listen, serve: func(s *http.Server, l net.Listener) error { return s.Serve(l) }}
 }
-func (a *App) SetRecorder(r *capture.Recorder) { a.Recorder = r }
+func (a *App) SetRecorder(r *capture.Recorder) {
+	a.recorderMu.Lock()
+	a.Recorder = r
+	a.recorderMu.Unlock()
+}
+func (a *App) SwapRecorder(r *capture.Recorder) *capture.Recorder {
+	a.recorderMu.Lock()
+	old := a.Recorder
+	a.Recorder = r
+	a.recorderMu.Unlock()
+	return old
+}
+func (a *App) TakeRecorder() *capture.Recorder {
+	a.recorderMu.Lock()
+	r := a.Recorder
+	a.Recorder = nil
+	a.recorderMu.Unlock()
+	return r
+}
+func (a *App) SetObserver(observer Observer) {
+	a.observerMu.Lock()
+	a.observer = observer
+	a.observerMu.Unlock()
+}
+func (a *App) observerSnapshot() Observer {
+	a.observerMu.RLock()
+	defer a.observerMu.RUnlock()
+	return a.observer
+}
 func (a *App) Replay(path string) error {
-	frames, err := capture.Replay(path)
-	if err != nil {
+	return a.ReplayContext(context.Background(), path)
+}
+func (a *App) ReplayContext(ctx context.Context, path string) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if err := ctx.Err(); err != nil {
 		return err
 	}
+	replayCtx, cancel := context.WithCancel(ctx)
+	a.replayMu.Lock()
+	if a.closing.Load() {
+		a.replayMu.Unlock()
+		cancel()
+		return ErrClosed
+	}
+	if a.replayCancel != nil {
+		a.replayCancel()
+	}
+	a.replayID++
+	replayID := a.replayID
+	a.replayCancel = cancel
+	a.replayWG.Add(1)
+	a.replayMu.Unlock()
+	done := make(chan struct{})
+	var replayErr error
 	go func() {
-		for _, f := range frames {
+		defer a.replayWG.Done()
+		defer close(done)
+		defer func() {
+			a.replayMu.Lock()
+			if a.replayID == replayID {
+				a.replayCancel = nil
+			}
+			a.replayMu.Unlock()
+		}()
+		replayErr = capture.ReplayEachContext(replayCtx, path, func(f []byte) error {
 			m, e := wmpf.DecodeDebugMessage(f)
 			if e != nil {
 				a.Log.Error("[capture] replay:", e)
-				continue
+				return nil
 			}
 			a.handleDebugMessage(m)
-		}
+			return nil
+		})
 	}()
-	return nil
+	<-done
+	return replayErr
 }
 func (a *App) Start() error {
 	up := websocket.Upgrader{CheckOrigin: func(*http.Request) bool { return true }}
@@ -93,6 +215,9 @@ func (a *App) Start() error {
 		x := &wsClient{conn: c, typeID: websocket.BinaryMessage}
 		a.DebugHub.Add(x)
 		a.connMu.RUnlock()
+		if observer := a.observerSnapshot(); observer.OnConnection != nil {
+			observer.OnConnection(ConnectionEvent{Kind: "upstream", Connected: true})
+		}
 		a.Log.Info("[miniapp] miniapp client connected")
 		go a.readDebug(x)
 	})}
@@ -110,6 +235,9 @@ func (a *App) Start() error {
 		x := &wsClient{conn: c, typeID: websocket.TextMessage}
 		a.CDPHub.Add(x)
 		a.connMu.RUnlock()
+		if observer := a.observerSnapshot(); observer.OnConnection != nil {
+			observer.OnConnection(ConnectionEvent{Kind: "cdp", Connected: true})
+		}
 		a.Log.Info("[cdp] CDP client connected")
 		go a.readCDP(x)
 	})}
@@ -144,6 +272,9 @@ func (a *App) readDebug(c *wsClient) {
 	defer func() {
 		a.DebugHub.Remove(c)
 		_ = c.Close()
+		if observer := a.observerSnapshot(); observer.OnConnection != nil {
+			observer.OnConnection(ConnectionEvent{Kind: "upstream", Connected: false})
+		}
 		a.Log.Info("[miniapp] miniapp client disconnected")
 	}()
 	for {
@@ -160,18 +291,27 @@ func (a *App) handleDebugFrame(typ int, b []byte) bool {
 		return false
 	}
 	a.Log.Main("[miniapp] client received raw message (hex):", hex.EncodeToString(b))
-	if a.Recorder != nil {
-		if err := a.Recorder.Write(b); err != nil {
-			a.Log.Error("[capture] write:", err)
-		}
-	}
+	a.dispatchMu.Lock()
+	defer a.dispatchMu.Unlock()
+	a.recordFrameLocked(capture.DirectionUpstream, b)
 	m, e := wmpf.DecodeDebugMessage(b)
 	if e != nil {
 		a.Log.Error("[miniapp] miniapp client err:", e)
 		return true
 	}
-	a.handleDebugMessage(m)
+	a.handleDebugMessageLocked(m)
 	return true
+}
+
+func (a *App) recordFrameLocked(direction capture.Direction, frame []byte) {
+	a.recorderMu.RLock()
+	defer a.recorderMu.RUnlock()
+	recorder := a.Recorder
+	if recorder != nil {
+		if err := recorder.WriteFrame(direction, time.Now().UTC(), frame); err != nil {
+			a.Log.Error("[capture] write:", err)
+		}
+	}
 }
 
 func (a *App) handleDebugMessage(message wmpf.DebugMessage) {
@@ -198,15 +338,28 @@ func (a *App) handleUnwrappedDebug(u wmpf.Unwrapped) {
 	switch u.Category {
 	case wmpf.CategoryAddJsContext:
 		v := value.(wmpf.JsContext)
-		a.Contexts.Upsert(bridgecontext.Context{ID: v.ID, Target: v.Name})
+		ctx := bridgecontext.Context{ID: v.ID, Target: v.Name}
+		a.Contexts.Upsert(ctx)
+		if observer := a.observerSnapshot(); observer.OnContext != nil {
+			observer.OnContext(ContextEvent{Kind: "added", Context: ctx})
+		}
 	case wmpf.CategoryRemoveJsContext:
-		a.Contexts.Remove(value.(wmpf.JsContext).ID)
+		v := value.(wmpf.JsContext)
+		if a.Contexts.Remove(v.ID) {
+			if observer := a.observerSnapshot(); observer.OnContext != nil {
+				observer.OnContext(ContextEvent{Kind: "removed", Context: bridgecontext.Context{ID: v.ID, Target: v.Name}})
+			}
+		}
 	case wmpf.CategoryConnectJsContext:
 		v := value.(wmpf.JsContext)
 		if _, exists := a.Contexts.Get(v.ID); !exists {
 			a.Contexts.Upsert(bridgecontext.Context{ID: v.ID})
 		}
 		a.Contexts.Select(v.ID)
+		if observer := a.observerSnapshot(); observer.OnContext != nil {
+			ctx, _ := a.Contexts.Get(v.ID)
+			observer.OnContext(ContextEvent{Kind: "selected", Context: ctx})
+		}
 	case wmpf.CategoryChromeDevtoolsResult:
 		v := value.(wmpf.ChromeDevtools)
 		var response struct {
@@ -218,6 +371,9 @@ func (a *App) handleUnwrappedDebug(u wmpf.Unwrapped) {
 			_, _ = a.Requests.Resolve(cdp.Response{ID: response.ID, Result: response.Result, Error: response.Error})
 		}
 		a.CDPHub.Broadcast([]byte(v.Payload))
+		if observer := a.observerSnapshot(); observer.OnCDP != nil {
+			observer.OnCDP([]byte(v.Payload))
+		}
 	}
 }
 
@@ -237,6 +393,9 @@ func (a *App) readCDP(c *wsClient) {
 	defer func() {
 		a.CDPHub.Remove(c)
 		_ = c.Close()
+		if observer := a.observerSnapshot(); observer.OnConnection != nil {
+			observer.OnConnection(ConnectionEvent{Kind: "cdp", Connected: false})
+		}
 		a.Log.Info("[cdp] CDP client disconnected")
 	}()
 	for {
@@ -252,38 +411,95 @@ func (a *App) handleCDPFrame(typ int, b []byte, c *wsClient) bool {
 	if typ != websocket.TextMessage && typ != websocket.BinaryMessage {
 		return false
 	}
-	payload := string(b)
+	a.dispatchMu.Lock()
+	defer a.dispatchMu.Unlock()
+	a.sendCDPLocked(string(b), c)
+	return true
+}
+
+// SendCDP injects a raw CDP payload through the same route used by a WebSocket
+// client. It is intentionally narrow so the public SDK never sees wsClient.
+func (a *App) SendCDP(payload []byte) error {
+	if a.closing.Load() {
+		return ErrClosed
+	}
+	a.dispatchMu.Lock()
+	defer a.dispatchMu.Unlock()
+	a.sendCDPLocked(string(payload), nil)
+	return nil
+}
+
+// SendCDPRoute dispatches a CDP payload to an explicit JavaScript context. An
+// empty context ID snapshots the selected context while holding dispatchMu.
+func (a *App) SendCDPRoute(payload []byte, jscontextID string) error {
+	if a.closing.Load() {
+		return ErrClosed
+	}
+	var envelope map[string]json.RawMessage
+	if err := json.Unmarshal(payload, &envelope); err != nil || envelope == nil {
+		return fmt.Errorf("%w: expected a JSON object", ErrInvalidCDPPayload)
+	}
+	a.dispatchMu.Lock()
+	defer a.dispatchMu.Unlock()
+	contextID, err := a.routeContextID(jscontextID)
+	if err != nil {
+		return err
+	}
+	a.sendCDPToContextLocked(string(payload), nil, contextID)
+	return nil
+}
+
+func (a *App) sendCDPLocked(payload string, c *wsClient) {
+	contextID, _ := a.routeContextID("")
+	a.sendCDPToContextLocked(payload, c, contextID)
+}
+
+func (a *App) routeContextID(jscontextID string) (string, error) {
+	if jscontextID == "" {
+		if selected, ok := a.Contexts.Selected(); ok {
+			return selected.ID, nil
+		}
+		return "", ErrNoContext
+	}
+	if _, ok := a.Contexts.Get(jscontextID); !ok {
+		return "", fmt.Errorf("%w: %s", ErrUnknownContext, jscontextID)
+	}
+	return jscontextID, nil
+}
+
+func (a *App) sendCDPToContextLocked(payload string, c *wsClient, contextID string) {
 	var env struct {
 		ID     any            `json:"id"`
 		Method string         `json:"method"`
 		Params map[string]any `json:"params"`
 	}
-	_ = json.Unmarshal(b, &env)
-	a.dispatchMu.Lock()
+	_ = json.Unmarshal([]byte(payload), &env)
 	if env.Method != "" && env.ID != nil {
 		a.Requests.Add(cdp.Request{ID: env.ID, Method: env.Method, Params: env.Params})
-	}
-	contextID := ""
-	if selected, ok := a.Contexts.Selected(); ok {
-		contextID = selected.ID
 	}
 	opID := uint64(math.Round(100 * rand.Float64()))
 	rawPayload := wmpf.ChromeDevtools{OpID: opID, Payload: payload, JSContextID: contextID}
 	a.Log.Main(rawPayload)
 	inner := wmpf.EncodeChrome(rawPayload)
 	frame := wmpf.EncodeOutgoingDebugMessage(wmpf.DebugMessage{Seq: a.seq.Add(1), Category: wmpf.CategoryChromeDevtools, Data: inner})
+	a.recordFrameLocked(capture.DirectionDownstream, frame)
 	a.DebugHub.Broadcast(frame)
-	a.dispatchMu.Unlock()
-	return true
 }
+
+func (a *App) DebugClientCount() int { return a.DebugHub.Count() }
+func (a *App) CDPClientCount() int   { return a.CDPHub.Count() }
 func (a *App) Close(ctx context.Context) error {
-	var out error
 	a.closeOnce.Do(func() {
+		var out error
 		a.closing.Store(true)
-		a.connMu.Lock()
-		if a.Recorder != nil {
-			out = a.Recorder.Close()
+		a.replayMu.Lock()
+		if a.replayCancel != nil {
+			a.replayCancel()
 		}
+		a.replayMu.Unlock()
+		// Close clients before listeners and capture so no new protocol frame can
+		// enter while resources are being released.
+		a.connMu.Lock()
 		a.DebugHub.CloseAll()
 		a.CDPHub.CloseAll()
 		a.connMu.Unlock()
@@ -297,6 +513,16 @@ func (a *App) Close(ctx context.Context) error {
 				out = e
 			}
 		}
+		a.replayWG.Wait()
+		a.dispatchMu.Lock()
+		recorder := a.TakeRecorder()
+		a.dispatchMu.Unlock()
+		if recorder != nil {
+			if e := recorder.Close(); out == nil {
+				out = e
+			}
+		}
+		a.closeErr = out
 	})
-	return out
+	return a.closeErr
 }
