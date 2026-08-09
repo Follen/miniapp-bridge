@@ -78,3 +78,11 @@ powershell -ExecutionPolicy Bypass -File scripts/smoke-windows.ps1
 
 Before a production release, append the live command output, native manifest
 hash, `target-survives-shutdown`, and `ports-released` result to this record.
+
+## Scope Projection Hygiene
+
+Coverage profiles are generated only in the invoking workspace and are not
+implementation artifacts. The verification run removes `cover`, `native-cover`,
+`native-final`, `native-frida-final`, and `native-gap*` profiles before the
+Native implementation scope is captured. A fresh scope and fresh receipts are
+required whenever that projection changes; old receipts are not reused.
