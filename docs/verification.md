@@ -25,7 +25,7 @@ go test ./sdk -count=1
 go test ./... -count=1
 go test ./scripts -run '^TestExternalModuleImportsOnlySDK$' -count=1 -v
 go test ./scripts -run 'Test(BilingualReadme|GitHubCI|GitHubRelease|PackageWindowsRelease)' -count=1 -v
-go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 `
+go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.7 `
   -ignore 'unexpected key.*queue.*concurrency' `
   .github/workflows/ci.yml .github/workflows/release.yml
 

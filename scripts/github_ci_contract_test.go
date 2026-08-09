@@ -31,7 +31,7 @@ func TestGitHubCIWorkflowContract(t *testing.T) {
 		"  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}\n",
 		"  cancel-in-progress: true\n",
 		"GO_VERSION: 1.23.x",
-		"ACTIONLINT_VERSION: 1.7.12",
+		"ACTIONLINT_VERSION: 1.7.7",
 		"FRIDA_CORE_VERSION: 17.3.2",
 		"ZLIB_VERSION: 1.3.1",
 		"runs-on: ubuntu-latest",
