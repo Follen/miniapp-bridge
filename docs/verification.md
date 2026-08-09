@@ -7,11 +7,12 @@ Reference: `evi0s/WMPFDebugger` commit
 
 This file is the stable release verification contract. The current command exit
 statuses, output summaries, acceptance mapping, skipped checks, and residual
-risks are recorded in the Comet Native report at
-[`comet/changes/public-go-sdk-worktree/verification.md`](comet/changes/public-go-sdk-worktree/verification.md).
-Typed receipts under that change bind every result to the exact contract,
+risks for the public SDK baseline are recorded in the archived Comet Native
+report at
+[`comet/archive/2026-08-09-public-go-sdk-worktree/verification.md`](comet/archive/2026-08-09-public-go-sdk-worktree/verification.md).
+Typed receipts under that archive bind every result to the exact contract,
 implementation scope, source revision, and worktree snapshot. Old receipts are
-never evidence for a changed scope.
+never evidence for a changed scope; release candidates rerun the commands below.
 
 ## Required Commands
 
@@ -22,16 +23,37 @@ go mod tidy
 go test ./sdk -count=1
 go test ./... -count=1
 go test ./scripts -run '^TestExternalModuleImportsOnlySDK$' -count=1 -v
+go test ./scripts -run 'Test(BilingualReadme|GitHubCI|GitHubRelease|PackageWindowsRelease)' -count=1 -v
+go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 `
+  -ignore 'unexpected key "queue" for "concurrency" section' `
+  .github/workflows/ci.yml .github/workflows/release.yml
 
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-windows.ps1
 $env:MINIAPP_BRIDGE_NATIVE_PATH = (Resolve-Path '.\dist\miniapp-frida.dll').Path
 go test -v -tags frida ./internal/... -count=1
 go test -v -tags frida ./sdk -count=1
 
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/coverage-gate.ps1
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-windows.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/native-release.ps1
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/native-prepare.ps1 -Offline `
-  -ExpectedArchiveSHA256 <release-sha256>
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-windows-release.ps1 `
+  -Version v0.0.1
+
+$verificationID = [guid]::NewGuid().ToString('N')
+$nativeCache = Join-Path $env:TEMP "miniapp-bridge-cache-$verificationID"
+$nativeDestination = Join-Path $env:TEMP "miniapp-bridge-runtime-$verificationID"
+New-Item -ItemType Directory -Force -Path $nativeCache,$nativeDestination | Out-Null
+try {
+  Copy-Item `
+    '.\dist\native\miniapp-frida-native-17.3.2-abi1-windows-amd64.zip' `
+    $nativeCache
+  powershell -NoProfile -ExecutionPolicy Bypass -File scripts/native-prepare.ps1 `
+    -Offline -CacheDirectory $nativeCache -DestinationDirectory $nativeDestination `
+    -ExpectedArchiveSHA256 1597ADCC6B3B13B5BCBA910904046AB7D2E1E3D73AE16961C73E400373BDE87A
+  if ($LASTEXITCODE -ne 0) { throw "offline native preparation failed: $LASTEXITCODE" }
+}
+finally {
+  Remove-Item -LiteralPath $nativeCache,$nativeDestination -Recurse -Force
+}
 
 git ls-files '*.dll' '*.zip' '*.lib' '*.a' '*.exe'
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/smoke-windows.ps1 `
@@ -58,6 +80,15 @@ Go and loader source only; native binaries are Release assets.
 - Native tests cover PE architecture, hash, manifest, ABI, version, exports,
   dependency/load failures, download/cache/offline behavior, atomic install,
   and exact Agent -> session -> device -> runtime shutdown order.
+- Workflow contract tests enforce minimal permissions, commit-pinned official
+  actions, strict tag/commit checks, fixed native hashes, checksum verification,
+  immutable compatibility assets, and non-overwriting product releases.
+- Bilingual README tests keep endpoints, SDK paths, asset names, versions,
+  checksums, source attribution, and local links synchronized.
+- Product packaging tests cover canonical v0/v1 SemVer, required files,
+  manifest/DLL and native archive integrity, deterministic ZIP output,
+  rollback-capable directory publication, injected failures, and unified
+  checksums.
 
 ## Live Acceptance
 
@@ -89,8 +120,10 @@ response/event ordering that the protocol does not guarantee.
 The Windows amd64 runtime is Frida core `17.3.2`, native ABI `1`, and zlib
 `1.3.1`. The pinned DLL SHA-256 is
 `05CF2B66A6A031E813FEB1C0A895A1272A68770233C3F270272243F48D11E846`.
-The reproducible release ZIP SHA-256 is checked by the current Native report;
-the release script also writes `dist/native/SHA256SUMS`.
+The pinned native ZIP SHA-256 is
+`1597ADCC6B3B13B5BCBA910904046AB7D2E1E3D73AE16961C73E400373BDE87A`.
+Release scripts write `dist/native/SHA256SUMS` and a unified
+`dist/release/SHA256SUMS`; the workflow recomputes both after artifact transfer.
 
 ## Evidence Hygiene
 
