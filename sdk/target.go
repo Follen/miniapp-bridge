@@ -2,8 +2,6 @@ package sdk
 
 import (
 	"context"
-
-	"github.com/Follen/miniapp-bridge/internal/process"
 )
 
 // TargetAttacher is an optional native session capability. Implementations
@@ -31,21 +29,6 @@ func (s *Service) refreshTargetMetadataLocked(native NativeSession) {
 	target := metadata.TargetMetadata()
 	s.mu.Lock()
 	s.status.Target = target
-}
-
-func (s *Service) Discover(ctx context.Context) ([]Target, error) {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-	items, err := (process.TasklistFinder{}).Find(ctx)
-	if err != nil {
-		return nil, &Error{Op: "discover", Component: "process", Err: err}
-	}
-	out := make([]Target, 0, len(items))
-	for _, item := range items {
-		out = append(out, Target{PID: item.PID, ParentPID: item.ParentPID, Name: item.Name, Path: item.Path, Version: item.Version})
-	}
-	return out, nil
 }
 
 func (s *Service) Attach(ctx context.Context, target Target) error {

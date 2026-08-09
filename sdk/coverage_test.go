@@ -7,6 +7,7 @@ import (
 	"io"
 	"net"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -107,7 +108,7 @@ func TestNewValidationAndErrorModel(t *testing.T) {
 		t.Fatal("error formatting")
 	}
 	deferredPath := filepath.Join(t.TempDir(), "missing", "capture.bin")
-	deferred, err := New(Options{RecordPath: deferredPath, Native: disabledNativeStarter})
+	deferred, err := New(Options{DebugPort: sdkFreePort(t), CDPPort: sdkFreePort(t), RecordPath: deferredPath, Native: disabledNativeStarter})
 	if err != nil {
 		t.Fatalf("New should remain allocation-only: %v", err)
 	}
@@ -122,7 +123,7 @@ func TestNewValidationAndErrorModel(t *testing.T) {
 		t.Fatalf("close deferred recorder service: %v", err)
 	}
 	path := filepath.Join(t.TempDir(), "initial.bin")
-	s, err := New(Options{RecordPath: path, Native: disabledNativeStarter})
+	s, err := New(Options{DebugPort: sdkFreePort(t), CDPPort: sdkFreePort(t), RecordPath: path, Native: disabledNativeStarter})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -565,11 +566,21 @@ func TestContextsTargetRecordingReplayAndSubscriptions(t *testing.T) {
 	if err := s.StopRecording(); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := s.Discover(context.Background()); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := s.Discover(nil); err != nil {
-		t.Fatal(err)
+	if runtime.GOOS == "windows" {
+		if _, err := s.Discover(context.Background()); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := s.Discover(nil); err != nil {
+			t.Fatal(err)
+		}
+	} else {
+		for _, ctx := range []context.Context{context.Background(), nil} {
+			_, err := s.Discover(ctx)
+			var structured *Error
+			if !errors.Is(err, ErrNativeUnavailable) || !errors.As(err, &structured) || structured.Op != "discover" || structured.Component != "process" {
+				t.Fatalf("unsupported discovery error=%v", err)
+			}
+		}
 	}
 	canceled, cancel := context.WithCancel(context.Background())
 	cancel()

@@ -15,9 +15,10 @@ import (
 
 func TestAuditEmbeddedAgentMatchesPinnedReference(t *testing.T) {
 	t.Parallel()
-	sum := sha256.Sum256([]byte(agent.AgentSource))
+	canonical := strings.ReplaceAll(agent.AgentSource, "\r\n", "\n")
+	sum := sha256.Sum256([]byte(canonical))
 	got := strings.ToUpper(hex.EncodeToString(sum[:]))
-	const want = "3278DB6CCE182619D87A19756C83F1081F237859FF214560DF1B1758E67C53D5"
+	const want = "D2D6BCECA0ACD668E6F5C387E3FF3F8E6FA5E0C2B5EC561DB01983E75EAE6FAC"
 	if got != want {
 		t.Fatalf("embedded Agent SHA-256=%s, want %s", got, want)
 	}

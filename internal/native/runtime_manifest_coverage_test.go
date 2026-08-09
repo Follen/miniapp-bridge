@@ -1,6 +1,7 @@
 package native
 
 import (
+	"context"
 	"errors"
 	"path/filepath"
 	"testing"
@@ -30,7 +31,7 @@ func TestVerifyManifestRejectsSchemaAndExportMismatches(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			manifest := DefaultManifest()
+			manifest := currentPlatformManifest()
 			test.mutate(&manifest)
 			if err := VerifyManifest(path, manifest); !errors.Is(err, ErrNativeManifest) {
 				t.Fatalf("VerifyManifest() error = %v, want ErrNativeManifest", err)
@@ -55,5 +56,14 @@ func TestSameStringSetRejectsLengthAndMembershipMismatches(t *testing.T) {
 				t.Fatalf("sameStringSet(%v, %v) = true, want false", test.got, test.want)
 			}
 		})
+	}
+}
+
+func TestPrepareDefaultsManifestBeforeCacheLookup(t *testing.T) {
+	original := nativeUserCacheDir
+	t.Cleanup(func() { nativeUserCacheDir = original })
+	nativeUserCacheDir = func() (string, error) { return "", errors.New("cache unavailable") }
+	if _, err := Prepare(context.Background(), PrepareOptions{}); !errors.Is(err, ErrNativeCache) {
+		t.Fatalf("Prepare() error = %v, want ErrNativeCache", err)
 	}
 }

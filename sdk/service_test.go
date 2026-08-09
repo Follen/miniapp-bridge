@@ -9,14 +9,32 @@ import (
 	"time"
 )
 
+var sdkTestPorts = struct {
+	sync.Mutex
+	used map[int]struct{}
+}{used: make(map[int]struct{})}
+
 func sdkFreePort(t *testing.T) int {
 	t.Helper()
-	l, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatal(err)
+	for {
+		l, err := net.Listen("tcp", "127.0.0.1:0")
+		if err != nil {
+			t.Fatal(err)
+		}
+		port := l.Addr().(*net.TCPAddr).Port
+		if err := l.Close(); err != nil {
+			t.Fatal(err)
+		}
+		sdkTestPorts.Lock()
+		_, reused := sdkTestPorts.used[port]
+		if !reused {
+			sdkTestPorts.used[port] = struct{}{}
+		}
+		sdkTestPorts.Unlock()
+		if !reused {
+			return port
+		}
 	}
-	defer l.Close()
-	return l.Addr().(*net.TCPAddr).Port
 }
 
 type fakeNative struct {

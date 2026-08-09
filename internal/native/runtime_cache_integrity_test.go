@@ -46,7 +46,7 @@ func TestPrepareRejectsUntrustedManifest(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			manifest := DefaultManifest()
+			manifest := currentPlatformManifest()
 			test.mutate(&manifest)
 			_, err := Prepare(context.Background(), PrepareOptions{CacheDir: t.TempDir(), Manifest: manifest, Offline: true})
 			if !errors.Is(err, ErrNativeManifest) {

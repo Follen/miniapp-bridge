@@ -28,7 +28,7 @@ func TestGitHubCIWorkflowContract(t *testing.T) {
 	assertBlockLines(t, workflow, "permissions", []string{"contents: read"})
 
 	for _, required := range []string{
-		"  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}\n",
+		"  group: ci-${{ github.workflow }}-${{ github.sha }}\n",
 		"  cancel-in-progress: true\n",
 		"GO_VERSION: 1.23.x",
 		"ACTIONLINT_VERSION: 1.7.7",

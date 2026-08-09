@@ -110,7 +110,7 @@ func TestPrepareRejectsZipSlip(t *testing.T) {
 }
 
 func TestPrepareRejectsMalformedArchiveAndManifest(t *testing.T) {
-	m := DefaultManifest()
+	m := currentPlatformManifest()
 	malformed := []byte("not a zip")
 	malformedHash := sha256.Sum256(malformed)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -143,7 +143,7 @@ func TestPrepareUsesPinnedArchiveHashByDefault(t *testing.T) {
 	defer server.Close()
 
 	cache := t.TempDir()
-	_, err := Prepare(context.Background(), PrepareOptions{CacheDir: cache, SourceURL: server.URL, Manifest: DefaultManifest()})
+	_, err := Prepare(context.Background(), PrepareOptions{CacheDir: cache, SourceURL: server.URL, Manifest: currentPlatformManifest()})
 	if !errors.Is(err, ErrNativeHashMismatch) {
 		t.Fatalf("default trust anchor error=%v", err)
 	}
@@ -163,7 +163,7 @@ func TestPrepareUsesPinnedArchiveHashByDefault(t *testing.T) {
 
 func TestPrepareLockCancellationAndManifestPath(t *testing.T) {
 	dir := t.TempDir()
-	m := DefaultManifest()
+	m := currentPlatformManifest()
 	if err := os.WriteFile(filepath.Join(dir, "miniapp-frida.dll.lock"), []byte{}, 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -177,6 +177,12 @@ func TestPrepareLockCancellationAndManifestPath(t *testing.T) {
 	if _, err := Prepare(context.Background(), PrepareOptions{CacheDir: t.TempDir(), Offline: true, Manifest: m}); !errors.Is(err, ErrNativeManifest) {
 		t.Fatalf("manifest path err=%v", err)
 	}
+}
+
+func currentPlatformManifest() Manifest {
+	m := DefaultManifest()
+	m.OS, m.Arch = runtime.GOOS, runtime.GOARCH
+	return m
 }
 
 func TestVerifyManifestNativeErrorFields(t *testing.T) {

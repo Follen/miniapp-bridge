@@ -92,7 +92,7 @@ func TestNativeDefaultAndExplicitRuntimeChecks(t *testing.T) {
 func TestNativePrepareDefaultsAndExtractInstallFailures(t *testing.T) {
 	canceled, cancel := context.WithCancel(context.Background())
 	cancel()
-	if _, err := Prepare(canceled, PrepareOptions{Offline: true}); !errors.Is(err, ErrNativeOffline) {
+	if _, err := Prepare(canceled, PrepareOptions{Offline: true, Manifest: currentPlatformManifest()}); !errors.Is(err, ErrNativeOffline) {
 		t.Fatalf("default cache cancellation=%v", err)
 	}
 	withoutDLL := DefaultManifest()
@@ -403,14 +403,21 @@ func TestNativePlatformFileErrors(t *testing.T) {
 	if err := os.WriteFile(path, []byte("not a PE"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if err := verifyPlatformFile(path); !errors.Is(err, ErrNativeWrongArch) {
+	err := verifyPlatformFile(path)
+	if runtime.GOOS != "windows" {
+		if err != nil {
+			t.Fatalf("non-Windows platform file check=%v", err)
+		}
+		return
+	}
+	if !errors.Is(err, ErrNativeWrongArch) {
 		t.Fatalf("parse PE err=%v", err)
 	}
 	path = filepath.Join(t.TempDir(), "x86.dll")
 	if err := os.WriteFile(path, minimalPE(0x14c), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	err := verifyPlatformFile(path)
+	err = verifyPlatformFile(path)
 	var nativeErr *Error
 	if !errors.As(err, &nativeErr) || nativeErr.Operation != "PE architecture" {
 		t.Fatalf("x86 PE err=%v typed=%#v", err, nativeErr)
@@ -515,7 +522,7 @@ func TestNativeUserCacheDirectoryError(t *testing.T) {
 	original := nativeUserCacheDir
 	defer func() { nativeUserCacheDir = original }()
 	nativeUserCacheDir = func() (string, error) { return "", errors.New("cache unavailable") }
-	if _, err := Prepare(context.Background(), PrepareOptions{Offline: true}); !errors.Is(err, ErrNativeCache) {
+	if _, err := Prepare(context.Background(), PrepareOptions{Offline: true, Manifest: currentPlatformManifest()}); !errors.Is(err, ErrNativeCache) {
 		t.Fatalf("user cache err=%v", err)
 	}
 }
@@ -534,7 +541,7 @@ func TestNativePrepareStaleLockAndWrapper(t *testing.T) {
 		t.Fatal(err)
 	}
 	unlock()
-	if _, err := PrepareNativeRuntime(context.Background(), PrepareOptions{CacheDir: t.TempDir(), Offline: true}); !errors.Is(err, ErrNativeOffline) {
+	if _, err := PrepareNativeRuntime(context.Background(), PrepareOptions{CacheDir: t.TempDir(), Offline: true, Manifest: currentPlatformManifest()}); !errors.Is(err, ErrNativeOffline) {
 		t.Fatalf("wrapper err=%v", err)
 	}
 	if _, err := acquireLock(context.Background(), filepath.Join(t.TempDir(), "missing", "lock")); !errors.Is(err, ErrNativeCache) {
