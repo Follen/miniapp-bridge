@@ -71,7 +71,10 @@ func TestPackageWindowsReleaseProducesReproducibleVerifiedAssets(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer reader.Close()
-	wantNames := []string{"LICENSE", "README.md", "README.zh.md", "THIRD_PARTY_NOTICES.md", "ZLIB_LICENSE", "manifest.json", "miniapp-bridge.exe", "miniapp-frida.dll"}
+	wantNames := []string{
+		"FRIDA_COPYING", "FRIDA_COPYING.LIB", "LICENSE", "README.md", "README.zh.md",
+		"THIRD_PARTY_NOTICES.md", "ZLIB_LICENSE", "manifest.json", "miniapp-bridge.exe", "miniapp-frida.dll",
+	}
 	gotNames := make([]string, 0, len(reader.File))
 	for _, file := range reader.File {
 		gotNames = append(gotNames, file.Name)
@@ -189,6 +192,17 @@ func TestPackageWindowsReleaseRejectsInvalidInputs(t *testing.T) {
 			t.Fatalf("missing Chinese README was not rejected: err=%v\n%s", err, output)
 		}
 	})
+
+	t.Run("missing-frida-license", func(t *testing.T) {
+		fixture := newWindowsReleaseFixture(t)
+		if err := os.Remove(filepath.Join(fixture.root, "licenses", "frida-17.3.2", "COPYING.LIB")); err != nil {
+			t.Fatal(err)
+		}
+		output, err := fixture.run("v1.0.0")
+		if err == nil || !strings.Contains(output, "required release file missing") {
+			t.Fatalf("missing Frida license was not rejected: err=%v\n%s", err, output)
+		}
+	})
 }
 
 func newWindowsReleaseFixture(t *testing.T) windowsReleaseFixture {
@@ -197,7 +211,12 @@ func newWindowsReleaseFixture(t *testing.T) windowsReleaseFixture {
 	input := filepath.Join(root, "dist")
 	native := filepath.Join(input, "native")
 	output := filepath.Join(input, "release")
-	for _, directory := range []string{input, native, filepath.Join(root, "third_party", "zlib", "src-1.3.1")} {
+	for _, directory := range []string{
+		input,
+		native,
+		filepath.Join(root, "licenses", "frida-17.3.2"),
+		filepath.Join(root, "third_party", "zlib", "src-1.3.1"),
+	} {
 		if err := os.MkdirAll(directory, 0o755); err != nil {
 			t.Fatal(err)
 		}
@@ -225,6 +244,8 @@ func newWindowsReleaseFixture(t *testing.T) windowsReleaseFixture {
 		filepath.Join(root, "README.md"):                                   []byte("English readme\n"),
 		filepath.Join(root, "README.zh.md"):                                []byte("Chinese readme\n"),
 		filepath.Join(root, "LICENSE"):                                     []byte("license\n"),
+		filepath.Join(root, "licenses", "frida-17.3.2", "COPYING"):         []byte("frida copying\n"),
+		filepath.Join(root, "licenses", "frida-17.3.2", "COPYING.LIB"):     []byte("frida library license\n"),
 		filepath.Join(root, "THIRD_PARTY_NOTICES.md"):                      []byte("notices\n"),
 		filepath.Join(root, "third_party", "zlib", "src-1.3.1", "LICENSE"): []byte("zlib license\n"),
 	}

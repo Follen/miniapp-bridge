@@ -2,17 +2,20 @@
 package sdk
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/Follen/miniapp-bridge/internal/app"
 	"github.com/Follen/miniapp-bridge/internal/capture"
+	bridgecdp "github.com/Follen/miniapp-bridge/internal/cdp"
 	bridgecontext "github.com/Follen/miniapp-bridge/internal/context"
 	"github.com/Follen/miniapp-bridge/internal/logging"
 	"github.com/Follen/miniapp-bridge/internal/wmpf"
 	"io"
 	"sort"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -199,16 +202,17 @@ type Service struct {
 	cancel         context.CancelFunc
 	startCancel    context.CancelFunc
 	app            *app.App
+	nativeLog      *logging.Logger
 	native         NativeSession
 	nativePath     string
 	nativeAttached bool
 	nativeStarter  NativeStarter
 	recordPath     string
 	replayPath     string
-	upstreamSeen   bool
 	upstreamOnline bool
 	status         Status
 	pending        map[string]chan pendingResult
+	pendingIDs     map[string]any
 	logs           eventBus[LogEvent]
 	statuses       eventBus[Status]
 	cdpEvents      eventBus[CDPEvent]
@@ -240,7 +244,9 @@ func New(o Options) (*Service, error) {
 	if stderr == nil {
 		stderr = io.Discard
 	}
-	s := &Service{state: StateNew, pending: make(map[string]chan pendingResult)}
+	stdout = &lockedWriter{dst: stdout}
+	stderr = &lockedWriter{dst: stderr}
+	s := &Service{state: StateNew, pending: make(map[string]chan pendingResult), pendingIDs: make(map[string]any)}
 	s.nativeStarter, s.recordPath, s.replayPath, s.nativePath = o.Native, o.RecordPath, o.ReplayPath, o.NativePath
 	if s.nativeStarter == nil {
 		s.nativeStarter = defaultNativeStarter(o.NativePath, o.AddressConfigDir)
@@ -249,6 +255,9 @@ func New(o Options) (*Service, error) {
 	s.cdpEvents.clone = cloneCDPEvent
 	s.statuses.clone = cloneStatus
 	s.app = app.New(o.DebugPort, o.CDPPort, logging.NewWithWriters(o.DebugMain, o.DebugFrida, &logWriter{svc: s, level: "info", dst: stdout}, &logWriter{svc: s, level: "error", dst: stderr}))
+	// Native messages publish directly to the SDK bus. This second logger only
+	// preserves the CLI streams and Frida debug gate, avoiding duplicate events.
+	s.nativeLog = logging.NewWithWriters(false, o.DebugFrida, stdout, stderr)
 	s.app.SetObserver(app.Observer{OnCDP: s.observeCDP, OnContext: s.observeContext, OnConnection: s.observeConnection})
 	s.status = Status{State: StateNew, DebugPort: o.DebugPort, CDPPort: o.CDPPort}
 	if o.RecordPath != "" {
@@ -290,6 +299,7 @@ func (s *Service) Start(ctx context.Context) error {
 	startupCtx, startupCancel := context.WithCancel(ctx)
 	s.startCancel = startupCancel
 	s.mu.Unlock()
+	s.publishStatus()
 
 	err := s.start(startupCtx)
 	startupCancel()
@@ -367,22 +377,32 @@ func (s *Service) start(ctx context.Context) error {
 	}
 	if s.nativeStarter != nil {
 		native, err := s.nativeStarter(ctx, func(event LogEvent) {
-			// Native attach is an observable CLI line in the reference. Route the
-			// informational event through the app logger so it is emitted once and
-			// still reaches the SDK log bus through logWriter.
-			if event.Level == "info" {
-				s.app.Log.Info(event.Message)
-				return
+			if event.Time.IsZero() {
+				event.Time = time.Now()
 			}
 			s.logs.publish(event)
+			switch event.Level {
+			case "error":
+				s.nativeLog.Error(event.Message)
+			case "debug":
+				s.nativeLog.Frida(event.Message)
+			default:
+				s.nativeLog.Info(event.Message)
+			}
 		})
 		if err != nil {
+			if native != nil {
+				if closeErr := native.Close(context.Background()); closeErr != nil {
+					err = errors.Join(err, closeErr)
+				}
+			}
 			_ = s.closeApp()
 			return &Error{Op: "start", Component: "native", Err: err}
 		}
 		s.mu.Lock()
 		s.native = native
 		s.refreshNativeMetadataLocked(native, native != nil)
+		s.refreshTargetMetadataLocked(native)
 		s.mu.Unlock()
 	}
 	if err := ctx.Err(); err != nil {
@@ -473,6 +493,7 @@ func (s *Service) Close(ctx context.Context) error {
 	done := s.closeDone
 	cancel := s.cancel
 	s.mu.Unlock()
+	s.publishStatus()
 	if cancel != nil {
 		cancel()
 	}
@@ -498,7 +519,9 @@ func (s *Service) shutdown(done chan struct{}) {
 		case ch <- pendingResult{err: ErrClosed}:
 		default:
 		}
+		s.cancelAppRequestLocked(key)
 		delete(s.pending, key)
+		delete(s.pendingIDs, key)
 	}
 	s.mu.Unlock()
 	err := s.app.Close(context.Background())
@@ -734,7 +757,7 @@ func (s *Service) sendPayload(ctx context.Context, payload []byte, route Route, 
 		s.mu.Unlock()
 		return Response{}, ErrNotRunning
 	}
-	if s.upstreamSeen && !s.upstreamOnline {
+	if wait && !s.upstreamOnline && s.app.DebugClientCount() == 0 {
 		s.mu.Unlock()
 		return Response{}, ErrNoUpstream
 	}
@@ -753,11 +776,14 @@ func (s *Service) sendPayload(ctx context.Context, payload []byte, route Route, 
 		return Response{}, ErrDuplicateID
 	}
 	s.pending[key] = ch
+	s.pendingIDs[key] = id
 	s.mu.Unlock()
 	sendErr := s.app.SendCDPRoute(payload, route.JSContextID)
 	if sendErr != nil {
 		s.mu.Lock()
 		delete(s.pending, key)
+		delete(s.pendingIDs, key)
+		s.cancelAppRequest(id)
 		s.mu.Unlock()
 		return Response{}, translateAppError(sendErr)
 	}
@@ -767,6 +793,8 @@ func (s *Service) sendPayload(ctx context.Context, payload []byte, route Route, 
 	case <-ctx.Done():
 		s.mu.Lock()
 		delete(s.pending, key)
+		delete(s.pendingIDs, key)
+		s.cancelAppRequest(id)
 		s.mu.Unlock()
 		return Response{}, contextOperationError("send", ctx.Err())
 	}
@@ -796,9 +824,8 @@ func (s *Service) SendRaw(ctx context.Context, payload []byte) (Response, error)
 // SendRawRoute sends a raw JSON CDP request with an explicit context route.
 func (s *Service) SendRawRoute(ctx context.Context, payload []byte, route Route) (Response, error) {
 	var env struct {
-		ID     json.RawMessage `json:"id"`
-		Method string          `json:"method"`
-		Params json.RawMessage `json:"params"`
+		ID     exactJSONID `json:"id"`
+		Method string      `json:"method"`
 	}
 	if err := json.Unmarshal(payload, &env); err != nil {
 		return Response{}, &Error{Op: "send", Component: "request", Err: errors.Join(ErrInvalidRequest, err)}
@@ -806,17 +833,13 @@ func (s *Service) SendRawRoute(ctx context.Context, payload []byte, route Route)
 	if env.Method == "" {
 		return Response{}, &Error{Op: "send", Component: "request", Err: ErrInvalidRequest}
 	}
-	var id any
-	wait := len(env.ID) != 0 && string(env.ID) != "null"
+	wait := env.ID.present && env.ID.value != nil
 	if wait {
-		if err := json.Unmarshal(env.ID, &id); err != nil {
-			return Response{}, &Error{Op: "send", Component: "request", Err: errors.Join(ErrInvalidRequest, err)}
-		}
-		if !validRequestID(id) {
+		if !validRequestID(env.ID.value) {
 			return Response{}, &Error{Op: "send", Component: "request", Err: ErrInvalidRequest}
 		}
 	}
-	return s.sendPayload(ctx, payload, route, id, wait)
+	return s.sendPayload(ctx, payload, route, env.ID.value, wait)
 }
 func (s *Service) Notify(req Request) error {
 	if req.Method == "" {
@@ -836,7 +859,7 @@ func (s *Service) Notify(req Request) error {
 
 func (s *Service) observeCDP(payload []byte) {
 	var env struct {
-		ID     any            `json:"id"`
+		ID     exactJSONID    `json:"id"`
 		Method string         `json:"method"`
 		Params map[string]any `json:"params"`
 		Result map[string]any `json:"result"`
@@ -850,21 +873,22 @@ func (s *Service) observeCDP(payload []byte) {
 		})
 		return
 	}
-	e := CDPEvent{Time: time.Now(), Payload: append([]byte(nil), payload...), ID: env.ID, Method: env.Method, Params: cloneJSONMap(env.Params)}
+	e := CDPEvent{Time: time.Now(), Payload: append([]byte(nil), payload...), ID: env.ID.value, Method: env.Method, Params: cloneJSONMap(env.Params)}
 	var responseTarget chan pendingResult
 	var responseResult pendingResult
-	if env.ID != nil && env.Method == "" {
-		resp := Response{ID: env.ID, Result: cloneJSONMap(env.Result), Error: cloneCDPError(env.Error)}
+	if env.ID.value != nil && env.Method == "" {
+		resp := Response{ID: env.ID.value, Result: cloneJSONMap(env.Result), Error: cloneCDPError(env.Error)}
 		e.Response = &resp
-		key := idKey(env.ID)
+		key := idKey(env.ID.value)
 		s.mu.Lock()
 		responseTarget = s.pending[key]
 		delete(s.pending, key)
+		delete(s.pendingIDs, key)
 		s.mu.Unlock()
 		if responseTarget != nil {
 			responseResult = pendingResult{response: resp}
 		} else {
-			e.Err = &Error{Op: "receive", Component: "request", Err: fmt.Errorf("%w: %v", ErrUnknownRequestID, env.ID)}
+			e.Err = &Error{Op: "receive", Component: "request", Err: fmt.Errorf("%w: %v", ErrUnknownRequestID, env.ID.value)}
 		}
 	}
 	s.cdpEvents.publish(e)
@@ -880,13 +904,14 @@ func (s *Service) observeConnection(e app.ConnectionEvent) {
 	if e.Kind == "upstream" {
 		online := e.Connected || s.app.DebugClientCount() > 0
 		s.mu.Lock()
-		s.upstreamSeen = true
 		s.upstreamOnline = online
 		pending := make([]chan pendingResult, 0, len(s.pending))
 		if !online && s.state == StateRunning {
 			for key, ch := range s.pending {
 				pending = append(pending, ch)
+				s.cancelAppRequestLocked(key)
 				delete(s.pending, key)
+				delete(s.pendingIDs, key)
 			}
 		}
 		s.mu.Unlock()
@@ -925,19 +950,62 @@ func subscriptionBuffer(options []SubscriptionOptions) int {
 	return 0
 }
 
-func idKey(id any) string { b, _ := json.Marshal(id); return string(b) }
+func idKey(id any) string {
+	key, _ := bridgecdp.IDKey(id)
+	return key
+}
 
 func nextStructuredRequestID() string {
 	return fmt.Sprintf("sdk-%d", structuredRequestSequence.Add(1))
 }
 
 func validRequestID(id any) bool {
-	switch id.(type) {
-	case string, float64, float32, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, json.Number:
+	if _, ok := id.(string); ok {
 		return true
-	default:
+	}
+	if _, ok := bridgecdp.IDKey(id); !ok {
 		return false
 	}
+	// IDKey already marshals and validates numeric IDs; a second encoding is
+	// guaranteed to succeed for the same value and is only needed for the
+	// finite-range check below.
+	encoded, _ := json.Marshal(id)
+	_, err := strconv.ParseFloat(string(encoded), 64)
+	return err == nil
+}
+
+func decodeJSONNumber(payload []byte, target any) error {
+	if !json.Valid(payload) {
+		// Preserve encoding/json's concrete SyntaxError for errors.Is/As users.
+		var discarded any
+		return json.Unmarshal(payload, &discarded)
+	}
+	decoder := json.NewDecoder(bytes.NewReader(payload))
+	decoder.UseNumber()
+	if err := decoder.Decode(target); err != nil {
+		return err
+	}
+	return nil
+}
+
+type exactJSONID struct {
+	value   any
+	present bool
+}
+
+func (id *exactJSONID) UnmarshalJSON(payload []byte) error {
+	id.present = true
+	return decodeJSONNumber(payload, &id.value)
+}
+
+func (s *Service) cancelAppRequest(id any) {
+	if id != nil {
+		s.app.CancelCDPRequest(id)
+	}
+}
+
+func (s *Service) cancelAppRequestLocked(key string) {
+	s.cancelAppRequest(s.pendingIDs[key])
 }
 
 func contextOperationError(op string, err error) error {
@@ -951,6 +1019,17 @@ type logWriter struct {
 	svc   *Service
 	level string
 	dst   io.Writer
+}
+
+type lockedWriter struct {
+	mu  sync.Mutex
+	dst io.Writer
+}
+
+func (w *lockedWriter) Write(p []byte) (int, error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.dst.Write(p)
 }
 
 func (w *logWriter) Write(p []byte) (int, error) {

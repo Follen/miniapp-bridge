@@ -2,6 +2,7 @@ package sdk
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"net"
@@ -318,6 +319,9 @@ func TestRequestResponseNotifyAndCDPEvents(t *testing.T) {
 	}
 	selectSDKContext(t, s, "request-context")
 	defer s.Close(context.Background())
+	upstream := &routeFrameClient{frames: make(chan []byte, 8)}
+	s.app.DebugHub.Add(upstream)
+	defer s.app.DebugHub.Remove(upstream)
 	cdp := s.SubscribeCDP(SubscriptionOptions{Buffer: 8})
 	respCh := make(chan Response, 1)
 	go func() {
@@ -330,7 +334,7 @@ func TestRequestResponseNotifyAndCDPEvents(t *testing.T) {
 	time.Sleep(10 * time.Millisecond)
 	s.observeCDP([]byte(`{"id":7,"error":{"code":-1,"message":"bad","data":"x"}}`))
 	resp := <-respCh
-	if resp.ID != float64(7) || resp.Error == nil || resp.Error.Code != -1 {
+	if resp.ID != json.Number("7") || resp.Error == nil || resp.Error.Code != -1 {
 		t.Fatalf("response=%+v", resp)
 	}
 	select {
@@ -385,6 +389,9 @@ func TestRequestCancellationAndDuplicateID(t *testing.T) {
 	}
 	selectSDKContext(t, s, "request-context")
 	defer s.Close(context.Background())
+	upstream := &routeFrameClient{frames: make(chan []byte, 8)}
+	s.app.DebugHub.Add(upstream)
+	defer s.app.DebugHub.Remove(upstream)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
 	defer cancel()
 	if _, err := s.Send(ctx, Request{ID: "cancel", Method: "x"}); !errors.Is(err, context.DeadlineExceeded) {
@@ -408,6 +415,9 @@ func TestCloseWakesPendingRequest(t *testing.T) {
 		t.Fatal(err)
 	}
 	selectSDKContext(t, s, "request-context")
+	upstream := &routeFrameClient{frames: make(chan []byte, 1)}
+	s.app.DebugHub.Add(upstream)
+	defer s.app.DebugHub.Remove(upstream)
 	done := make(chan error, 1)
 	go func() {
 		_, err := s.Send(context.Background(), Request{ID: "waiting", Method: "Runtime.enable"})

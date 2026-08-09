@@ -119,10 +119,15 @@ $manifestPath = Join-Path $input 'manifest.json'
 $readme = Join-Path $root 'README.md'
 $readmeZH = Join-Path $root 'README.zh.md'
 $license = Join-Path $root 'LICENSE'
+$fridaCopying = Join-Path $root 'licenses\frida-17.3.2\COPYING'
+$fridaLibraryLicense = Join-Path $root 'licenses\frida-17.3.2\COPYING.LIB'
 $notices = Join-Path $root 'THIRD_PARTY_NOTICES.md'
 $zlibLicense = Join-Path $root 'third_party\zlib\src-1.3.1\LICENSE'
 
-foreach ($required in @($exe, $dll, $manifestPath, $readme, $readmeZH, $license, $notices, $zlibLicense)) {
+foreach ($required in @(
+        $exe, $dll, $manifestPath, $readme, $readmeZH, $license,
+        $fridaCopying, $fridaLibraryLicense, $notices, $zlibLicense
+    )) {
     if (-not (Test-Path -LiteralPath $required -PathType Leaf)) {
         throw "required release file missing: $required"
     }
@@ -202,6 +207,8 @@ try {
     New-Item -ItemType Directory -Path $stageCompat | Out-Null
     $entries = [ordered]@{
         'LICENSE'                = $license
+        'FRIDA_COPYING'          = $fridaCopying
+        'FRIDA_COPYING.LIB'      = $fridaLibraryLicense
         'README.md'              = $readme
         'README.zh.md'           = $readmeZH
         'THIRD_PARTY_NOTICES.md' = $notices

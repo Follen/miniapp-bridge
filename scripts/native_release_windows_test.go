@@ -89,7 +89,10 @@ func TestNativeReleaseArchiveContract(t *testing.T) {
 	}
 	defer reader.Close()
 
-	wantNames := []string{"LICENSE", "SHA256SUMS", "THIRD_PARTY_NOTICES.md", "ZLIB_LICENSE", "manifest.json", "miniapp-frida.dll"}
+	wantNames := []string{
+		"FRIDA_COPYING", "FRIDA_COPYING.LIB", "LICENSE", "SHA256SUMS",
+		"THIRD_PARTY_NOTICES.md", "ZLIB_LICENSE", "manifest.json", "miniapp-frida.dll",
+	}
 	gotNames := make([]string, 0, len(reader.File))
 	entries := make(map[string][]byte, len(reader.File))
 	for _, file := range reader.File {
@@ -145,6 +148,18 @@ func TestNativeReleaseArchiveContract(t *testing.T) {
 	for name, data := range entries {
 		if got := internalSums[name]; !strings.EqualFold(got, bytesSHA256(data)) {
 			t.Errorf("internal sum for %s = %q, want %s", name, got, bytesSHA256(data))
+		}
+	}
+	for archiveName, sourceName := range map[string]string{
+		"FRIDA_COPYING":     "COPYING",
+		"FRIDA_COPYING.LIB": "COPYING.LIB",
+	} {
+		want, readErr := os.ReadFile(filepath.Join(repo, "licenses", "frida-17.3.2", sourceName))
+		if readErr != nil {
+			t.Fatal(readErr)
+		}
+		if !bytes.Equal(entries[archiveName], want) {
+			t.Fatalf("%s differs from pinned source license", archiveName)
 		}
 	}
 

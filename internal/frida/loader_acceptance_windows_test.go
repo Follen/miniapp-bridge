@@ -22,7 +22,20 @@ func TestWindowsLoaderFakeDLLAcceptance(t *testing.T) {
 		t.Fatal(err)
 	}
 	include := filepath.Join(repo, "internal", "frida")
-	writeLoaderFixture(t, filepath.Join(work, "good.c"), loaderFixtureSpec{})
+	writeLoaderFixture(t, filepath.Join(work, "good.c"), loaderFixtureSpec{
+		prefix: `
+#include <stdio.h>
+#include <windows.h>
+static void loader_trace(const char *event) {
+  char path[MAX_PATH]; DWORD size = GetEnvironmentVariableA("MB_LOADER_TRACE", path, MAX_PATH);
+  if (size == 0 || size >= MAX_PATH) return;
+  FILE *file = fopen(path, "ab"); if (file != NULL) { fputs(event, file); fputc('\n', file); fclose(file); }
+}
+BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved) {
+  (void)instance; (void)reserved; if (reason == DLL_PROCESS_DETACH) loader_trace("unload"); return TRUE;
+}`,
+		shutdownBody: `loader_trace("shutdown");`,
+	})
 	writeLoaderFixture(t, filepath.Join(work, "bad-zlib.c"), loaderFixtureSpec{zlibVersion: `"1.3.2"`})
 	writeLoaderFixture(t, filepath.Join(work, "bad-native.c"), loaderFixtureSpec{nativeVersion: `"17.3.1-abi1"`})
 	writeLoaderFixture(t, filepath.Join(work, "bad-frida.c"), loaderFixtureSpec{fridaVersion: `"17.3.1"`})
@@ -72,6 +85,7 @@ func TestWindowsLoaderFakeDLLAcceptance(t *testing.T) {
 		filepath.Join(work, "null-version.dll"),
 		filepath.Join(work, "wrong-arch.dll"),
 		filepath.Join(work, "dependency.dll"),
+		filepath.Join(work, "loader-trace.txt"),
 	)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -79,6 +93,19 @@ func TestWindowsLoaderFakeDLLAcceptance(t *testing.T) {
 	}
 	if got := strings.TrimSpace(string(output)); got != "loader acceptance ok" {
 		t.Fatalf("loader output=%q", got)
+	}
+	trace, err := os.ReadFile(filepath.Join(work, "loader-trace.txt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	events := strings.Fields(string(trace))
+	if len(events) == 0 || len(events)%2 != 0 {
+		t.Fatalf("loader lifecycle trace=%v", events)
+	}
+	for i := 0; i < len(events); i += 2 {
+		if events[i] != "shutdown" || events[i+1] != "unload" {
+			t.Fatalf("loader lifecycle trace=%v", events)
+		}
 	}
 }
 
@@ -107,6 +134,7 @@ type loaderFixtureSpec struct {
 	fridaVersion   string
 	zlibVersion    string
 	omitScriptPost bool
+	shutdownBody   string
 }
 
 func writeLoaderFixture(t *testing.T, path string, spec loaderFixtureSpec) {
@@ -123,11 +151,14 @@ func writeLoaderFixture(t *testing.T, path string, spec loaderFixtureSpec) {
 	if spec.zlibVersion == "" {
 		spec.zlibVersion = `"1.3.1"`
 	}
+	if spec.shutdownBody == "" {
+		spec.shutdownBody = `(void)0;`
+	}
 	scriptPost := ""
 	if !spec.omitScriptPost {
 		scriptPost = `__declspec(dllexport) int mb_script_post(mb_script *s,const char *j,char **e){(void)s;(void)j;(void)e;return 1;}`
 	}
-	source := fmt.Sprintf(loaderFixtureTemplateExtended, spec.prefix, spec.abiVersion, spec.nativeVersion, spec.fridaVersion, spec.zlibVersion, scriptPost)
+	source := fmt.Sprintf(loaderFixtureTemplateExtended, spec.prefix, spec.abiVersion, spec.nativeVersion, spec.fridaVersion, spec.zlibVersion, spec.shutdownBody, scriptPost)
 	if err := os.WriteFile(path, []byte(source), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -184,7 +215,7 @@ __declspec(dllexport) int mb_device_enumerate(mb_device*d,mb_process**i,size_t*c
 __declspec(dllexport) void mb_processes_free(mb_process*i,size_t c){(void)i;(void)c;}
 __declspec(dllexport) mb_session *mb_device_attach(mb_device*d,uint32_t p,uintptr_t h,mb_detached_cb cb,char**e){(void)d;(void)p;(void)h;(void)cb;(void)e;return (mb_session*)1;}
 __declspec(dllexport) void mb_device_close(mb_device*d){(void)d;}
-__declspec(dllexport) void mb_runtime_shutdown(void){}
+__declspec(dllexport) void mb_runtime_shutdown(void){%s}
 __declspec(dllexport) mb_script *mb_session_load_script(mb_session*s,const char*src,uintptr_t h,mb_message_cb cb,char**e){(void)s;(void)src;(void)h;(void)cb;(void)e;return (mb_script*)1;}
 __declspec(dllexport) int mb_session_detach(mb_session*s,char**e){(void)s;(void)e;return 1;}
 %s
@@ -229,7 +260,8 @@ int wmain(int argc, wchar_t **argv) {
   int code = MB_NATIVE_LOAD_OK;
   uint8_t input[3] = {1,2,3}; uint8_t *output = NULL; size_t output_size = 0;
   HANDLE workers[8];
-  if (argc != 10) return 2;
+  if (argc != 11) return 2;
+  if (_wputenv_s(L"MB_LOADER_TRACE", argv[10]) != 0) return 26;
   if (!mb_native_load(argv[1], &error, &code) || code != MB_NATIVE_LOAD_OK || !mb_native_load(argv[1], &error, &code) || code != MB_NATIVE_LOAD_OK) return 3;
   if (!mb_native_loaded()) return 4;
   if (!mb_native_retain_loaded()) return 13;

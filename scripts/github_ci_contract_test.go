@@ -73,9 +73,18 @@ func TestGitHubCIWorkflowContract(t *testing.T) {
 		"actions/cache":           1,
 		"actions/upload-artifact": 3,
 	}
+	approvedActions := map[string]bool{
+		"actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1":        true,
+		"actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e":        true,
+		"actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9":           true,
+		"actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a": true,
+	}
 	gotActionCounts := make(map[string]int)
 	fullSHA := regexp.MustCompile(`^([^@]+)@[0-9a-f]{40}$`)
 	for _, match := range uses {
+		if !approvedActions[match[1]] {
+			t.Errorf("workflow uses an unapproved or non-Node-24 action pin: %q", match[1])
+		}
 		parts := fullSHA.FindStringSubmatch(match[1])
 		if parts == nil {
 			t.Errorf("every uses entry must be pinned to a full lowercase commit SHA: %q", match[1])

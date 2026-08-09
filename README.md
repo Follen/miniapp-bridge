@@ -148,7 +148,7 @@ Prepare a published runtime into an executable directory:
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\native-prepare.ps1 `
   -DestinationDirectory .\dist `
-  -ExpectedArchiveSHA256 1597ADCC6B3B13B5BCBA910904046AB7D2E1E3D73AE16961C73E400373BDE87A
+  -ExpectedArchiveSHA256 E521ED5828176DE066474D1DE91C69B1FC9B17BC4E7ECFCBDB64B752309A2C2B
 ```
 
 The default download is:
@@ -192,15 +192,16 @@ miniapp-frida-native-17.3.2-abi1-windows-amd64.zip
 ```
 
 The native ZIP contains `miniapp-frida.dll`, `manifest.json`, `LICENSE`,
-`ZLIB_LICENSE`, `THIRD_PARTY_NOTICES.md`, and its internal `SHA256SUMS`.
+`FRIDA_COPYING`, `FRIDA_COPYING.LIB`, `ZLIB_LICENSE`,
+`THIRD_PARTY_NOTICES.md`, and its internal `SHA256SUMS`.
 
 GitHub Actions uses two workflows:
 
 - [CI](.github/workflows/ci.yml) runs on pushes, pull requests, and manual
   dispatch. Linux runs the portable unit, vet, race, module, formatting, and
   repository checks. Windows runs the pinned native build and the complete
-  `100.0%` coverage gate. Official actions are pinned to full commit hashes and
-  workflow permissions are read-only.
+  `100.0%` coverage gate. Official Node 24 actions are pinned to full commit
+  hashes and workflow permissions are read-only.
 - [Release](.github/workflows/release.yml) runs for an existing canonical v0/v1
   tag or manual dispatch of that tag. A read-only Windows job repeats module,
   deterministic, coverage/race/vet, native build, export, dependency, and hash
@@ -221,9 +222,10 @@ The product ZIP contains the EXE, matching DLL and manifest, both READMEs, and
 the required license and notice files. The workflow also creates or verifies
 the immutable `native-v17.3.2-abi1` compatibility release used by the default
 SDK download URL. Its native ZIP must match the SDK-pinned SHA-256
-`1597ADCC6B3B13B5BCBA910904046AB7D2E1E3D73AE16961C73E400373BDE87A`.
+`E521ED5828176DE066474D1DE91C69B1FC9B17BC4E7ECFCBDB64B752309A2C2B`.
 The publisher creates or resumes a draft, reconciles every asset byte-for-byte,
-rechecks the product tag commit, and only then publishes. An existing product
+rechecks both product and native tag commits before and after publication, and
+only then publishes. An existing product
 release is never overwritten; an existing native release must have
 byte-identical assets and is never selected as Latest. SemVer prerelease tags
 are marked as GitHub prereleases.
@@ -298,4 +300,5 @@ the Tencent Holdings Ltd. copyright.
 
 The project is licensed under [GPL-2.0-only](LICENSE). Distributed native assets
 must also retain [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), the zlib
-license, and applicable Frida notices.
+license, Frida's pinned [wxWindows license](licenses/frida-17.3.2/COPYING), and
+the referenced [GNU Library GPL 2.0 text](licenses/frida-17.3.2/COPYING.LIB).

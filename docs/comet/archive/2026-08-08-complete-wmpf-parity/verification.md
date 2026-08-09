@@ -1,65 +1,25 @@
 # Acceptance evidence
 
-<!-- comet-native:acceptance-evidence:start -->
-[
-  {
-    "acceptance_id": "acceptance-57ca7c9d743817f8abe630b2c6877d87eac38087b67b22896dd99d836c762eed",
-    "status": "passed",
-    "evidence_refs": [
-      "runtime/evidence/receipts/09c4beff1a7f4cf746aa5b5fb26e788306a7e999fc2edd42ebae965a9c3409db.json",
-      "runtime/evidence/receipts/55ea7aee3bf9202c66c436e269ea993b180133f1247bf7b5b6ac857387c7c4a6.json",
-      "runtime/evidence/receipts/c4d1294a48e464d70a5d28e2d6b9072790365732619d61b8c770284b37779dc3.json"
-    ]
-  },
-  {
-    "acceptance_id": "acceptance-5a08b12a267314c48da379aad3c1f7d706b9d9e0af8776c348bbfef2285a7913",
-    "status": "passed",
-    "evidence_refs": [
-      "runtime/evidence/receipts/09c4beff1a7f4cf746aa5b5fb26e788306a7e999fc2edd42ebae965a9c3409db.json",
-      "runtime/evidence/receipts/c4d1294a48e464d70a5d28e2d6b9072790365732619d61b8c770284b37779dc3.json",
-      "runtime/evidence/receipts/e8ba5e51d96583ec7dc459b7b8ebec690b2508a0981b17252821784fd7fecfe9.json"
-    ]
-  },
-  {
-    "acceptance_id": "acceptance-8fc22df3cdf7b059bdf074c158b79eebdeca763ce0fe3f0cd5c29b5e3ec056ba",
-    "status": "passed",
-    "evidence_refs": [
-      "runtime/evidence/receipts/c4d1294a48e464d70a5d28e2d6b9072790365732619d61b8c770284b37779dc3.json"
-    ]
-  },
-  {
-    "acceptance_id": "acceptance-b0f8901c7a7bd76470106a6537cbf7e24560956e7e85f7df8462349b7dff7eee",
-    "status": "passed",
-    "evidence_refs": [
-      "runtime/evidence/receipts/50a167ecdaf1d1733a627d1f971b7e923e92d1b623bceaff130ce5977500e1cf.json",
-      "runtime/evidence/receipts/c4d1294a48e464d70a5d28e2d6b9072790365732619d61b8c770284b37779dc3.json"
-    ]
-  },
-  {
-    "acceptance_id": "acceptance-cded77aeed14a7b3ddf6cfe5bfa819b52f9fc4cec72ea935d9b6347359e51c98",
-    "status": "passed",
-    "evidence_refs": [
-      "runtime/evidence/receipts/50a167ecdaf1d1733a627d1f971b7e923e92d1b623bceaff130ce5977500e1cf.json"
-    ]
-  },
-  {
-    "acceptance_id": "acceptance-ea88e62bd0e2c7996e0eec9b16495d7826fb1677cf90fce295fb876a41321ebb",
-    "status": "passed",
-    "evidence_refs": [
-      "runtime/evidence/receipts/50a167ecdaf1d1733a627d1f971b7e923e92d1b623bceaff130ce5977500e1cf.json",
-      "runtime/evidence/receipts/c4d1294a48e464d70a5d28e2d6b9072790365732619d61b8c770284b37779dc3.json"
-    ]
-  }
-]
-<!-- comet-native:acceptance-evidence:end -->
+<!-- historical-acceptance-summary:start -->
+The public archive keeps the historical acceptance IDs and statuses. Raw machine receipts, snapshots, and developer-specific runtime metadata are intentionally excluded; the command summaries below are the retained audit record.
+
+| Acceptance ID | Historical status |
+| --- | --- |
+| `acceptance-57ca7c9d743817f8abe630b2c6877d87eac38087b67b22896dd99d836c762eed` | passed |
+| `acceptance-5a08b12a267314c48da379aad3c1f7d706b9d9e0af8776c348bbfef2285a7913` | passed |
+| `acceptance-8fc22df3cdf7b059bdf074c158b79eebdeca763ce0fe3f0cd5c29b5e3ec056ba` | passed |
+| `acceptance-b0f8901c7a7bd76470106a6537cbf7e24560956e7e85f7df8462349b7dff7eee` | passed |
+| `acceptance-cded77aeed14a7b3ddf6cfe5bfa819b52f9fc4cec72ea935d9b6347359e51c98` | passed |
+| `acceptance-ea88e62bd0e2c7996e0eec9b16495d7826fb1677cf90fce295fb876a41321ebb` | passed |
+<!-- historical-acceptance-summary:end -->
 
 # Commands and results
 
-- `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/coverage-gate.ps1`: exit 0. Default and Frida-tagged `internal/...` production profiles both reported `total: (statements) 100.0%`; smoke process runner reported `100.0%`; unit, race, tagged race, and vet passed. Receipt: `runtime/evidence/receipts/e8ba5e51d96583ec7dc459b7b8ebec690b2508a0981b17252821784fd7fecfe9.json`.
-- `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/build-windows.ps1`: exit 0. zlib 1.3.1 and Frida core 17.3.2 hashes matched; tagged race passed; EXE SHA-256 `EBE8D6994801E019442BF9CA14E7C154DB2223D5C807D558191FA13A915E6E72`; DLL SHA-256 `EBBA08E33735094D597CEC1E2A978D98D9B790FAA3BE56570746777A1848967A`. Receipt: `runtime/evidence/receipts/55ea7aee3bf9202c66c436e269ea993b180133f1247bf7b5b6ac857387c7c4a6.json`.
-- `go test ./internal/wmpf ./internal/app -count=1 -timeout 180s`: exit 0. Reference protobuf/Codex differential fixtures, corrupt inputs, context/request routing, simulated multi-client CDP matrix, and connection-lifecycle shutdown synchronization passed. Receipt: `runtime/evidence/receipts/50a167ecdaf1d1733a627d1f971b7e923e92d1b623bceaff130ce5977500e1cf.json`.
-- `go test ./scripts -run Zlib -count=1 -v`: exit 0. Fixed URL/SHA contract, verified offline cache build, missing-cache failure, and temporary-file cleanup passed. Receipt: `runtime/evidence/receipts/09c4beff1a7f4cf746aa5b5fb26e788306a7e999fc2edd42ebae965a9c3409db.json`.
-- `powershell.exe ... scripts/smoke-windows.ps1 -UpstreamWaitSeconds 300`: exit 0 on Windows WMPF 25297. The bridge owned 9421/62000; Frida attached PID 43432; post-attach OnLoadStart fired; peer PID 36284 passed exact four-tuple and `PID@StartTime` revalidation on attempt 2. Live CDP returned 7 domains, 10 initializers, objects/exceptions/console/scripts/pause-resume/callframes, 491520-byte payload, 16 concurrent requests, structured error, contexts, reconnect, `events=625`, `receive-order=true`, and `order-assertions=44`. Link smoke passed. Renderer PID 35372, attached host, and upstream peer survived graceful shutdown; transient renderer PID 15264 exited as expected; ports were released. Receipt: `runtime/evidence/receipts/c4d1294a48e464d70a5d28e2d6b9072790365732619d61b8c770284b37779dc3.json`.
+- `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/coverage-gate.ps1`: exit 0. Default and Frida-tagged `internal/...` production profiles both reported `total: (statements) 100.0%`; smoke process runner reported `100.0%`; unit, race, tagged race, and vet passed.
+- `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/build-windows.ps1`: exit 0. zlib 1.3.1 and Frida core 17.3.2 hashes matched; tagged race passed; EXE SHA-256 `EBE8D6994801E019442BF9CA14E7C154DB2223D5C807D558191FA13A915E6E72`; DLL SHA-256 `EBBA08E33735094D597CEC1E2A978D98D9B790FAA3BE56570746777A1848967A`.
+- `go test ./internal/wmpf ./internal/app -count=1 -timeout 180s`: exit 0. Reference protobuf/Codex differential fixtures, corrupt inputs, context/request routing, simulated multi-client CDP matrix, and connection-lifecycle shutdown synchronization passed.
+- `go test ./scripts -run Zlib -count=1 -v`: exit 0. Fixed URL/SHA contract, verified offline cache build, missing-cache failure, and temporary-file cleanup passed.
+- `powershell.exe ... scripts/smoke-windows.ps1 -UpstreamWaitSeconds 300`: exit 0 on Windows WMPF 25297. The bridge owned 9421/62000; Frida attached PID 43432; post-attach OnLoadStart fired; peer PID 36284 passed exact four-tuple and `PID@StartTime` revalidation on attempt 2. Live CDP returned 7 domains, 10 initializers, objects/exceptions/console/scripts/pause-resume/callframes, 491520-byte payload, 16 concurrent requests, structured error, contexts, reconnect, `events=625`, `receive-order=true`, and `order-assertions=44`. Link smoke passed. Renderer PID 35372, attached host, and upstream peer survived graceful shutdown; transient renderer PID 15264 exited as expected; ports were released.
 - Windows PowerShell 5.1 AST parsing for `coverage-gate.ps1`, `build-windows.ps1`, and `smoke-windows.ps1`: exit 0 with no parse errors.
 
 # Skipped checks
@@ -76,4 +36,4 @@ The final live process evidence was obtained on installed WMPF 25297. All other 
 
 # Conclusion
 
-Pass. All six confirmed acceptance items have revision-34 automated receipts bound to complete scope `b29b38ed3bf3904f84dfa9076a831dfc9bcc6a74897a5ba58b8390f2cf1d2ade`, including native build, 100.0% scoped production statement coverage, reference differential fixtures, simulated end-to-end CDP, zlib offline behavior, and real Windows live CDP with graceful shutdown and target survival.
+Pass. All six confirmed acceptance items were recorded as passed for revision 34 and complete scope `b29b38ed3bf3904f84dfa9076a831dfc9bcc6a74897a5ba58b8390f2cf1d2ade`, including native build, 100.0% scoped production statement coverage, reference differential fixtures, simulated end-to-end CDP, zlib offline behavior, and real Windows live CDP with graceful shutdown and target survival.

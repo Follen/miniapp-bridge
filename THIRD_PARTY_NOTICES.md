@@ -16,9 +16,20 @@ originated from WeChat DevTools and retain the Tencent Holdings Ltd. copyright.
 ## Frida
 
 The Windows package contains `frida-core` 17.3.2 from the official Frida
-devkit. Its C API is exposed to Go through the project-owned opaque shim. See
-the Frida distribution and source repository for its complete notices:
-https://github.com/frida/frida
+devkit. Its C API is exposed to Go through the project-owned opaque shim.
+
+Frida 17.3.2 is distributed under the wxWindows Library Licence 3.1 in
+[`licenses/frida-17.3.2/COPYING`](licenses/frida-17.3.2/COPYING). That text
+references the GNU Library General Public License version 2, supplied in
+[`licenses/frida-17.3.2/COPYING.LIB`](licenses/frida-17.3.2/COPYING.LIB).
+Native and product ZIPs package these texts as `FRIDA_COPYING` and
+`FRIDA_COPYING.LIB`, respectively.
+
+- Frida source: https://github.com/frida/frida/tree/17.3.2
+- Frida `COPYING` source: https://raw.githubusercontent.com/frida/frida/17.3.2/COPYING
+- Frida `COPYING` SHA-256: `5EA1544B51A28BC823B03159190D4108F9FB4F4EF912389F5137C6D295E175B2`
+- GNU Library GPL 2.0 source: https://www.gnu.org/licenses/old-licenses/lgpl-2.0.txt
+- `COPYING.LIB` SHA-256: `CC535C21133C895B56B374C8A1DC1EB948D99003ED2B47372069456B62F42B24`
 
 ## zlib
 
@@ -47,5 +58,5 @@ The Frida DLL, generated zlib library, and downloaded devkits are ignored build
 artifacts and are not redistributed through the module. Release archives are
 created by `scripts/native-release.ps1`; consumers verify and install them with
 `scripts/native-prepare.ps1` or `sdk.PrepareNativeRuntime`. Keep this notice,
-the GPL-2.0-only project license, and the upstream Frida/zlib notices beside
-any packaged binary.
+the GPL-2.0-only project license, both pinned Frida license texts, and the zlib
+license beside any packaged binary.

@@ -4,6 +4,8 @@ param(
     [string]$ManifestOutputDirectory = '',
     [ValidateSet('17.3.2-abi1')][string]$Version = '17.3.2-abi1',
     [string]$LicenseFile = '',
+    [string]$FridaCopyingFile = '',
+    [string]$FridaLibraryLicenseFile = '',
     [string]$ZlibLicenseFile = '',
     [string]$ThirdPartyNoticesFile = '',
     [string]$DumpbinPath = ''
@@ -91,11 +93,13 @@ $root = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $runtime = if ($RuntimeDirectory) { [IO.Path]::GetFullPath($RuntimeDirectory) } else { Join-Path $root 'third_party\frida\runtime-17.3.2' }
 $out = if ($OutputDirectory) { [IO.Path]::GetFullPath($OutputDirectory) } else { Join-Path $root 'dist\native' }
 $license = if ($LicenseFile) { [IO.Path]::GetFullPath($LicenseFile) } else { Join-Path $root 'LICENSE' }
+$fridaCopying = if ($FridaCopyingFile) { [IO.Path]::GetFullPath($FridaCopyingFile) } else { Join-Path $root 'licenses\frida-17.3.2\COPYING' }
+$fridaLibraryLicense = if ($FridaLibraryLicenseFile) { [IO.Path]::GetFullPath($FridaLibraryLicenseFile) } else { Join-Path $root 'licenses\frida-17.3.2\COPYING.LIB' }
 $zlibLicense = if ($ZlibLicenseFile) { [IO.Path]::GetFullPath($ZlibLicenseFile) } else { Join-Path $root 'third_party\zlib\src-1.3.1\LICENSE' }
 $notices = if ($ThirdPartyNoticesFile) { [IO.Path]::GetFullPath($ThirdPartyNoticesFile) } else { Join-Path $root 'THIRD_PARTY_NOTICES.md' }
 $dllName = 'miniapp-frida.dll'
 $dll = Join-Path $runtime $dllName
-foreach ($required in @($dll, $license, $zlibLicense, $notices)) {
+foreach ($required in @($dll, $license, $fridaCopying, $fridaLibraryLicense, $zlibLicense, $notices)) {
     if (-not (Test-Path -LiteralPath $required -PathType Leaf)) { throw "required release file missing: $required" }
 }
 
@@ -127,6 +131,8 @@ try {
     New-Item -ItemType Directory -Force -Path $stage | Out-Null
     Copy-Item -LiteralPath $dll -Destination (Join-Path $stage $dllName)
     Copy-Item -LiteralPath $license -Destination (Join-Path $stage 'LICENSE')
+    Copy-Item -LiteralPath $fridaCopying -Destination (Join-Path $stage 'FRIDA_COPYING')
+    Copy-Item -LiteralPath $fridaLibraryLicense -Destination (Join-Path $stage 'FRIDA_COPYING.LIB')
     Copy-Item -LiteralPath $zlibLicense -Destination (Join-Path $stage 'ZLIB_LICENSE')
     Copy-Item -LiteralPath $notices -Destination (Join-Path $stage 'THIRD_PARTY_NOTICES.md')
     $dllInfo = Get-Item -LiteralPath (Join-Path $stage $dllName)
@@ -146,7 +152,10 @@ try {
     }
     $manifestJSON = $manifest | ConvertTo-Json -Depth 4
     Write-Utf8NoBom -Path (Join-Path $stage 'manifest.json') -Lines $manifestJSON
-    $payloadNames = @($dllName, 'manifest.json', 'LICENSE', 'ZLIB_LICENSE', 'THIRD_PARTY_NOTICES.md')
+    $payloadNames = @(
+        $dllName, 'manifest.json', 'LICENSE', 'FRIDA_COPYING', 'FRIDA_COPYING.LIB',
+        'ZLIB_LICENSE', 'THIRD_PARTY_NOTICES.md'
+    )
     $payloadSums = @($payloadNames | ForEach-Object {
         $hash = Get-SHA256 (Join-Path $stage $_)
         "$hash  $_"
@@ -154,7 +163,8 @@ try {
     Write-Utf8NoBom -Path (Join-Path $stage 'SHA256SUMS') -Lines $payloadSums
 
     Write-ReproducibleZip -StageDirectory $stage -ArchivePath $archiveTemp -EntryNames @(
-        $dllName, 'manifest.json', 'LICENSE', 'ZLIB_LICENSE', 'THIRD_PARTY_NOTICES.md', 'SHA256SUMS'
+        $dllName, 'manifest.json', 'LICENSE', 'FRIDA_COPYING', 'FRIDA_COPYING.LIB',
+        'ZLIB_LICENSE', 'THIRD_PARTY_NOTICES.md', 'SHA256SUMS'
     )
     Move-Item -LiteralPath $archiveTemp -Destination $archive -Force
     $archiveHash = Get-SHA256 $archive

@@ -17,8 +17,9 @@ powershell -ExecutionPolicy Bypass -File scripts/native-release.ps1 `
 
 The command emits `miniapp-frida-native-17.3.2-abi1-windows-amd64.zip` and
 `SHA256SUMS`. The archive contains `miniapp-frida.dll`, a pinned
-`manifest.json`, `LICENSE`, `ZLIB_LICENSE`, `THIRD_PARTY_NOTICES.md`, and its
-internal `SHA256SUMS`. The manifest records the DLL size and SHA-256 and all C
+`manifest.json`, `LICENSE`, `FRIDA_COPYING`, `FRIDA_COPYING.LIB`,
+`ZLIB_LICENSE`, `THIRD_PARTY_NOTICES.md`, and its internal `SHA256SUMS`. The
+manifest records the DLL size and SHA-256 and all C
 ABI exports required by the dynamic loader. Version probes cover ABI 1, native
 runtime `17.3.2-abi1`, Frida Core `17.3.2`, and the pinned zlib contract `1.3.1`.
 The shim's zlib probe is an ABI compatibility marker;
@@ -49,8 +50,9 @@ SHA256SUMS
 ```
 
 The product ZIP contains the executable, matching DLL and manifest, both
-READMEs, GPL license, zlib license, and third-party notices. Packaging rechecks
-the DLL against the manifest and the native archive against its sidecar. It
+READMEs, project GPL license, Frida wxWindows/LGPL texts, zlib license, and
+third-party notices. Packaging rechecks the DLL against the manifest and the
+native archive against its sidecar. It
 builds and verifies the entire bundle in a sibling staging directory, then
 publishes it with a rollback-capable directory rename.
 
@@ -58,7 +60,8 @@ publishes it with a rollback-capable directory rename.
 
 `.github/workflows/release.yml` runs for pushed `v*` tags and manual dispatch of
 an existing tag. It accepts canonical v0/v1 Go Module SemVer without build
-metadata, checks that the checkout commit equals the tag commit, and reruns module verification,
+metadata, binds tag-push checkout to the triggering commit, checks that the
+checkout commit equals the tag commit, and reruns module verification,
 deterministic tests, the 100% coverage/race/vet gate, native build, export and
 dependency inspection, packaging, and every published checksum.
 
@@ -72,7 +75,7 @@ generated ones, and the native release is never selected as Latest.
 The pinned native archive SHA-256 is:
 
 ```text
-1597ADCC6B3B13B5BCBA910904046AB7D2E1E3D73AE16961C73E400373BDE87A
+E521ED5828176DE066474D1DE91C69B1FC9B17BC4E7ECFCBDB64B752309A2C2B
 ```
 
 Only the final publisher job has `contents: write`; it consumes the verified

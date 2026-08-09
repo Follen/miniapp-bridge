@@ -16,6 +16,23 @@ type TargetDetacher interface {
 	DetachTarget(context.Context) error
 }
 
+// TargetMetadata is an optional native session capability. It exposes the
+// automatically attached process as values only, without a native handle.
+type TargetMetadata interface {
+	TargetMetadata() TargetStatus
+}
+
+func (s *Service) refreshTargetMetadataLocked(native NativeSession) {
+	metadata, ok := native.(TargetMetadata)
+	if !ok {
+		return
+	}
+	s.mu.Unlock()
+	target := metadata.TargetMetadata()
+	s.mu.Lock()
+	s.status.Target = target
+}
+
 func (s *Service) Discover(ctx context.Context) ([]Target, error) {
 	if ctx == nil {
 		ctx = context.Background()

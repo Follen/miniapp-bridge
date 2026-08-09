@@ -92,7 +92,7 @@ func TestServiceConcurrentCloseWaitsForSubscriptionTeardown(t *testing.T) {
 	deadline := time.Now().Add(time.Second)
 	for time.Now().Before(deadline) {
 		s.mu.Lock()
-		stopped := s.state == StateStopped
+		stopped := s.state == StateStopping
 		s.mu.Unlock()
 		if stopped {
 			break
@@ -100,11 +100,11 @@ func TestServiceConcurrentCloseWaitsForSubscriptionTeardown(t *testing.T) {
 		time.Sleep(time.Millisecond)
 	}
 	s.mu.Lock()
-	stopped := s.state == StateStopped
+	stopped := s.state == StateStopping
 	s.mu.Unlock()
 	if !stopped {
 		s.statuses.mu.Unlock()
-		t.Fatal("first Close did not reach terminal publication")
+		t.Fatal("first Close did not publish stopping state")
 	}
 
 	secondDone := make(chan error, 1)
@@ -161,6 +161,9 @@ func TestServicePublishesResponseEventBeforeWakingWaiter(t *testing.T) {
 	}
 	defer s.Close(context.Background())
 	selectSDKContext(t, s, "response-order")
+	upstream := &routeFrameClient{frames: make(chan []byte, 1)}
+	s.app.DebugHub.Add(upstream)
+	defer s.app.DebugHub.Remove(upstream)
 
 	requestDone := make(chan error, 1)
 	go func() {

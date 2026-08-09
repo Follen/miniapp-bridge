@@ -154,7 +154,7 @@ func TestAuditNativeLoaderDiagnosticsAndReferenceCounting(t *testing.T) {
 	})
 	assertOrderedTokens(t, loader, "void mb_native_release", []string{
 		"if (g_refs > 0) g_refs--", "if (g_refs == 0 && g_module != NULL)",
-		"g_module = NULL", "free(g_path)", "clear_functions()", "FreeLibrary(module)",
+		"g_module = NULL", "free(g_path)", "p_runtime_shutdown()", "clear_functions()", "FreeLibrary(module)",
 	})
 	assertOrderedTokens(t, loader, "int mb_native_loaded", []string{
 		"ensure_lock()", "EnterCriticalSection(&g_lock)", "g_module != NULL", "LeaveCriticalSection(&g_lock)",

@@ -2,52 +2,18 @@
 
 The acceptance IDs and statuses are recorded from the Native status page at Verify time. Local evidence covers protocol, zlib, CDP correlation, context routing, listener behavior, capture, configuration selection, Agent embedding, and build output. Native Frida injection and live WMPF upstream behavior remain skipped because this workspace has no frida-core SDK/DLL contract bound to the target runtime.
 
-<!-- comet-native:acceptance-evidence:start -->
-[
-  {
-    "acceptance_id": "acceptance-1ca4a0d9b5c337b582460cf486daf7b71d0280e846de492c6a625e10586480fe",
-    "status": "passed",
-    "evidence_refs": [
-      "runtime/evidence/receipts/7b710bc2e09107173e68887e66294166e33f89edf42dd96cbdbaf4766956efe1.json"
-    ]
-  },
-  {
-    "acceptance_id": "acceptance-3c71936f8859f1c6008462a03c5e7e104741204217e592d37d67a9997545d173",
-    "status": "passed",
-    "evidence_refs": [
-      "runtime/evidence/receipts/320fe742134bc8bb7d9f158622d40893655f53d990a3714293a33aa2574d574f.json"
-    ]
-  },
-  {
-    "acceptance_id": "acceptance-734d1318f3d82ae0f7387dc3b202ccda27bd326559814eea80c81bca18ac5197",
-    "status": "passed",
-    "evidence_refs": [
-      "runtime/evidence/receipts/a4d19b71a71d974a0754927828111fd2acd0bbbc7468670b4db37dcb3b014a5b.json"
-    ]
-  },
-  {
-    "acceptance_id": "acceptance-ba06c2d11157eebc7d500b12a8b91db4775102f44ae190fb9a8bf248b01d5738",
-    "status": "passed",
-    "evidence_refs": [
-      "runtime/evidence/receipts/30cf180b0c34325828ca833e97c6cefdbcf3f1967bff7cea462e1b45efe9fba0.json"
-    ]
-  },
-  {
-    "acceptance_id": "acceptance-bc21b3837d32d52c0b53f0be2f07e063e792114696eb893043203df1e4d35f7d",
-    "status": "passed",
-    "evidence_refs": [
-      "runtime/evidence/receipts/ac4cb9dac351df9303b0e04bc534449af6a099fe07ae14495a3247c985145cb1.json"
-    ]
-  },
-  {
-    "acceptance_id": "acceptance-cdf4662e7792451e9f98fe80bdba71183d6b8cddb0efbd50d34bf85997744c23",
-    "status": "passed",
-    "evidence_refs": [
-      "runtime/evidence/receipts/3cafc8c2da365553b2e1fe6a8886273fa48f6993c030c10a249fb265811b300c.json"
-    ]
-  }
-]
-<!-- comet-native:acceptance-evidence:end -->
+<!-- historical-acceptance-summary:start -->
+The public archive keeps the historical acceptance IDs and statuses. Raw machine receipts, snapshots, and developer-specific runtime metadata are intentionally excluded; the command summaries below are the retained audit record.
+
+| Acceptance ID | Historical status |
+| --- | --- |
+| `acceptance-1ca4a0d9b5c337b582460cf486daf7b71d0280e846de492c6a625e10586480fe` | passed |
+| `acceptance-3c71936f8859f1c6008462a03c5e7e104741204217e592d37d67a9997545d173` | passed |
+| `acceptance-734d1318f3d82ae0f7387dc3b202ccda27bd326559814eea80c81bca18ac5197` | passed |
+| `acceptance-ba06c2d11157eebc7d500b12a8b91db4775102f44ae190fb9a8bf248b01d5738` | passed |
+| `acceptance-bc21b3837d32d52c0b53f0be2f07e063e792114696eb893043203df1e4d35f7d` | passed |
+| `acceptance-cdf4662e7792451e9f98fe80bdba71183d6b8cddb0efbd50d34bf85997744c23` | passed |
+<!-- historical-acceptance-summary:end -->
 
 # Commands and results
 

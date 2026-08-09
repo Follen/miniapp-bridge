@@ -146,4 +146,5 @@ go test ./scripts -run TestExternalModuleImportsOnlySDK -count=1 -v
 Lifecycle, subscriptions, correlation, contexts, capture/replay, and native
 manifest error contracts are covered by package tests. See
 [`verification.md`](verification.md) for the stable command contract and its
-linked Native report containing exact exits, outputs, receipts, and live result.
+linked Native report containing exact exits, key outputs, acceptance status,
+and live result.

@@ -163,7 +163,12 @@ void mb_native_release(void) {
   if (g_refs > 0) g_refs--;
   if (g_refs == 0 && g_module != NULL) {
     HMODULE module = g_module; g_module = NULL;
-    free(g_path); g_path = NULL; clear_functions(); FreeLibrary(module);
+    free(g_path); g_path = NULL;
+    /* The shutdown export belongs to module. Call it after the runtime's last
+       owner has released its Frida objects, but before clearing exports and
+       unloading the DLL. */
+    if (p_runtime_shutdown != NULL) p_runtime_shutdown();
+    clear_functions(); FreeLibrary(module);
   }
   LeaveCriticalSection(&g_lock);
 }

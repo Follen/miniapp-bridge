@@ -32,7 +32,6 @@ var (
 	nativeSetEnv     = os.Setenv
 	nativeUnsetEnv   = os.Unsetenv
 	nativeNewDevice  = func() (platformDevice, error) { return fridacore.NewNativeDevice() }
-	nativeShutdown   = fridacore.ShutdownRuntime
 )
 
 type platformNativeSession struct {
@@ -45,6 +44,7 @@ type platformNativeSession struct {
 	configDir string
 	configs   map[int]version.AddressConfig
 	metadata  NativeStatus
+	target    TargetStatus
 }
 
 func defaultNativeStarter(path, addressConfigDir string) NativeStarter {
@@ -84,13 +84,13 @@ func defaultNativeStarter(path, addressConfigDir string) NativeStarter {
 		}).Attach(ctx)
 		if err != nil {
 			_ = device.Close()
-			nativeShutdown()
 			return nil, fmt.Errorf("%w: %w", ErrNativeUnavailable, err)
 		}
 		publish(LogEvent{Level: "info", Message: fmt.Sprintf("[frida] attached pid=%d version=%d path=%s", target.PID, target.Version, target.Path)})
 		return &platformNativeSession{
 			device: device, session: session, script: script, configDir: addressConfigDir, configs: configs,
 			metadata: NativeStatus{Attached: true, Version: NativeVersion, ABI: NativeABIVersion, Path: resolved},
+			target:   TargetStatus{Attached: true, Target: Target{PID: target.PID, ParentPID: target.ParentPID, Name: target.Name, Path: target.Path, Version: target.Version}},
 		}, nil
 	}
 }
@@ -210,6 +210,14 @@ func (n *platformNativeSession) NativeMetadata() NativeStatus {
 	return n.metadata
 }
 
+// TargetMetadata exposes the attached process as values only. Service can
+// consume this optional capability without receiving a Frida/native handle.
+func (n *platformNativeSession) TargetMetadata() TargetStatus {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	return n.target
+}
+
 func (n *platformNativeSession) AttachTarget(ctx context.Context, target Target) error {
 	if err := ctx.Err(); err != nil {
 		return err
@@ -237,6 +245,7 @@ func (n *platformNativeSession) AttachTarget(ctx context.Context, target Target)
 	}
 	n.session, n.script = session, script
 	n.metadata.Attached = true
+	n.target = TargetStatus{Attached: true, Target: target}
 	return nil
 }
 
@@ -269,6 +278,7 @@ func (n *platformNativeSession) detachLocked() error {
 		n.session = nil
 	}
 	n.metadata.Attached = false
+	n.target.Attached = false
 	return result
 }
 
@@ -280,7 +290,6 @@ func (n *platformNativeSession) Close(context.Context) error {
 		if err := n.device.Close(); n.closeErr == nil {
 			n.closeErr = err
 		}
-		nativeShutdown()
 	})
 	return n.closeErr
 }

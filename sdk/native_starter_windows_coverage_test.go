@@ -80,10 +80,10 @@ func (*starterCoverageScript) Post([]byte) error { return nil }
 func preserveNativeStarterHooks(t *testing.T) {
 	t.Helper()
 	executable, lookup, set, unset := nativeExecutable, nativeLookupEnv, nativeSetEnv, nativeUnsetEnv
-	newDevice, shutdown := nativeNewDevice, nativeShutdown
+	newDevice := nativeNewDevice
 	t.Cleanup(func() {
 		nativeExecutable, nativeLookupEnv, nativeSetEnv, nativeUnsetEnv = executable, lookup, set, unset
-		nativeNewDevice, nativeShutdown = newDevice, shutdown
+		nativeNewDevice = newDevice
 	})
 }
 
@@ -114,16 +114,13 @@ func TestDefaultNativeStarterBootstrapFailureAndSuccess(t *testing.T) {
 	preserveNativeStarterHooks(t)
 	dll := copyStarterExecutable(t)
 	writeStarterManifest(t, dll, nil)
-	shutdownCalls := 0
-	nativeShutdown = func() { shutdownCalls++ }
-
 	failing := &starterCoverageDevice{enumerateErr: errors.New("enumerate failed")}
 	nativeNewDevice = func() (platformDevice, error) { return failing, nil }
 	if _, err := defaultNativeStarter(dll, "")(context.Background(), func(LogEvent) {}); !errors.Is(err, ErrNativeUnavailable) {
 		t.Fatalf("bootstrap failure = %v", err)
 	}
-	if failing.closeCalls != 1 || shutdownCalls != 1 {
-		t.Fatalf("failure cleanup close=%d shutdown=%d", failing.closeCalls, shutdownCalls)
+	if failing.closeCalls != 1 {
+		t.Fatalf("failure cleanup close=%d", failing.closeCalls)
 	}
 
 	script := &starterCoverageScript{}
@@ -132,7 +129,7 @@ func TestDefaultNativeStarterBootstrapFailureAndSuccess(t *testing.T) {
 		processes: []process.Process{
 			{PID: 10, ParentPID: 99, Name: "WeChatAppEx.exe", Version: 25297},
 			{PID: 11, ParentPID: 99, Name: "WeChatAppEx.exe", Version: 25297},
-			{PID: 99, Name: "host", Version: 25297},
+			{PID: 99, ParentPID: 1, Name: "host", Path: `C:\fixture\WeChatAppEx.exe`, Version: 25297},
 		},
 		session: session,
 	}
@@ -148,7 +145,7 @@ func TestDefaultNativeStarterBootstrapFailureAndSuccess(t *testing.T) {
 	device.handler(fridacore.Message{Type: "send", Payload: []byte("payload")})
 	device.handler(fridacore.Message{Type: "error"})
 	if len(logs) != 3 ||
-		logs[0].Level != "info" || logs[0].Message != "[frida] attached pid=99 version=25297 path=" ||
+		logs[0].Level != "info" || logs[0].Message != `[frida] attached pid=99 version=25297 path=C:\fixture\WeChatAppEx.exe` ||
 		logs[1].Level != "debug" || logs[1].Message != "[frida] payload" ||
 		logs[2].Level != "error" || logs[2].Message != "[frida] error" {
 		t.Fatalf("logs = %+v", logs)
@@ -156,6 +153,11 @@ func TestDefaultNativeStarterBootstrapFailureAndSuccess(t *testing.T) {
 	metadata := native.(NativeMetadata).NativeMetadata()
 	if !metadata.Attached || metadata.Path != dll {
 		t.Fatalf("metadata = %+v", metadata)
+	}
+	targetMetadata := native.(*platformNativeSession).TargetMetadata()
+	wantTarget := (TargetStatus{Attached: true, Target: Target{PID: 99, ParentPID: 1, Name: "host", Path: `C:\fixture\WeChatAppEx.exe`, Version: 25297}})
+	if targetMetadata != wantTarget {
+		t.Fatalf("target metadata = %+v, want %+v", targetMetadata, wantTarget)
 	}
 	if err := native.Close(context.Background()); err != nil {
 		t.Fatal(err)
@@ -320,6 +322,9 @@ func TestPlatformNativeSessionAttachDetachBranches(t *testing.T) {
 		if !native.NativeMetadata().Attached {
 			t.Fatal("metadata not attached")
 		}
+		if got := native.TargetMetadata(); got != (TargetStatus{Attached: true, Target: Target{PID: 7, Version: versionID}}) {
+			t.Fatalf("target metadata = %+v", got)
+		}
 		canceled, cancel := context.WithCancel(context.Background())
 		cancel()
 		if err := native.DetachTarget(canceled); !errors.Is(err, context.Canceled) {
@@ -330,6 +335,9 @@ func TestPlatformNativeSessionAttachDetachBranches(t *testing.T) {
 		}
 		if script.unloadCalls != 1 || session.detachCalls != 1 || native.NativeMetadata().Attached {
 			t.Fatalf("unload=%d detach=%d metadata=%+v", script.unloadCalls, session.detachCalls, native.NativeMetadata())
+		}
+		if got := native.TargetMetadata(); got.Attached || got.PID != 7 || got.Version != versionID {
+			t.Fatalf("detached target metadata = %+v", got)
 		}
 	})
 }
@@ -355,8 +363,6 @@ func TestPlatformNativeSessionAddressConfigFile(t *testing.T) {
 
 func TestPlatformNativeSessionDetachAndCloseErrorPriority(t *testing.T) {
 	preserveNativeStarterHooks(t)
-	shutdownCalls := 0
-	nativeShutdown = func() { shutdownCalls++ }
 	unloadErr, detachErr, closeErr := errors.New("unload"), errors.New("detach"), errors.New("close")
 	script := &starterCoverageScript{unloadErr: unloadErr}
 	session := &starterCoverageSession{detachErr: detachErr}
@@ -368,8 +374,8 @@ func TestPlatformNativeSessionDetachAndCloseErrorPriority(t *testing.T) {
 	if err := native.Close(context.Background()); !errors.Is(err, unloadErr) {
 		t.Fatalf("second close error = %v", err)
 	}
-	if script.unloadCalls != 1 || session.detachCalls != 1 || device.closeCalls != 1 || shutdownCalls != 1 {
-		t.Fatalf("unload=%d detach=%d close=%d shutdown=%d", script.unloadCalls, session.detachCalls, device.closeCalls, shutdownCalls)
+	if script.unloadCalls != 1 || session.detachCalls != 1 || device.closeCalls != 1 {
+		t.Fatalf("unload=%d detach=%d close=%d", script.unloadCalls, session.detachCalls, device.closeCalls)
 	}
 
 	native = &platformNativeSession{device: &starterCoverageDevice{}, session: &starterCoverageSession{detachErr: detachErr}}

@@ -50,11 +50,11 @@ func TestGitHubReleaseWorkflowSecurityContract(t *testing.T) {
 	}
 
 	allowedActions := map[string]bool{
-		"actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683":          true,
-		"actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32":          true,
-		"actions/cache@5a3ec84eff668545956fd18022155c47e93e2684":             true,
-		"actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02":   true,
-		"actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093": true,
+		"actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1":          true,
+		"actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e":          true,
+		"actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9":             true,
+		"actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a":   true,
+		"actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c": true,
 	}
 	uses := regexp.MustCompile(`(?m)^\s*-?\s*uses:\s*([^\s]+)(?:\s+#.*)?$`).FindAllStringSubmatch(workflow, -1)
 	if len(uses) != 5 {
@@ -70,7 +70,11 @@ func TestGitHubReleaseWorkflowSecurityContract(t *testing.T) {
 func TestGitHubReleaseWorkflowBuildAndVersionContract(t *testing.T) {
 	workflow := readReleaseWorkflow(t)
 	requireReleaseTokens(t, workflow, []string{
+		"ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.sha }}",
 		"REQUESTED_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}",
+		"EVENT_NAME: ${{ github.event_name }}",
+		"TRIGGER_SHA: ${{ github.sha }}",
+		"checked out commit $sourceCommit does not match trigger commit $env:TRIGGER_SHA",
 		"release tag must be a complete SemVer tag beginning with v",
 		"$env:REQUESTED_TAG -cnotmatch $semver",
 		"git show-ref --verify --quiet \"refs/tags/$env:REQUESTED_TAG\"",
@@ -135,7 +139,7 @@ func TestGitHubReleaseWorkflowNativeArchiveHashMatchesSDK(t *testing.T) {
 	if workflowMatch[1] != string(runtimeMatch[1]) {
 		t.Fatalf("release native archive SHA=%s, SDK pin=%s", workflowMatch[1], runtimeMatch[1])
 	}
-	const expected = "1597ADCC6B3B13B5BCBA910904046AB7D2E1E3D73AE16961C73E400373BDE87A"
+	const expected = "E521ED5828176DE066474D1DE91C69B1FC9B17BC4E7ECFCBDB64B752309A2C2B"
 	if workflowMatch[1] != expected {
 		t.Fatalf("release native archive SHA=%s, want pinned artifact %s", workflowMatch[1], expected)
 	}
@@ -180,7 +184,10 @@ func TestGitHubReleaseWorkflowRecoverablePublishingContract(t *testing.T) {
 		"tag $tag exceeds the annotated-tag peel limit",
 		"remote_product_commit=\"$(resolve_tag_commit \"$RELEASE_TAG\")\"",
 		"remote_commit=\"$(resolve_tag_commit \"$tag\")\"",
-		"remote tag $tag moved: expected $SOURCE_COMMIT, got $remote_commit",
+		"remote tag $tag moved: expected $target, got $remote_commit",
+		"published tag $tag moved: expected $target, got $remote_commit",
+		"published native tag $NATIVE_TAG moved: expected $native_target, got $remote_native_commit",
+		"published product tag $RELEASE_TAG moved: expected $SOURCE_COMMIT, got $remote_product_commit",
 		"assert_release_metadata()",
 		"target_commitish=$target",
 		"prerelease=$prerelease",
@@ -201,13 +208,15 @@ func TestGitHubReleaseWorkflowRecoverablePublishingContract(t *testing.T) {
 		"published product release is exact; no assets were overwritten",
 	})
 
-	if !strings.Contains(workflow, "if [[ \"$tag\" == \"$RELEASE_TAG\" ]]; then\n              remote_commit=\"$(resolve_tag_commit \"$tag\")\"") {
-		t.Fatal("product tag must be resolved again inside the final publication path")
+	if !strings.Contains(workflow, "if gh api \"repos/$GITHUB_REPOSITORY/git/ref/tags/$tag\" >/dev/null 2>&1; then") {
+		t.Fatal("publication must inspect both product and native tags before making a draft public")
 	}
 	finalAssets := strings.Index(workflow, "reconcile_assets \"$refreshed\" false \"${files[@]}\"")
 	finalTag := strings.Index(workflow, "remote_commit=\"$(resolve_tag_commit \"$tag\")\"")
 	publish := strings.Index(workflow, "gh api --method PATCH \"repos/$GITHUB_REPOSITORY/releases/$release_id\"")
-	if finalAssets < 0 || finalTag < 0 || publish < 0 || !(finalAssets < finalTag && finalTag < publish) {
+	postPublishTag := strings.LastIndex(workflow, "remote_commit=\"$(resolve_tag_commit \"$tag\")\"")
+	if finalAssets < 0 || finalTag < 0 || publish < 0 || postPublishTag < 0 ||
+		!(finalAssets < finalTag && finalTag < publish && publish < postPublishTag) {
 		t.Fatal("final asset verification, remote tag resolution, and release publication must be adjacent and ordered")
 	}
 	if !strings.Contains(workflow, "false false false)\"") ||
@@ -247,6 +256,11 @@ func TestGitHubReleaseWorkflowRecoverablePublishingContract(t *testing.T) {
 	publishedTagCheck := strings.LastIndex(workflow, "remote_product_commit=\"$(resolve_tag_commit \"$RELEASE_TAG\")\"")
 	if publishedFlag < 0 || publishedReconcile < publishedFlag || publishedTagCheck < publishedReconcile {
 		t.Fatal("an existing exact product release must be reconciled and its tag rechecked without overwriting assets")
+	}
+	nativePublish := strings.Index(workflow, "publish_reconciled_draft \"$native_release\"")
+	nativeFinalCheck := strings.Index(workflow, "remote_native_commit=\"$(resolve_tag_commit \"$NATIVE_TAG\")\"")
+	if nativePublish < 0 || nativeFinalCheck < nativePublish {
+		t.Fatal("native tag must be resolved after publication")
 	}
 }
 

@@ -1,6 +1,7 @@
 package app
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 	"encoding/json"
@@ -71,12 +72,18 @@ type App struct {
 	serve              func(*http.Server, net.Listener) error
 }
 type wsClient struct {
-	conn      websocketConnection
-	mu        sync.Mutex
-	closeOnce sync.Once
-	closeErr  error
-	closed    atomic.Bool
-	typeID    int
+	conn       websocketConnection
+	initOnce   sync.Once
+	sendMu     sync.Mutex
+	stopOnce   sync.Once
+	closeOnce  sync.Once
+	outbound   chan []byte
+	done       chan struct{}
+	writerDone chan struct{}
+	closeErr   error
+	closed     atomic.Bool
+	typeID     int
+	queueSize  int
 }
 
 type websocketConnection interface {
@@ -87,34 +94,94 @@ type websocketConnection interface {
 	Close() error
 }
 
-const websocketWriteTimeout = 5 * time.Second
+const (
+	websocketWriteTimeout      = 5 * time.Second
+	websocketOutboundQueueSize = 256
+)
 
-func (c *wsClient) Send(b []byte) error {
-	if c.closed.Load() {
-		return ErrClosed
-	}
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	return c.sendLocked(b)
+func newWSClient(conn websocketConnection, typeID int) *wsClient {
+	return &wsClient{conn: conn, typeID: typeID, queueSize: websocketOutboundQueueSize}
 }
 
-func (c *wsClient) sendLocked(b []byte) error {
+func (c *wsClient) initialize() {
+	c.initOnce.Do(func() {
+		queueSize := c.queueSize
+		if queueSize <= 0 {
+			queueSize = websocketOutboundQueueSize
+		}
+		c.outbound = make(chan []byte, queueSize)
+		c.done = make(chan struct{})
+		c.writerDone = make(chan struct{})
+		go c.writeLoop()
+	})
+}
+
+func (c *wsClient) Send(b []byte) error {
+	c.initialize()
+	c.sendMu.Lock()
+	defer c.sendMu.Unlock()
 	if c.closed.Load() {
 		return ErrClosed
 	}
+	message := append([]byte(nil), b...)
+	select {
+	case c.outbound <- message:
+		return nil
+	default:
+		return proxy.ErrClientBackpressure
+	}
+}
+
+func (c *wsClient) writeMessage(b []byte) error {
 	if err := c.conn.SetWriteDeadline(time.Now().Add(websocketWriteTimeout)); err != nil {
 		return err
 	}
 	return c.conn.WriteMessage(c.typeID, b)
 }
-func (c *wsClient) Close() error {
+
+func (c *wsClient) writeLoop() {
+	defer close(c.writerDone)
+	for {
+		select {
+		case <-c.done:
+			return
+		default:
+		}
+		select {
+		case <-c.done:
+			return
+		case message := <-c.outbound:
+			if err := c.writeMessage(message); err != nil {
+				c.stop()
+				c.closeTransport()
+				return
+			}
+		}
+	}
+}
+
+func (c *wsClient) stop() {
+	c.sendMu.Lock()
+	c.closed.Store(true)
+	c.stopOnce.Do(func() { close(c.done) })
+	c.sendMu.Unlock()
+}
+
+func (c *wsClient) closeTransport() {
 	c.closeOnce.Do(func() {
-		c.closed.Store(true)
 		_ = c.conn.WriteControl(websocket.CloseMessage,
 			websocket.FormatCloseMessage(websocket.CloseNormalClosure, "shutdown"),
 			time.Now().Add(250*time.Millisecond))
 		c.closeErr = c.conn.Close()
 	})
+}
+
+func (c *wsClient) Close() error {
+	c.initialize()
+	c.stop()
+	// Closing the transport interrupts a writer blocked in WriteMessage.
+	c.closeTransport()
+	<-c.writerDone
 	return c.closeErr
 }
 func New(dp, cp int, l *logging.Logger) *App {
@@ -212,7 +279,7 @@ func (a *App) Start() error {
 			_ = c.Close()
 			return
 		}
-		x := &wsClient{conn: c, typeID: websocket.BinaryMessage}
+		x := newWSClient(c, websocket.BinaryMessage)
 		a.DebugHub.Add(x)
 		a.connMu.RUnlock()
 		if observer := a.observerSnapshot(); observer.OnConnection != nil {
@@ -232,7 +299,7 @@ func (a *App) Start() error {
 			_ = c.Close()
 			return
 		}
-		x := &wsClient{conn: c, typeID: websocket.TextMessage}
+		x := newWSClient(c, websocket.TextMessage)
 		a.CDPHub.Add(x)
 		a.connMu.RUnlock()
 		if observer := a.observerSnapshot(); observer.OnConnection != nil {
@@ -270,7 +337,15 @@ func (a *App) Start() error {
 }
 func (a *App) readDebug(c *wsClient) {
 	defer func() {
+		a.connMu.Lock()
 		a.DebugHub.Remove(c)
+		lastUpstream := a.DebugHub.Count() == 0
+		if lastUpstream {
+			a.dispatchMu.Lock()
+			a.ClearRequests()
+			a.dispatchMu.Unlock()
+		}
+		a.connMu.Unlock()
 		_ = c.Close()
 		if observer := a.observerSnapshot(); observer.OnConnection != nil {
 			observer.OnConnection(ConnectionEvent{Kind: "upstream", Connected: false})
@@ -363,12 +438,14 @@ func (a *App) handleUnwrappedDebug(u wmpf.Unwrapped) {
 	case wmpf.CategoryChromeDevtoolsResult:
 		v := value.(wmpf.ChromeDevtools)
 		var response struct {
-			ID     any            `json:"id"`
-			Result map[string]any `json:"result"`
-			Error  *cdp.Error     `json:"error"`
+			ID     json.RawMessage `json:"id"`
+			Result map[string]any  `json:"result"`
+			Error  *cdp.Error      `json:"error"`
 		}
-		if json.Unmarshal([]byte(v.Payload), &response) == nil && response.ID != nil {
-			_, _ = a.Requests.Resolve(cdp.Response{ID: response.ID, Result: response.Result, Error: response.Error})
+		if json.Unmarshal([]byte(v.Payload), &response) == nil && len(response.ID) != 0 && string(response.ID) != "null" {
+			if id, err := decodeExactJSONValue(response.ID); err == nil {
+				_, _ = a.Requests.Resolve(cdp.Response{ID: id, Result: response.Result, Error: response.Error})
+			}
 		}
 		a.CDPHub.Broadcast([]byte(v.Payload))
 		if observer := a.observerSnapshot(); observer.OnCDP != nil {
@@ -469,13 +546,15 @@ func (a *App) routeContextID(jscontextID string) (string, error) {
 
 func (a *App) sendCDPToContextLocked(payload string, c *wsClient, contextID string) {
 	var env struct {
-		ID     any            `json:"id"`
-		Method string         `json:"method"`
-		Params map[string]any `json:"params"`
+		ID     json.RawMessage `json:"id"`
+		Method string          `json:"method"`
+		Params map[string]any  `json:"params"`
 	}
 	_ = json.Unmarshal([]byte(payload), &env)
-	if env.Method != "" && env.ID != nil {
-		a.Requests.Add(cdp.Request{ID: env.ID, Method: env.Method, Params: env.Params})
+	if env.Method != "" && len(env.ID) != 0 && string(env.ID) != "null" {
+		if id, err := decodeExactJSONValue(env.ID); err == nil {
+			a.Requests.Add(cdp.Request{ID: id, Method: env.Method, Params: env.Params})
+		}
 	}
 	opID := uint64(math.Round(100 * rand.Float64()))
 	rawPayload := wmpf.ChromeDevtools{OpID: opID, Payload: payload, JSContextID: contextID}
@@ -486,8 +565,25 @@ func (a *App) sendCDPToContextLocked(payload string, c *wsClient, contextID stri
 	a.DebugHub.Broadcast(frame)
 }
 
+func decodeExactJSONValue(payload []byte) (any, error) {
+	decoder := json.NewDecoder(bytes.NewReader(payload))
+	decoder.UseNumber()
+	var value any
+	if err := decoder.Decode(&value); err != nil {
+		return nil, err
+	}
+	return value, nil
+}
+
 func (a *App) DebugClientCount() int { return a.DebugHub.Count() }
 func (a *App) CDPClientCount() int   { return a.CDPHub.Count() }
+
+// CancelCDPRequest removes one pending CDP request from the internal correlator.
+func (a *App) CancelCDPRequest(id any) bool { return a.Requests.Cancel(id) }
+
+// ClearRequests removes every pending CDP request from the internal correlator.
+func (a *App) ClearRequests() int { return a.Requests.Clear() }
+
 func (a *App) Close(ctx context.Context) error {
 	a.closeOnce.Do(func() {
 		var out error
@@ -515,6 +611,7 @@ func (a *App) Close(ctx context.Context) error {
 		}
 		a.replayWG.Wait()
 		a.dispatchMu.Lock()
+		a.ClearRequests()
 		recorder := a.TakeRecorder()
 		a.dispatchMu.Unlock()
 		if recorder != nil {

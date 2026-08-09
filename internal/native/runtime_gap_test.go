@@ -174,7 +174,7 @@ func TestNativeDecodeManifestStrictBranches(t *testing.T) {
 	valid := mustJSON(t, m)
 	for name, input := range map[string][]byte{
 		"not object":  []byte("[]"),
-	"key error":   []byte("{,"),
+		"key error":   []byte("{,"),
 		"unknown":     []byte(`{"unknown":1}`),
 		"duplicate":   []byte(`{"schema":"x","schema":"y"}`),
 		"value error": []byte(`{"schema":`),

@@ -18,7 +18,7 @@ env:
   GO_VERSION: 1.23.x
   FRIDA_CORE_VERSION: 17.3.2
   ZLIB_VERSION: 1.3.1
-  NATIVE_ARCHIVE_SHA256: 1597ADCC6B3B13B5BCBA910904046AB7D2E1E3D73AE16961C73E400373BDE87A
+  NATIVE_ARCHIVE_SHA256: E521ED5828176DE066474D1DE91C69B1FC9B17BC4E7ECFCBDB64B752309A2C2B
 
 concurrency:
   group: release-native-17.3.2-abi1
@@ -39,21 +39,21 @@ jobs:
       native_tag: ${{ steps.version.outputs.native_tag }}
     steps:
       - name: Check out the requested tag
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
-          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.sha }}
 
       - name: Set up Go
-        uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: true
           cache-dependency-path: go.sum
 
       - name: Restore pinned native source caches
-        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             third_party/downloads
@@ -91,6 +91,8 @@ jobs:
         shell: pwsh
         env:
           REQUESTED_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+          EVENT_NAME: ${{ github.event_name }}
+          TRIGGER_SHA: ${{ github.sha }}
         run: |
           $ErrorActionPreference = 'Stop'
           $semver = '^v(0|1)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-(?:0|[1-9][0-9]*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9][0-9]*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*))*)?$'
@@ -106,6 +108,9 @@ jobs:
             throw "release tag does not exist: $env:REQUESTED_TAG"
           }
           $sourceCommit = (git rev-parse HEAD).Trim()
+          if ($env:EVENT_NAME -eq 'push' -and $sourceCommit -cne $env:TRIGGER_SHA) {
+            throw "checked out commit $sourceCommit does not match trigger commit $env:TRIGGER_SHA"
+          }
           if ($LASTEXITCODE -ne 0 -or $sourceCommit -cne $tagCommit) {
             throw "checked out commit $sourceCommit does not match tag $env:REQUESTED_TAG at $tagCommit"
           }
@@ -183,7 +188,7 @@ jobs:
           }
 
       - name: Upload verified release bundle
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: release-${{ steps.version.outputs.release_tag }}-windows-amd64
           path: dist/release
@@ -205,7 +210,7 @@ jobs:
       NATIVE_ASSET: miniapp-frida-native-17.3.2-abi1-windows-amd64.zip
     steps:
       - name: Download verified release bundle
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: release-${{ needs.verify.outputs.release_tag }}-windows-amd64
           path: release-bundle
@@ -440,12 +445,15 @@ jobs:
             refreshed="$(single_release_for_tag "$tag")"
             assert_release_metadata "$refreshed" "$tag" "$target" "$title" "$prerelease"
             reconcile_assets "$refreshed" false "${files[@]}"
-            if [[ "$tag" == "$RELEASE_TAG" ]]; then
+            if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$tag" >/dev/null 2>&1; then
               remote_commit="$(resolve_tag_commit "$tag")"
-              if [[ "$remote_commit" != "$SOURCE_COMMIT" ]]; then
-                echo "remote tag $tag moved: expected $SOURCE_COMMIT, got $remote_commit" >&2
+              if [[ "$remote_commit" != "$target" ]]; then
+                echo "remote tag $tag moved: expected $target, got $remote_commit" >&2
                 return 1
               fi
+            elif [[ "$tag" == "$RELEASE_TAG" ]]; then
+              echo "product tag disappeared before publication: $tag" >&2
+              return 1
             fi
             release_id="$(jq -r '.id' <<<"$refreshed")"
             if ! gh api --method PATCH "repos/$GITHUB_REPOSITORY/releases/$release_id" \
@@ -461,6 +469,11 @@ jobs:
             fi
             assert_release_metadata "$refreshed" "$tag" "$target" "$title" "$prerelease"
             reconcile_assets "$refreshed" false "${files[@]}"
+            remote_commit="$(resolve_tag_commit "$tag")"
+            if [[ "$remote_commit" != "$target" ]]; then
+              echo "published tag $tag moved: expected $target, got $remote_commit" >&2
+              return 1
+            fi
           }
 
           if [[ "$NATIVE_TAG" != "native-v17.3.2-abi1" ]]; then
@@ -512,6 +525,11 @@ jobs:
             native_release="$(create_or_resume_draft "$NATIVE_TAG" "$native_target" "$native_title" false false false)"
             publish_reconciled_draft "$native_release" "$NATIVE_TAG" "$native_target" "$native_title" false false "${native_files[@]}"
           fi
+          remote_native_commit="$(resolve_tag_commit "$NATIVE_TAG")"
+          if [[ "$remote_native_commit" != "$native_target" ]]; then
+            echo "published native tag $NATIVE_TAG moved: expected $native_target, got $remote_native_commit" >&2
+            exit 1
+          fi
 
           if [[ "$product_already_published" == true ]]; then
             product_release="$(single_release_for_tag "$RELEASE_TAG")"
@@ -526,4 +544,9 @@ jobs:
           else
             product_release="$(create_or_resume_draft "$RELEASE_TAG" "$SOURCE_COMMIT" "$product_title" "$product_prerelease" legacy true)"
             publish_reconciled_draft "$product_release" "$RELEASE_TAG" "$SOURCE_COMMIT" "$product_title" "$product_prerelease" legacy "${product_files[@]}"
+          fi
+          remote_product_commit="$(resolve_tag_commit "$RELEASE_TAG")"
+          if [[ "$remote_product_commit" != "$SOURCE_COMMIT" ]]; then
+            echo "published product tag $RELEASE_TAG moved: expected $SOURCE_COMMIT, got $remote_product_commit" >&2
+            exit 1
           fi

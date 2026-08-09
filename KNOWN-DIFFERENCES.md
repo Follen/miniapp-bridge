@@ -2,7 +2,7 @@
 
 The current release-candidate results and remaining environment risks are
 recorded in
-[`docs/comet/changes/public-go-sdk-worktree/verification.md`](docs/comet/changes/public-go-sdk-worktree/verification.md).
+[`docs/verification.md`](docs/verification.md).
 This file lists stable implementation differences from the fixed TypeScript
 reference rather than embedding stale run output.
 

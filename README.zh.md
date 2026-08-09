@@ -136,7 +136,7 @@ Go Module 只包含 Go 源码和最小 Windows loader 源码，不提交
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\native-prepare.ps1 `
   -DestinationDirectory .\dist `
-  -ExpectedArchiveSHA256 1597ADCC6B3B13B5BCBA910904046AB7D2E1E3D73AE16961C73E400373BDE87A
+  -ExpectedArchiveSHA256 E521ED5828176DE066474D1DE91C69B1FC9B17BC4E7ECFCBDB64B752309A2C2B
 ```
 
 默认下载地址为：
@@ -175,14 +175,15 @@ miniapp-frida-native-17.3.2-abi1-windows-amd64.zip
 ```
 
 压缩包包含 `miniapp-frida.dll`、`manifest.json`、`LICENSE`、
-`ZLIB_LICENSE`、`THIRD_PARTY_NOTICES.md` 和内部 `SHA256SUMS`。
+`FRIDA_COPYING`、`FRIDA_COPYING.LIB`、`ZLIB_LICENSE`、
+`THIRD_PARTY_NOTICES.md` 和内部 `SHA256SUMS`。
 
 GitHub Actions 包含两个 workflow：
 
 - [CI](.github/workflows/ci.yml) 在 push、pull request 和手动触发时运行。
   Linux 负责可移植 unit、vet、race、Module、格式和仓库检查；Windows 负责固定
-  native 构建和完整 `100.0%` 覆盖率门禁。官方 Action 全部固定到完整 commit
-  hash，workflow 权限为只读。
+  native 构建和完整 `100.0%` 覆盖率门禁。官方原生 Node 24 Action 全部固定到
+  完整 commit hash，workflow 权限为只读。
 - [Release](.github/workflows/release.yml) 接受已经存在的 canonical v0/v1 tag，
   或手动指定该 tag。只读 Windows job 会重新执行 Module、确定性测试、
   coverage/race/vet、native 构建、导出、依赖和哈希检查。只有最终发布 job 获得
@@ -201,8 +202,8 @@ SHA256SUMS
 产品 ZIP 包含 EXE、匹配的 DLL 和 manifest、两份 README，以及所需许可证和
 声明文件。workflow 还会创建或验证默认 SDK 下载地址所使用的不可变
 `native-v17.3.2-abi1` 兼容 Release。native ZIP 必须匹配 SDK 固定的 SHA-256：
-`1597ADCC6B3B13B5BCBA910904046AB7D2E1E3D73AE16961C73E400373BDE87A`。
-发布 job 会创建或恢复 draft，逐字节核对全部资产，再次检查产品 tag commit，
+`E521ED5828176DE066474D1DE91C69B1FC9B17BC4E7ECFCBDB64B752309A2C2B`。
+发布 job 会创建或恢复 draft，逐字节核对全部资产，并在发布前后检查产品和 native tag commit，
 然后才正式发布。已有产品 Release 不会被覆盖；已有 native Release 的资产必须
 逐字节一致，而且不会被设为 Latest。SemVer 预发布 tag 会被标记为 GitHub
 prerelease。
@@ -270,5 +271,6 @@ Agent/session/device/runtime 的优雅释放、目标进程存活和端口立即
 继续保留 Tencent Holdings Ltd. 版权。
 
 项目采用 [GPL-2.0-only](LICENSE) 许可证。分发 native 资产时还必须保留
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)、zlib 许可证和适用的 Frida
-声明。
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)、zlib 许可证、Frida 固定的
+[wxWindows 许可证](licenses/frida-17.3.2/COPYING)，以及该许可证引用的
+[GNU Library GPL 2.0 正文](licenses/frida-17.3.2/COPYING.LIB)。

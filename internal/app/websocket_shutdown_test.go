@@ -1,8 +1,8 @@
 package app
 
 import (
+	"bytes"
 	"context"
-	"errors"
 	"net"
 	"sync"
 	"sync/atomic"
@@ -20,6 +20,10 @@ type blockingWebSocketConnection struct {
 	closeOnce    sync.Once
 	closeCalls   atomic.Int32
 	deadlineSet  atomic.Bool
+	controlMu    sync.Mutex
+	controlType  int
+	controlData  []byte
+	controlCalls int
 }
 
 func newBlockingWebSocketConnection() *blockingWebSocketConnection {
@@ -39,7 +43,12 @@ func (c *blockingWebSocketConnection) WriteMessage(int, []byte) error {
 	return net.ErrClosed
 }
 
-func (c *blockingWebSocketConnection) WriteControl(int, []byte, time.Time) error {
+func (c *blockingWebSocketConnection) WriteControl(messageType int, data []byte, _ time.Time) error {
+	c.controlMu.Lock()
+	c.controlType = messageType
+	c.controlData = append([]byte(nil), data...)
+	c.controlCalls++
+	c.controlMu.Unlock()
 	return nil
 }
 
@@ -68,6 +77,14 @@ func TestAppCloseInterruptsBlockedWebSocketWrite(t *testing.T) {
 	case <-time.After(time.Second):
 		t.Fatal("WebSocket write did not start")
 	}
+	select {
+	case err := <-sendDone:
+		if err != nil {
+			t.Fatalf("enqueue error = %v", err)
+		}
+	case <-time.After(500 * time.Millisecond):
+		t.Fatal("Send did not return after enqueue")
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
 	defer cancel()
@@ -83,18 +100,22 @@ func TestAppCloseInterruptsBlockedWebSocketWrite(t *testing.T) {
 	}
 
 	select {
-	case err := <-sendDone:
-		if !errors.Is(err, net.ErrClosed) {
-			t.Fatalf("blocked send error = %v, want net.ErrClosed", err)
-		}
+	case <-client.writerDone:
 	case <-time.After(500 * time.Millisecond):
-		t.Fatal("blocked WebSocket write was not interrupted by App.Close")
+		t.Fatal("blocked WebSocket writer was not interrupted by App.Close")
 	}
 	if !conn.deadlineSet.Load() {
 		t.Fatal("WebSocket write deadline was not set")
 	}
 	if calls := conn.closeCalls.Load(); calls != 1 {
 		t.Fatalf("underlying Close calls = %d, want 1", calls)
+	}
+	conn.controlMu.Lock()
+	controlType, controlData, controlCalls := conn.controlType, append([]byte(nil), conn.controlData...), conn.controlCalls
+	conn.controlMu.Unlock()
+	wantControl := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "shutdown")
+	if controlCalls != 1 || controlType != websocket.CloseMessage || !bytes.Equal(controlData, wantControl) {
+		t.Fatalf("close control calls=%d type=%d data=%v want type=%d data=%v", controlCalls, controlType, controlData, websocket.CloseMessage, wantControl)
 	}
 	if count := a.DebugClientCount(); count != 0 {
 		t.Fatalf("debug client count = %d, want 0", count)

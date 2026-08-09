@@ -10,9 +10,10 @@ statuses, output summaries, acceptance mapping, skipped checks, and residual
 risks for the public SDK baseline are recorded in the archived Comet Native
 report at
 [`comet/archive/2026-08-09-public-go-sdk-worktree/verification.md`](comet/archive/2026-08-09-public-go-sdk-worktree/verification.md).
-Typed receipts under that archive bind every result to the exact contract,
-implementation scope, source revision, and worktree snapshot. Old receipts are
-never evidence for a changed scope; release candidates rerun the commands below.
+The public archive retains sanitized commands, exit statuses, key outputs,
+acceptance statuses, skipped checks, and residual risks. Machine-specific
+receipts and snapshots are not published; release candidates rerun the commands
+below and retain fresh CI or local evidence for their exact source revision.
 
 ## Required Commands
 
@@ -48,7 +49,7 @@ try {
     $nativeCache
   powershell -NoProfile -ExecutionPolicy Bypass -File scripts/native-prepare.ps1 `
     -Offline -CacheDirectory $nativeCache -DestinationDirectory $nativeDestination `
-    -ExpectedArchiveSHA256 1597ADCC6B3B13B5BCBA910904046AB7D2E1E3D73AE16961C73E400373BDE87A
+    -ExpectedArchiveSHA256 E521ED5828176DE066474D1DE91C69B1FC9B17BC4E7ECFCBDB64B752309A2C2B
   if ($LASTEXITCODE -ne 0) { throw "offline native preparation failed: $LASTEXITCODE" }
 }
 finally {
@@ -121,15 +122,15 @@ The Windows amd64 runtime is Frida core `17.3.2`, native ABI `1`, and zlib
 `1.3.1`. The pinned DLL SHA-256 is
 `05CF2B66A6A031E813FEB1C0A895A1272A68770233C3F270272243F48D11E846`.
 The pinned native ZIP SHA-256 is
-`1597ADCC6B3B13B5BCBA910904046AB7D2E1E3D73AE16961C73E400373BDE87A`.
+`E521ED5828176DE066474D1DE91C69B1FC9B17BC4E7ECFCBDB64B752309A2C2B`.
 Release scripts write `dist/native/SHA256SUMS` and a unified
 `dist/release/SHA256SUMS`; the workflow recomputes both after artifact transfer.
 
 ## Evidence Hygiene
 
 Generated binaries, archives, coverage profiles, caches, `.comet/current-change.json`,
-and stale receipts are excluded from source commits. Any code, test, public doc,
-or protocol fixture change requires a new implementation scope and fresh
-receipts. The pre-SDK historical record remains in
+and machine-specific runtime evidence are excluded from source commits. Any
+code, test, public doc, or protocol fixture change requires a new implementation
+scope and freshly executed verification. The pre-SDK historical record remains in
 [`verification-current.md`](verification-current.md) and is not release
 evidence for the public SDK.

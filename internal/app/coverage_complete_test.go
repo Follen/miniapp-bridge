@@ -60,6 +60,12 @@ func TestCoverageAppFrameAndReplayErrors(t *testing.T) {
 	}
 }
 
+func TestDecodeExactJSONValueRejectsMalformedInput(t *testing.T) {
+	if _, err := decodeExactJSONValue([]byte(`{"id":`)); err == nil {
+		t.Fatal("malformed JSON was accepted")
+	}
+}
+
 func TestCoverageAppStartHandlersServeAndClose(t *testing.T) {
 	boom := errors.New("listen failed")
 	fail := New(0, 0, logging.New(false, false))

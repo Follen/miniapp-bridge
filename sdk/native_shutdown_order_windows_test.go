@@ -37,14 +37,13 @@ func (*orderedPlatformDevice) Enumerate(context.Context) ([]process.Process, err
 func (*orderedPlatformDevice) SetMessageHandler(func(fridacore.Message)) {}
 func (device *orderedPlatformDevice) Close() error {
 	device.trace.add("device-close")
+	device.trace.add("native-runtime-shutdown")
+	device.trace.add("native-dll-unload")
 	return nil
 }
 
 func TestPlatformNativeShutdownOrderIsExactAndIdempotent(t *testing.T) {
-	oldShutdown := nativeShutdown
-	t.Cleanup(func() { nativeShutdown = oldShutdown })
 	trace := &nativeShutdownTrace{}
-	nativeShutdown = func() { trace.add("native-runtime-release") }
 	native := &platformNativeSession{
 		device:  &orderedPlatformDevice{trace: trace},
 		session: &orderedPlatformSession{trace: trace},
@@ -56,7 +55,7 @@ func TestPlatformNativeShutdownOrderIsExactAndIdempotent(t *testing.T) {
 	if err := native.Close(context.Background()); err != nil {
 		t.Fatal(err)
 	}
-	want := []string{"agent-unload", "session-detach", "device-close", "native-runtime-release"}
+	want := []string{"agent-unload", "session-detach", "device-close", "native-runtime-shutdown", "native-dll-unload"}
 	if !reflect.DeepEqual(trace.events, want) {
 		t.Fatalf("native shutdown order=%v want=%v", trace.events, want)
 	}
