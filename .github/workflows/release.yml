@@ -226,7 +226,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # shellcheck disable=SC2153
 
           work="$(mktemp -d)"
           trap 'rm -rf "$work"' EXIT
@@ -292,9 +291,9 @@ jobs:
             local release_json="$1" allow_upload="$2"
             shift 2
             local files=("$@") expected_names=() name existing_name found count asset_id asset_state downloaded encoded upload_url
-            local release_id release_tag attempt converged
+            local release_id asset_tag attempt converged
             release_id="$(jq -r '.id' <<<"$release_json")"
-            release_tag="$(jq -r '.tag_name' <<<"$release_json")"
+            asset_tag="$(jq -r '.tag_name' <<<"$release_json")"
 
             for file in "${files[@]}"; do
               expected_names+=("$(basename "$file")")
@@ -314,7 +313,7 @@ jobs:
               name="$(basename "$file")"
               converged=false
               for attempt in 1 2 3; do
-                release_json="$(single_release_for_tag "$release_tag")"
+                release_json="$(single_release_for_tag "$asset_tag")"
                 count="$(jq --arg name "$name" '[.assets[] | select(.name == $name)] | length' <<<"$release_json")"
                 if [[ "$count" -gt 1 ]]; then
                   echo "duplicate release asset for id $release_id: $name" >&2
@@ -340,7 +339,7 @@ jobs:
                       "repos/$GITHUB_REPOSITORY/releases/assets/$asset_id" >/dev/null; then
                     echo "asset delete raced or failed, verifying remote state: $name" >&2
                   fi
-                  release_json="$(single_release_for_tag "$release_tag")"
+                  release_json="$(single_release_for_tag "$asset_tag")"
                   count="$(jq --arg name "$name" '[.assets[] | select(.name == $name)] | length' <<<"$release_json")"
                   if [[ "$count" -gt 0 ]]; then
                     continue
@@ -364,7 +363,7 @@ jobs:
                 fi
               done
               if [[ "$converged" != true ]]; then
-                release_json="$(single_release_for_tag "$release_tag")"
+                release_json="$(single_release_for_tag "$asset_tag")"
                 count="$(jq --arg name "$name" '[.assets[] | select(.name == $name)] | length' <<<"$release_json")"
                 if [[ "$count" -eq 1 ]]; then
                   asset_id="$(jq -r --arg name "$name" '.assets[] | select(.name == $name) | .id' <<<"$release_json")"
@@ -384,7 +383,7 @@ jobs:
               fi
             done
 
-            release_json="$(single_release_for_tag "$release_tag")"
+            release_json="$(single_release_for_tag "$asset_tag")"
             for name in "${expected_names[@]}"; do
               count="$(jq --arg name "$name" '[.assets[] | select(.name == $name)] | length' <<<"$release_json")"
               if [[ "$count" -ne 1 ]]; then
