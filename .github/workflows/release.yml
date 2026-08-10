@@ -18,6 +18,7 @@ env:
   GO_VERSION: 1.23.x
   FRIDA_CORE_VERSION: 17.3.2
   ZLIB_VERSION: 1.3.1
+  ZLIB_ARCHIVE_SHA256: 17E88863F3600672AB49182F217281B6FC4D3C762BDE361935E436A95214D05C
   NATIVE_ARCHIVE_SHA256: DC08BCDBF5B0CE5C15640BF3A12907BD1EDF01A10A59F0FE1FD66E43939F7187
 
 concurrency:
@@ -58,7 +59,27 @@ jobs:
           path: |
             third_party/downloads
             third_party/frida/devkit-17.3.2
-          key: native-${{ runner.os }}-${{ runner.arch }}-frida-${{ env.FRIDA_CORE_VERSION }}-zlib-${{ env.ZLIB_VERSION }}-${{ hashFiles('go.sum') }}
+          key: native-${{ runner.os }}-${{ runner.arch }}-frida-${{ env.FRIDA_CORE_VERSION }}-zlib-${{ env.ZLIB_VERSION }}-${{ env.ZLIB_ARCHIVE_SHA256 }}-${{ hashFiles('go.sum') }}
+
+      - name: Populate Frida devkit archive cache
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $archive = 'third_party\downloads\frida-core-devkit-17.3.2-windows-x86_64.tar.xz'
+          $expected = '8AF15423D6E534626F91A67FAA0582E42C67A07A95A190F4C622695105549C72'
+          $header = 'third_party\frida\devkit-17.3.2\frida-core.h'
+          $library = 'third_party\frida\devkit-17.3.2\frida-core.lib'
+          $archiveValid = (Test-Path -LiteralPath $archive) -and ((Get-FileHash -Algorithm SHA256 -LiteralPath $archive).Hash -eq $expected)
+          $devkitValid = (Test-Path -LiteralPath $header) -and (Test-Path -LiteralPath $library)
+          if ($archiveValid -or $devkitValid) { exit 0 }
+          New-Item -ItemType Directory -Force -Path (Split-Path -Parent $archive) | Out-Null
+          $asset = Split-Path -Leaf $archive
+          gh release download $env:FRIDA_CORE_VERSION --repo frida/frida --pattern $asset --output $archive --clobber
+          if ($LASTEXITCODE -ne 0) { throw "gh release download failed with exit $LASTEXITCODE" }
+          $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $archive).Hash.ToUpperInvariant()
+          if ($actual -ne $expected) { throw "Frida devkit archive SHA-256 mismatch: expected $expected, got $actual" }
 
       - name: Configure Windows build tools
         shell: pwsh

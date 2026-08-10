@@ -92,6 +92,10 @@ func TestGitHubReleaseWorkflowBuildAndVersionContract(t *testing.T) {
 		"native_tag=native-v17.3.2-abi1",
 		"manifest.nativeVersion",
 		"native archive hash $nativeHash does not match SDK pin $env:NATIVE_ARCHIVE_SHA256",
+		"ZLIB_ARCHIVE_SHA256: 17E88863F3600672AB49182F217281B6FC4D3C762BDE361935E436A95214D05C",
+		"${{ env.ZLIB_ARCHIVE_SHA256 }}-${{ hashFiles('go.sum') }}",
+		"Populate Frida devkit archive cache",
+		"gh release download $env:FRIDA_CORE_VERSION --repo frida/frida --pattern $asset --output $archive --clobber",
 		"sha256sum --check SHA256SUMS",
 		"if-no-files-found: error",
 	})
