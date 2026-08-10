@@ -237,7 +237,6 @@ func copyFile(source, destination string) error {
 	return os.WriteFile(destination, data, 0o644)
 }
 
-
 func assertNoZlibDownloadTemps(t *testing.T, cache string) {
 	t.Helper()
 	partial := filepath.Join(cache, zlibOfflineArchiveName+".partial")
