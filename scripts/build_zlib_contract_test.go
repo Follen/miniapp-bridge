@@ -17,9 +17,9 @@ func TestZlibBuildDownloadsPinnedArchiveIntoIgnoredCache(t *testing.T) {
 
 	script := readContractFile(t, filepath.Join(root, "scripts", "build-zlib.ps1"))
 	for _, token := range []string{
-		"https://zlib.net/fossils/zlib-1.3.1.tar.gz",
+		"https://github.com/madler/zlib/archive/refs/tags/v1.3.1.tar.gz",
 		"third_party\\downloads\\cache",
-		"9A93B2B7DFDAC77CEBA5A558A580E74667DD6FEDE4585B91EEFB60F03B72DF23",
+		"17E88863F3600672AB49182F217281B6FC4D3C762BDE361935E436A95214D05C",
 		"function Invoke-BoundedDownload",
 		"Get-Command curl.exe -ErrorAction SilentlyContinue",
 		"--connect-timeout $connectTimeoutSeconds",

@@ -8,13 +8,13 @@ param(
     [string]$CacheDirectory = '',
     [string]$SourceDirectory = '',
     [string]$OutputDirectory = '',
-    [string]$ExpectedArchiveSHA256 = '9A93B2B7DFDAC77CEBA5A558A580E74667DD6FEDE4585B91EEFB60F03B72DF23'
+    [string]$ExpectedArchiveSHA256 = '17E88863F3600672AB49182F217281B6FC4D3C762BDE361935E436A95214D05C'
 )
 
 $ErrorActionPreference = 'Stop'
 
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
-$archiveURL = if ($SourceURL) { $SourceURL } else { 'https://zlib.net/fossils/zlib-1.3.1.tar.gz' }
+$archiveURL = if ($SourceURL) { $SourceURL } else { 'https://github.com/madler/zlib/archive/refs/tags/v1.3.1.tar.gz' }
 $cache = if ($CacheDirectory) { [IO.Path]::GetFullPath($CacheDirectory) } else { Join-Path $repo 'third_party\downloads\cache' }
 $archive = Join-Path $cache 'zlib-1.3.1.tar.gz'
 $partialArchive = "$archive.partial"

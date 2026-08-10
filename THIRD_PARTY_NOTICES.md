@@ -36,8 +36,8 @@ Native and product ZIPs package these texts as `FRIDA_COPYING` and
 The Windows Release DLL statically links zlib 1.3.1. The Go Module and final
 executable do not link a system zlib DLL or import library.
 
-Source URL: https://zlib.net/fossils/zlib-1.3.1.tar.gz
-Source archive SHA-256: `9A93B2B7DFDAC77CEBA5A558A580E74667DD6FEDE4585B91EEFB60F03B72DF23`
+Source URL: https://github.com/madler/zlib/archive/refs/tags/v1.3.1.tar.gz
+Source archive SHA-256: `17E88863F3600672AB49182F217281B6FC4D3C762BDE361935E436A95214D05C`
 
 The archive and extracted source are build caches under
 `third_party/downloads/cache/` and `third_party/zlib/src-1.3.1/`; they are

@@ -49,11 +49,13 @@ func TestZlibBuildOfflineCacheIntegration(t *testing.T) {
 	if err := copyFile(pinnedArchive, archive); err != nil {
 		t.Fatalf("copy pinned zlib archive into isolated cache: %v", err)
 	}
+	archiveHash := fileSHA256(t, archive)
 	buildArgs := []string{
 		"-Offline",
 		"-CacheDirectory", cache,
 		"-SourceDirectory", sourceDir,
 		"-OutputDirectory", outputDir,
+		"-ExpectedArchiveSHA256", archiveHash,
 	}
 
 	output, err := runZlibBuild(root, buildArgs...)
@@ -234,6 +236,7 @@ func copyFile(source, destination string) error {
 	}
 	return os.WriteFile(destination, data, 0o644)
 }
+
 
 func assertNoZlibDownloadTemps(t *testing.T, cache string) {
 	t.Helper()
