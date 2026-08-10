@@ -148,7 +148,7 @@ Prepare a published runtime into an executable directory:
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\native-prepare.ps1 `
   -DestinationDirectory .\dist `
-  -ExpectedArchiveSHA256 E521ED5828176DE066474D1DE91C69B1FC9B17BC4E7ECFCBDB64B752309A2C2B
+  -ExpectedArchiveSHA256 FDF6FF11678760BF6C072FB68B6775AB0B8F9981B1AB5F8D2C2B4F369C1E76FE
 ```
 
 The default download is:
@@ -222,7 +222,7 @@ The product ZIP contains the EXE, matching DLL and manifest, both READMEs, and
 the required license and notice files. The workflow also creates or verifies
 the immutable `native-v17.3.2-abi1` compatibility release used by the default
 SDK download URL. Its native ZIP must match the SDK-pinned SHA-256
-`E521ED5828176DE066474D1DE91C69B1FC9B17BC4E7ECFCBDB64B752309A2C2B`.
+`FDF6FF11678760BF6C072FB68B6775AB0B8F9981B1AB5F8D2C2B4F369C1E76FE`.
 The publisher creates or resumes a draft, reconciles every asset byte-for-byte,
 rechecks both product and native tag commits before and after publication, and
 only then publishes. An existing product

@@ -20,9 +20,17 @@ func TestZlibBuildDownloadsPinnedArchiveIntoIgnoredCache(t *testing.T) {
 		"https://zlib.net/fossils/zlib-1.3.1.tar.gz",
 		"third_party\\downloads\\cache",
 		"9A93B2B7DFDAC77CEBA5A558A580E74667DD6FEDE4585B91EEFB60F03B72DF23",
-		"Invoke-WebRequest -Uri $archiveURL -OutFile $partialArchive",
+		"function Invoke-BoundedDownload",
+		"Get-Command curl.exe -ErrorAction SilentlyContinue",
+		"--connect-timeout $connectTimeoutSeconds",
+		"--max-time $TimeoutSeconds",
+		"[int]$DownloadTotalTimeoutSeconds = 900",
+		"$attemptTimeout = [Math]::Max(1, [Math]::Min($DownloadTimeoutSeconds, [Math]::Ceiling($remaining)))",
+		"[System.Net.Http.HttpCompletionOption]::ResponseContentRead",
+		"$client.Timeout = [TimeSpan]::FromSeconds($TimeoutSeconds)",
+		"Invoke-VerifiedDownload -URL $archiveURL -Destination $partialArchive",
 		"$archive.partial",
-		"Get-FileHash -Algorithm SHA256 -LiteralPath $partialArchive",
+		"Get-FileHash -Algorithm SHA256 -LiteralPath $Destination",
 		"Move-Item -LiteralPath $partialArchive -Destination $archive -Force",
 		"tar.exe -xzf $archive",
 		"--strip-components 1",
@@ -53,6 +61,9 @@ func TestZlibBuildSupportsVerifiedOfflineCache(t *testing.T) {
 	for _, token := range []string{
 		"param(",
 		"[switch]$Offline",
+		"[string]$SourceDirectory = ''",
+		"[string]$OutputDirectory = ''",
+		"[string]$ExpectedArchiveSHA256 =",
 		"if ($Offline)",
 		"zlib archive cache is unavailable or invalid in offline mode",
 		"Get-FileHash -Algorithm SHA256 -LiteralPath $archive",
@@ -66,11 +77,15 @@ func TestZlibBuildSupportsVerifiedOfflineCache(t *testing.T) {
 	archiveValidity := strings.Index(script, "$archiveIsValid")
 	archiveRecovery := strings.Index(script, "if (!$archiveIsValid)")
 	offlineGuard := strings.Index(script, "if ($Offline)")
-	download := strings.Index(script, "Invoke-WebRequest")
+	downloadOffset := strings.Index(script[archiveRecovery:], "Invoke-VerifiedDownload -URL $archiveURL")
+	download := -1
+	if downloadOffset >= 0 {
+		download = archiveRecovery + downloadOffset
+	}
 	offlineError := strings.Index(script, "zlib archive cache is unavailable or invalid in offline mode")
 	if archiveValidity < 0 || archiveRecovery < 0 || offlineGuard < archiveRecovery ||
 		offlineError < offlineGuard || download < offlineGuard {
-		t.Fatal("offline cache validation must precede recovery, report invalid cache, and guard Invoke-WebRequest")
+		t.Fatal("offline cache validation must precede recovery, report invalid cache, and guard the bounded downloader")
 	}
 
 	// A verified cache must flow through extraction without requiring a download.
@@ -136,7 +151,8 @@ func TestFridaShimBuildIsReproducible(t *testing.T) {
 		"8AF15423D6E534626F91A67FAA0582E42C67A07A95A190F4C622695105549C72",
 		"6B4DEE14C19BDB03CAA4A25BE51564AA249BC1167AA8DED26F562E238D0B3462",
 		"D763BCF99EFDE43A3DE4138B19D70EC64B586286413473EAA21E6C59B7410A30",
-		"Invoke-WebRequest",
+		"function Invoke-BoundedDownload",
+		"--max-time $TimeoutSeconds",
 		"Get-FileHash -Algorithm SHA256",
 		"$archive.partial",
 		"Move-Item -LiteralPath $partialArchive -Destination $archive -Force",

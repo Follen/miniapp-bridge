@@ -33,6 +33,10 @@ $installed = Join-Path $destination $dllName
 $installedManifest = Join-Path $destination 'manifest.json'
 $temporaryDLL = "$installed.partial"
 $temporaryManifest = "$installedManifest.partial"
+$publishID = [guid]::NewGuid().ToString('N')
+$backupDLL = "$installed.backup-$publishID"
+$backupManifest = "$installedManifest.backup-$publishID"
+$cleanupPublishBackups = $false
 $lock = $null
 $timer = [Diagnostics.Stopwatch]::StartNew()
 
@@ -100,6 +104,12 @@ function Invoke-VerifiedDownload {
         }
     }
     throw "native archive download failed after $DownloadAttempts attempts: $($lastError.Exception.Message)"
+}
+
+function Invoke-TestPublishFailure([string]$Step) {
+    if ([Environment]::GetEnvironmentVariable('MINIAPP_BRIDGE_TEST_NATIVE_PREPARE_PUBLISH_FAILURE') -ceq $Step) {
+        throw "injected native publish failure: $Step"
+    }
 }
 
 New-Item -ItemType Directory -Force -Path $cache,$destination | Out-Null
@@ -241,22 +251,88 @@ try {
         throw 'native destination partial DLL SHA-256 mismatch'
     }
 
-    # The DLL is the readiness marker: remove the old marker, publish the
-    # manifest, and publish the verified DLL last.
+    # The DLL is the readiness marker. Back up the previous pair, publish the
+    # manifest, and publish the verified DLL last. Rollback follows the same
+    # readiness ordering, restoring the previous DLL only after its manifest.
     if (Test-Path -LiteralPath $installedManifest -PathType Container) {
         throw 'native destination manifest path is a directory'
     }
     if (Test-Path -LiteralPath $installed -PathType Container) {
         throw 'native destination DLL path is a directory'
     }
-    if (Test-Path -LiteralPath $installed -PathType Leaf) {
-        Remove-Item -LiteralPath $installed -Force
-        if (Test-Path -LiteralPath $installed) {
-            throw 'native destination DLL readiness marker could not be removed'
+
+    $hadInstalledDLL = Test-Path -LiteralPath $installed -PathType Leaf
+    $hadInstalledManifest = Test-Path -LiteralPath $installedManifest -PathType Leaf
+    $dllBackedUp = $false
+    $manifestBackedUp = $false
+    try {
+        if ($hadInstalledDLL) {
+            Move-Item -LiteralPath $installed -Destination $backupDLL -Force
+            $dllBackedUp = $true
         }
+        Invoke-TestPublishFailure 'after-dll-backup'
+
+        if ($hadInstalledManifest) {
+            Move-Item -LiteralPath $installedManifest -Destination $backupManifest -Force
+            $manifestBackedUp = $true
+        }
+        Invoke-TestPublishFailure 'after-manifest-backup'
+
+        Move-Item -LiteralPath $temporaryManifest -Destination $installedManifest -Force
+        Invoke-TestPublishFailure 'after-manifest-publish'
+        Move-Item -LiteralPath $temporaryDLL -Destination $installed -Force
+        Invoke-TestPublishFailure 'after-dll-publish'
+        $cleanupPublishBackups = $true
     }
-    Move-Item -LiteralPath $temporaryManifest -Destination $installedManifest -Force
-    Move-Item -LiteralPath $temporaryDLL -Destination $installed -Force
+    catch {
+        $publishFailure = $_
+        $rollbackErrors = @()
+
+        if ($dllBackedUp -or -not $hadInstalledDLL) {
+            try {
+                if (Test-Path -LiteralPath $installed) {
+                    Remove-Item -LiteralPath $installed -Force -ErrorAction Stop
+                }
+            }
+            catch {
+                $rollbackErrors += $_.Exception.Message
+            }
+        }
+        if ($manifestBackedUp -or -not $hadInstalledManifest) {
+            try {
+                if (Test-Path -LiteralPath $installedManifest) {
+                    Remove-Item -LiteralPath $installedManifest -Force -ErrorAction Stop
+                }
+            }
+            catch {
+                $rollbackErrors += $_.Exception.Message
+            }
+        }
+        if ($manifestBackedUp) {
+            try {
+                Move-Item -LiteralPath $backupManifest -Destination $installedManifest -Force
+                $manifestBackedUp = $false
+            }
+            catch {
+                $rollbackErrors += $_.Exception.Message
+            }
+        }
+        if ($dllBackedUp) {
+            try {
+                Move-Item -LiteralPath $backupDLL -Destination $installed -Force
+                $dllBackedUp = $false
+            }
+            catch {
+                $rollbackErrors += $_.Exception.Message
+            }
+        }
+
+        if ($rollbackErrors.Count -gt 0) {
+            throw "native publish failed: $($publishFailure.Exception.Message); rollback failed: $($rollbackErrors -join '; ')"
+        }
+        $cleanupPublishBackups = $true
+        throw $publishFailure
+    }
 
     Write-Output "native_version=$Version"
     Write-Output "native_dll=$installed"
@@ -268,6 +344,9 @@ finally {
         Remove-Item -LiteralPath $partial,$temporaryDLL,$temporaryManifest -Force -ErrorAction SilentlyContinue
         if (Test-Path -LiteralPath $stage) {
             Remove-Item -LiteralPath $stage -Recurse -Force -ErrorAction SilentlyContinue
+        }
+        if ($cleanupPublishBackups) {
+            Remove-Item -LiteralPath $backupDLL,$backupManifest -Force -ErrorAction SilentlyContinue
         }
         $lock.Dispose()
         Remove-Item -LiteralPath $lockPath -Force -ErrorAction SilentlyContinue

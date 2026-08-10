@@ -49,7 +49,7 @@ try {
     $nativeCache
   powershell -NoProfile -ExecutionPolicy Bypass -File scripts/native-prepare.ps1 `
     -Offline -CacheDirectory $nativeCache -DestinationDirectory $nativeDestination `
-    -ExpectedArchiveSHA256 E521ED5828176DE066474D1DE91C69B1FC9B17BC4E7ECFCBDB64B752309A2C2B
+    -ExpectedArchiveSHA256 FDF6FF11678760BF6C072FB68B6775AB0B8F9981B1AB5F8D2C2B4F369C1E76FE
   if ($LASTEXITCODE -ne 0) { throw "offline native preparation failed: $LASTEXITCODE" }
 }
 finally {
@@ -120,9 +120,9 @@ response/event ordering that the protocol does not guarantee.
 
 The Windows amd64 runtime is Frida core `17.3.2`, native ABI `1`, and zlib
 `1.3.1`. The pinned DLL SHA-256 is
-`05CF2B66A6A031E813FEB1C0A895A1272A68770233C3F270272243F48D11E846`.
+`700D4DACD175D3E8B212EAD6C38FE151CB80B855660CAB24DD87C5AEDB13EBBD`.
 The pinned native ZIP SHA-256 is
-`E521ED5828176DE066474D1DE91C69B1FC9B17BC4E7ECFCBDB64B752309A2C2B`.
+`FDF6FF11678760BF6C072FB68B6775AB0B8F9981B1AB5F8D2C2B4F369C1E76FE`.
 Release scripts write `dist/native/SHA256SUMS` and a unified
 `dist/release/SHA256SUMS`; the workflow recomputes both after artifact transfer.
 

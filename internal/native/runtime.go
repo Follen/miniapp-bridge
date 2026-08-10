@@ -25,12 +25,12 @@ const (
 	ZlibVersion          = "1.3.1"
 	NativeABIVersion     = uint32(1)
 	NativeDLLFileName    = "miniapp-frida.dll"
-	NativeDLLSize        = int64(67788288)
-	NativeDLLSHA256      = "05CF2B66A6A031E813FEB1C0A895A1272A68770233C3F270272243F48D11E846"
+	NativeDLLSize        = int64(67788800)
+	NativeDLLSHA256      = "700D4DACD175D3E8B212EAD6C38FE151CB80B855660CAB24DD87C5AEDB13EBBD"
 	nativeManifestSchema = "miniapp-bridge.native-manifest.v1"
 	// NativeArchiveSHA256 pins the published archive for NativeVersion on
 	// windows/amd64. Release assets for a native version are immutable.
-	NativeArchiveSHA256 = "E521ED5828176DE066474D1DE91C69B1FC9B17BC4E7ECFCBDB64B752309A2C2B"
+	NativeArchiveSHA256 = "FDF6FF11678760BF6C072FB68B6775AB0B8F9981B1AB5F8D2C2B4F369C1E76FE"
 )
 
 var requiredNativeExports = []string{

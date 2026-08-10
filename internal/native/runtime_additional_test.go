@@ -578,6 +578,9 @@ func TestNativeOldActiveLockIsNotStolen(t *testing.T) {
 
 func TestNativePartialNamesAreUnique(t *testing.T) {
 	dir := t.TempDir()
+	if _, _, err := nativeOpenPartial(filepath.Join(dir, "missing"), ".native.*.partial"); err == nil {
+		t.Fatal("partial creation unexpectedly succeeded in missing directory")
+	}
 	const workers = 16
 	paths := make(chan string, workers)
 	errs := make(chan error, workers)

@@ -62,6 +62,54 @@ function Move-DirectoryAtomically {
     [System.IO.Directory]::Move($Source, $Destination)
 }
 
+function Invoke-BoundedDownload {
+    param(
+        [string]$URL,
+        [string]$Destination,
+        [int]$TimeoutSeconds
+    )
+
+    $connectTimeoutSeconds = [Math]::Min(30, $TimeoutSeconds)
+    $curl = Get-Command curl.exe -ErrorAction SilentlyContinue
+    if ($null -ne $curl) {
+        & $curl.Source `
+            --fail `
+            --location `
+            --silent `
+            --show-error `
+            --connect-timeout $connectTimeoutSeconds `
+            --max-time $TimeoutSeconds `
+            --output $Destination `
+            --url $URL
+        if ($LASTEXITCODE -ne 0) {
+            throw "curl.exe exited with code $LASTEXITCODE"
+        }
+        return
+    }
+
+    Add-Type -AssemblyName System.Net.Http
+    $handler = [System.Net.Http.HttpClientHandler]::new()
+    $client = [System.Net.Http.HttpClient]::new($handler)
+    $response = $null
+    try {
+        $client.Timeout = [TimeSpan]::FromSeconds($TimeoutSeconds)
+        $client.DefaultRequestHeaders.UserAgent.ParseAdd('miniapp-bridge-native-bootstrap/1')
+        # ResponseContentRead keeps the total timeout active until the complete
+        # body has been buffered, including a peer that only trickles bytes.
+        $response = $client.GetAsync(
+            $URL,
+            [System.Net.Http.HttpCompletionOption]::ResponseContentRead
+        ).GetAwaiter().GetResult()
+        $response.EnsureSuccessStatusCode()
+        $bytes = $response.Content.ReadAsByteArrayAsync().GetAwaiter().GetResult()
+        [System.IO.File]::WriteAllBytes($Destination, $bytes)
+    } finally {
+        if ($null -ne $response) { $response.Dispose() }
+        $client.Dispose()
+        $handler.Dispose()
+    }
+}
+
 function Invoke-VerifiedDownload {
     param(
         [string]$URL,
@@ -70,26 +118,13 @@ function Invoke-VerifiedDownload {
         [string]$DisplayName
     )
 
-    $webRequest = Get-Command Invoke-WebRequest
     $lastError = $null
     for ($attempt = 1; $attempt -le $DownloadAttempts; $attempt++) {
         if (Test-Path -LiteralPath $Destination) { Remove-Item -LiteralPath $Destination -Force }
-        $parameters = @{
-            UseBasicParsing = $true
-            Uri             = $URL
-            OutFile         = $Destination
-            ErrorAction     = 'Stop'
-        }
-        if ($webRequest.Parameters.ContainsKey('ConnectionTimeoutSeconds')) {
-            $parameters.ConnectionTimeoutSeconds = [Math]::Min(30, $DownloadTimeoutSeconds)
-            $parameters.OperationTimeoutSeconds = $DownloadTimeoutSeconds
-        } elseif ($webRequest.Parameters.ContainsKey('TimeoutSec')) {
-            $parameters.TimeoutSec = $DownloadTimeoutSeconds
-        }
 
         Write-Host "Downloading $DisplayName attempt=$attempt/$DownloadAttempts"
         try {
-            Invoke-WebRequest @parameters
+            Invoke-BoundedDownload -URL $URL -Destination $Destination -TimeoutSeconds $DownloadTimeoutSeconds
             $downloadHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $Destination).Hash
             if ($downloadHash -ne $ExpectedSHA256) {
                 throw "Frida SDK download SHA-256 mismatch: got $downloadHash, want $ExpectedSHA256"

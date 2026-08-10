@@ -328,6 +328,65 @@ func TestNativeInjectedCFailuresAndCallbacks(t *testing.T) {
 	}
 }
 
+func TestNativeSessionOwnsScriptsDuringDetach(t *testing.T) {
+	var nilScript *NativeScript
+	if err := nilScript.Unload(); err != nil {
+		t.Fatalf("nil script unload=%v", err)
+	}
+	if err := nilScript.Post(nil); err == nil {
+		t.Fatal("nil script post unexpectedly succeeded")
+	}
+	if err := (&NativeScript{}).Unload(); err != nil {
+		t.Fatalf("empty script unload=%v", err)
+	}
+	if err := (&NativeScript{}).Post(nil); err == nil {
+		t.Fatal("empty script post unexpectedly succeeded")
+	}
+
+	device, err := NewNativeDevice()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = device.Close() }()
+	processes, err := device.Enumerate(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	pid, err := process.SelectParent(processes, "WeChatAppEx.exe")
+	if err != nil {
+		t.Fatal(err)
+	}
+	sessionValue, err := device.Attach(pid)
+	if err != nil {
+		t.Fatal(err)
+	}
+	session := sessionValue.(*NativeSession)
+	session.scripts = nil
+	scriptValue, err := session.LoadScript(`send("detach-owned")`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	script := scriptValue.(*NativeScript)
+	closedScript := &NativeScript{session: session, closed: true}
+	session.scripts[closedScript] = struct{}{}
+
+	originalFailure := nativeFailure
+	nativeFailure = func(operation string) error {
+		if operation == "unload" {
+			return errors.New("injected detach unload failure")
+		}
+		return nil
+	}
+	err = session.Detach()
+	nativeFailure = originalFailure
+	if err == nil || !strings.Contains(err.Error(), "frida: unload:") {
+		t.Fatalf("detach did not aggregate script unload failure: %v", err)
+	}
+	if err := script.Unload(); err != nil {
+		t.Fatalf("script unload after session detach=%v", err)
+	}
+}
+
 func TestZZNativeRuntimeShutdown(t *testing.T) {
 	ShutdownRuntime()
 }

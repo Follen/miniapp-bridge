@@ -380,23 +380,28 @@ func TestNativePrepareAtomicPublishContract(t *testing.T) {
 	for _, token := range []string{
 		"$temporaryDLL = \"$installed.partial\"",
 		"$temporaryManifest = \"$installedManifest.partial\"",
+		"Move-Item -LiteralPath $installed -Destination $backupDLL -Force",
+		"Move-Item -LiteralPath $installedManifest -Destination $backupManifest -Force",
 		"Move-Item -LiteralPath $temporaryManifest -Destination $installedManifest -Force",
 		"Move-Item -LiteralPath $temporaryDLL -Destination $installed -Force",
+		"Move-Item -LiteralPath $backupManifest -Destination $installedManifest -Force",
+		"Move-Item -LiteralPath $backupDLL -Destination $installed -Force",
 		"Remove-Item -LiteralPath $partial,$temporaryDLL,$temporaryManifest",
 	} {
 		if !strings.Contains(text, token) {
 			t.Errorf("native prepare atomic contract missing %q", token)
 		}
 	}
-	removeMarker := strings.Index(text, "Remove-Item -LiteralPath $installed -Force")
+	backupMarker := strings.Index(text, "Move-Item -LiteralPath $installed -Destination $backupDLL -Force")
+	backupManifest := strings.Index(text, "Move-Item -LiteralPath $installedManifest -Destination $backupManifest -Force")
 	manifestPublish := strings.Index(text, "Move-Item -LiteralPath $temporaryManifest -Destination $installedManifest -Force")
 	dllPublish := strings.Index(text, "Move-Item -LiteralPath $temporaryDLL -Destination $installed -Force")
-	if removeMarker < 0 || manifestPublish < removeMarker || dllPublish < manifestPublish {
-		t.Fatal("native publish must remove the old DLL marker, publish manifest, then publish DLL last")
+	if backupMarker < 0 || backupManifest < backupMarker || manifestPublish < backupManifest || dllPublish < manifestPublish {
+		t.Fatal("native publish must back up the old DLL marker and manifest, then publish manifest and DLL in order")
 	}
 }
 
-func TestNativePreparePublishFailureCleansPartialsAndReadinessMarker(t *testing.T) {
+func TestNativePreparePublishFailureRestoresPreviousInstall(t *testing.T) {
 	fixture := makeNativePrepareFixture(t, nativePrepareArchiveOptions{})
 	root := t.TempDir()
 	cache := filepath.Join(root, "cache")
@@ -407,8 +412,9 @@ func TestNativePreparePublishFailureCleansPartialsAndReadinessMarker(t *testing.
 	}
 	dllPath := filepath.Join(destination, "miniapp-frida.dll")
 	manifestPath := filepath.Join(destination, "manifest.json")
+	oldDLL := []byte("previous DLL marker")
 	oldManifest := []byte("locked previous manifest")
-	if err := os.WriteFile(dllPath, []byte("previous DLL marker"), 0o644); err != nil {
+	if err := os.WriteFile(dllPath, oldDLL, 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(manifestPath, oldManifest, 0o644); err != nil {
@@ -442,11 +448,46 @@ func TestNativePreparePublishFailureCleansPartialsAndReadinessMarker(t *testing.
 	if runErr == nil {
 		t.Fatalf("publish unexpectedly succeeded with locked manifest:\n%s", output)
 	}
-	if _, err := os.Stat(dllPath); !os.IsNotExist(err) {
-		t.Fatalf("DLL readiness marker remained after failed publish: err=%v", err)
-	}
+	assertFileContent(t, dllPath, oldDLL)
 	assertFileContent(t, manifestPath, oldManifest)
 	assertNoNativePrepareTemps(t, cache, destination)
+}
+
+func TestNativePrepareRollsBackEveryPublishStep(t *testing.T) {
+	fixture := makeNativePrepareFixture(t, nativePrepareArchiveOptions{})
+	for _, step := range []string{
+		"after-dll-backup",
+		"after-manifest-backup",
+		"after-manifest-publish",
+		"after-dll-publish",
+	} {
+		t.Run(step, func(t *testing.T) {
+			root := t.TempDir()
+			cache := filepath.Join(root, "cache")
+			destination := filepath.Join(root, "destination")
+			writeNativePrepareCache(t, cache, fixture.archive)
+			if err := os.MkdirAll(destination, 0o755); err != nil {
+				t.Fatal(err)
+			}
+			oldDLL := []byte("previous trusted DLL")
+			oldManifest := []byte("previous trusted manifest")
+			if err := os.WriteFile(filepath.Join(destination, "miniapp-frida.dll"), oldDLL, 0o644); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(filepath.Join(destination, "manifest.json"), oldManifest, 0o644); err != nil {
+				t.Fatal(err)
+			}
+
+			args := append(nativePrepareArgs(cache, destination, "http://127.0.0.1:1/unreachable", fixture.hash), "-Offline")
+			output, err := runNativePrepareWithPublishFailure(step, args...)
+			if err == nil || !strings.Contains(output, "injected native publish failure: "+step) {
+				t.Fatalf("publish failure %q was not propagated: err=%v\n%s", step, err, output)
+			}
+			assertFileContent(t, filepath.Join(destination, "miniapp-frida.dll"), oldDLL)
+			assertFileContent(t, filepath.Join(destination, "manifest.json"), oldManifest)
+			assertNoNativePrepareTemps(t, cache, destination)
+		})
+	}
 }
 
 func TestNativePrepareLockedDLLAbortsBeforeManifestPublish(t *testing.T) {
@@ -688,11 +729,31 @@ func runNativePrepare(args ...string) (string, error) {
 }
 
 func runNativePrepareWithShell(shell string, args ...string) (string, error) {
+	return runNativePrepareCommand(shell, "", args...)
+}
+
+func runNativePrepareWithPublishFailure(step string, args ...string) (string, error) {
+	shell := "pwsh.exe"
+	if _, err := exec.LookPath(shell); err != nil {
+		shell = "powershell.exe"
+	}
+	return runNativePrepareCommand(shell, step, args...)
+}
+
+func runNativePrepareCommand(shell, publishFailure string, args ...string) (string, error) {
 	_, source, _, _ := runtime.Caller(0)
 	command := exec.Command(shell, append([]string{
 		"-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
 		"-File", filepath.Join(filepath.Dir(source), "native-prepare.ps1"),
 	}, args...)...)
+	for _, entry := range os.Environ() {
+		if !strings.HasPrefix(strings.ToUpper(entry), "MINIAPP_BRIDGE_TEST_NATIVE_PREPARE_PUBLISH_FAILURE=") {
+			command.Env = append(command.Env, entry)
+		}
+	}
+	if publishFailure != "" {
+		command.Env = append(command.Env, "MINIAPP_BRIDGE_TEST_NATIVE_PREPARE_PUBLISH_FAILURE="+publishFailure)
+	}
 	output, err := command.CombinedOutput()
 	return string(output), err
 }
@@ -725,6 +786,18 @@ func assertNoNativePrepareTemps(t *testing.T, cache, destination string) {
 	for _, path := range paths {
 		if _, err := os.Lstat(path); !os.IsNotExist(err) {
 			t.Fatalf("temporary native prepare artifact remains: %s (err=%v)", path, err)
+		}
+	}
+	for _, pattern := range []string{
+		filepath.Join(destination, "miniapp-frida.dll.backup-*"),
+		filepath.Join(destination, "manifest.json.backup-*"),
+	} {
+		matches, err := filepath.Glob(pattern)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(matches) != 0 {
+			t.Fatalf("temporary native prepare backups remain: %v", matches)
 		}
 	}
 }

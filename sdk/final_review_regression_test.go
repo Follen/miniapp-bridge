@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	bridgecontext "github.com/Follen/miniapp-bridge/internal/context"
 	"path/filepath"
 	"sync"
 	"testing"
@@ -148,4 +149,22 @@ func TestPublicValidationErrorsAreStructured(t *testing.T) {
 	}
 	err = s.SelectContext("missing")
 	assertSDKError(t, err, ErrUnknownContext, "select", "context")
+}
+
+func TestSelectContextRejectsClosedService(t *testing.T) {
+	native := &metadataRollbackNative{}
+	s := newSDK(t, Options{
+		Native: func(context.Context, func(LogEvent)) (NativeSession, error) {
+			return native, nil
+		},
+	})
+	if err := s.Start(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	s.app.Contexts.Upsert(bridgecontext.Context{ID: "closed-context"})
+	if err := s.Close(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	err := s.SelectContext("closed-context")
+	assertSDKError(t, err, ErrClosed, "select", "context")
 }

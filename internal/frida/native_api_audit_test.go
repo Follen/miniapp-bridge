@@ -40,6 +40,14 @@ func TestAuditNativeOwnershipDisconnectsCallbacksAndDeinitializesFrida(t *testin
 			t.Errorf("native ownership contract missing %q", token)
 		}
 	}
+	for _, token := range []string{
+		"GMutex mutex", "GCond drained", "gboolean closing", "guint in_flight",
+		"mb_callback_owner_enter", "mb_callback_owner_leave", "mb_callback_owner_drain",
+	} {
+		if !strings.Contains(source, token) {
+			t.Errorf("callback drain barrier missing %q", token)
+		}
+	}
 }
 
 func TestAuditNativeCleanupDoesNotTerminateAttachedProcess(t *testing.T) {
@@ -55,16 +63,32 @@ func TestAuditNativeCleanupDoesNotTerminateAttachedProcess(t *testing.T) {
 	}
 
 	assertOrderedTokens(t, source, "mb_script_unload", []string{
+		"mb_callback_owner_close(&script->callback)",
 		"g_signal_handlers_disconnect_by_data(script->script,script)",
 		"frida_script_unload_sync(script->script,NULL,&e)",
+		"mb_callback_owner_drain(&script->callback)",
 		"frida_unref(script->script)",
+		"mb_callback_owner_clear(&script->callback)",
 		"free(script)",
 	})
 	assertOrderedTokens(t, source, "mb_session_detach", []string{
+		"mb_callback_owner_close(&session->callback)",
 		"g_signal_handlers_disconnect_by_data(session->session,session)",
 		"frida_session_detach_sync(session->session,NULL,&e)",
+		"mb_callback_owner_drain(&session->callback)",
 		"frida_unref(session->session)",
+		"mb_callback_owner_clear(&session->callback)",
 		"free(session)",
+	})
+	assertOrderedTokens(t, source, "mb_on_message", []string{
+		"mb_callback_owner_enter(&owner->callback, &handle)",
+		"owner->message(handle",
+		"mb_callback_owner_leave(&owner->callback)",
+	})
+	assertOrderedTokens(t, source, "mb_on_detached", []string{
+		"mb_callback_owner_enter(&owner->callback, &handle)",
+		"owner->detached(handle",
+		"mb_callback_owner_leave(&owner->callback)",
 	})
 	assertOrderedTokens(t, source, "mb_device_close", []string{
 		"frida_unref(device->device)",

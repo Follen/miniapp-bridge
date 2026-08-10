@@ -139,7 +139,7 @@ func TestGitHubReleaseWorkflowNativeArchiveHashMatchesSDK(t *testing.T) {
 	if workflowMatch[1] != string(runtimeMatch[1]) {
 		t.Fatalf("release native archive SHA=%s, SDK pin=%s", workflowMatch[1], runtimeMatch[1])
 	}
-	const expected = "E521ED5828176DE066474D1DE91C69B1FC9B17BC4E7ECFCBDB64B752309A2C2B"
+	const expected = "FDF6FF11678760BF6C072FB68B6775AB0B8F9981B1AB5F8D2C2B4F369C1E76FE"
 	if workflowMatch[1] != expected {
 		t.Fatalf("release native archive SHA=%s, want pinned artifact %s", workflowMatch[1], expected)
 	}

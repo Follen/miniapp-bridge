@@ -136,7 +136,7 @@ Go Module 只包含 Go 源码和最小 Windows loader 源码，不提交
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\native-prepare.ps1 `
   -DestinationDirectory .\dist `
-  -ExpectedArchiveSHA256 E521ED5828176DE066474D1DE91C69B1FC9B17BC4E7ECFCBDB64B752309A2C2B
+  -ExpectedArchiveSHA256 FDF6FF11678760BF6C072FB68B6775AB0B8F9981B1AB5F8D2C2B4F369C1E76FE
 ```
 
 默认下载地址为：
@@ -202,7 +202,7 @@ SHA256SUMS
 产品 ZIP 包含 EXE、匹配的 DLL 和 manifest、两份 README，以及所需许可证和
 声明文件。workflow 还会创建或验证默认 SDK 下载地址所使用的不可变
 `native-v17.3.2-abi1` 兼容 Release。native ZIP 必须匹配 SDK 固定的 SHA-256：
-`E521ED5828176DE066474D1DE91C69B1FC9B17BC4E7ECFCBDB64B752309A2C2B`。
+`FDF6FF11678760BF6C072FB68B6775AB0B8F9981B1AB5F8D2C2B4F369C1E76FE`。
 发布 job 会创建或恢复 draft，逐字节核对全部资产，并在发布前后检查产品和 native tag commit，
 然后才正式发布。已有产品 Release 不会被覆盖；已有 native Release 的资产必须
 逐字节一致，而且不会被设为 Latest。SemVer 预发布 tag 会被标记为 GitHub

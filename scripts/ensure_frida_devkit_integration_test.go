@@ -304,7 +304,16 @@ func TestFridaBootstrapRetriesTimedOutDownload(t *testing.T) {
 	var requests int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		if atomic.AddInt32(&requests, 1) == 1 {
-			time.Sleep(2 * time.Second)
+			flusher, ok := w.(http.Flusher)
+			if !ok {
+				_, _ = w.Write([]byte("x"))
+				return
+			}
+			for range 20 {
+				_, _ = w.Write([]byte("x"))
+				flusher.Flush()
+				time.Sleep(100 * time.Millisecond)
+			}
 			return
 		}
 		_, _ = w.Write(fixture.data)

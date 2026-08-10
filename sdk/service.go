@@ -640,6 +640,12 @@ func (s *Service) updateNativeMetadataLocked(native NativeSession, attached, use
 }
 
 func (s *Service) SelectContext(id string) error {
+	s.mu.Lock()
+	closed := s.state == StateStopping || s.state == StateStopped || s.state == StateFailed
+	s.mu.Unlock()
+	if closed {
+		return &Error{Op: "select", Component: "context", Err: ErrClosed}
+	}
 	if !s.app.Contexts.Select(id) {
 		return &Error{Op: "select", Component: "context", Err: fmt.Errorf("%w: %s", ErrUnknownContext, id)}
 	}

@@ -44,6 +44,7 @@ MB_API mb_session *mb_device_attach(mb_device *device, uint32_t pid, uintptr_t h
 MB_API void mb_device_close(mb_device *device);
 MB_API void mb_runtime_shutdown(void);
 MB_API mb_script *mb_session_load_script(mb_session *session, const char *source, uintptr_t handle, mb_message_cb callback, char **error);
+/* Detach and unload synchronously drain callbacks that reference handle. */
 MB_API int mb_session_detach(mb_session *session, char **error);
 MB_API int mb_script_post(mb_script *script, const char *json, char **error);
 MB_API int mb_script_unload(mb_script *script, char **error);

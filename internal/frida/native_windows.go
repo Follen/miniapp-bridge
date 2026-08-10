@@ -68,17 +68,18 @@ type NativeDevice struct {
 }
 
 type NativeSession struct {
-	device *NativeDevice
-	ptr    *C.mb_session
-	h      cgo.Handle
-	mu     sync.Mutex
-	closed bool
+	device  *NativeDevice
+	ptr     *C.mb_session
+	h       cgo.Handle
+	mu      sync.Mutex
+	closed  bool
+	scripts map[*NativeScript]struct{}
 }
 
 type NativeScript struct {
-	ptr    *C.mb_script
-	mu     sync.Mutex
-	closed bool
+	session *NativeSession
+	ptr     *C.mb_script
+	closed  bool
 }
 
 // nativeFailure is nil in production. Tests use it to exercise C failure
@@ -265,7 +266,7 @@ func (d *NativeDevice) Attach(pid uint32) (Session, error) {
 	if d.closed {
 		return nil, errors.New("frida: device closed")
 	}
-	ns := &NativeSession{device: d}
+	ns := &NativeSession{device: d, scripts: make(map[*NativeScript]struct{})}
 	ns.h = cgo.NewHandle(ns)
 	var cErr *C.char
 	ns.ptr = C.mb_device_attach_go(d.ptr, C.uint32_t(pid), C.uintptr_t(ns.h), &cErr)
@@ -319,7 +320,12 @@ func (s *NativeSession) LoadScript(source string) (Script, error) {
 	if ptr == nil {
 		return nil, fmt.Errorf("frida: load script: %w", nativeError(cErr))
 	}
-	return &NativeScript{ptr: ptr}, nil
+	script := &NativeScript{session: s, ptr: ptr}
+	if s.scripts == nil {
+		s.scripts = make(map[*NativeScript]struct{})
+	}
+	s.scripts[script] = struct{}{}
+	return script, nil
 }
 
 func (s *NativeSession) Detach() error {
@@ -329,19 +335,40 @@ func (s *NativeSession) Detach() error {
 		return nil
 	}
 	s.closed = true
+	var cleanup []error
+	for script := range s.scripts {
+		if script.closed {
+			delete(s.scripts, script)
+			continue
+		}
+		script.closed = true
+		var cErr *C.char
+		ok := C.mb_script_unload(script.ptr, &cErr)
+		script.ptr = nil
+		delete(s.scripts, script)
+		if ok == 0 || forcedNativeFailure("unload") != nil {
+			cleanup = append(cleanup, fmt.Errorf("frida: unload: %w", nativeError(cErr)))
+		}
+	}
 	var cErr *C.char
 	ok := C.mb_session_detach(s.ptr, &cErr)
 	s.ptr = nil
-	s.h.Delete()
-	if ok == 0 || forcedNativeFailure("detach") != nil {
-		return fmt.Errorf("frida: detach: %w", nativeError(cErr))
+	if s.h != 0 {
+		s.h.Delete()
+		s.h = 0
 	}
-	return nil
+	if ok == 0 || forcedNativeFailure("detach") != nil {
+		cleanup = append(cleanup, fmt.Errorf("frida: detach: %w", nativeError(cErr)))
+	}
+	return errors.Join(cleanup...)
 }
 
 func (s *NativeScript) Unload() error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	if s == nil || s.session == nil {
+		return nil
+	}
+	s.session.mu.Lock()
+	defer s.session.mu.Unlock()
 	if s.closed {
 		return nil
 	}
@@ -349,6 +376,7 @@ func (s *NativeScript) Unload() error {
 	var cErr *C.char
 	ok := C.mb_script_unload(s.ptr, &cErr)
 	s.ptr = nil
+	delete(s.session.scripts, s)
 	if ok == 0 || forcedNativeFailure("unload") != nil {
 		return fmt.Errorf("frida: unload: %w", nativeError(cErr))
 	}
@@ -356,9 +384,12 @@ func (s *NativeScript) Unload() error {
 }
 
 func (s *NativeScript) Post(payload []byte) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.closed {
+	if s == nil || s.session == nil {
+		return errors.New("frida: script unloaded")
+	}
+	s.session.mu.Lock()
+	defer s.session.mu.Unlock()
+	if s.closed || s.session.closed {
 		return errors.New("frida: script unloaded")
 	}
 	text := C.CString(string(payload))

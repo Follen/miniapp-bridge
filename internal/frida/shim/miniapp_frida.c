@@ -16,9 +16,17 @@ extern int uncompress2(mb_z_byte *dest, mb_z_ulong *dest_length, const mb_z_byte
 #define MB_Z_BUF_ERROR (-5)
 #define MB_Z_DEFAULT_COMPRESSION (-1)
 
+typedef struct {
+  GMutex mutex;
+  GCond drained;
+  gboolean closing;
+  guint in_flight;
+  uintptr_t handle;
+} mb_callback_owner;
+
 struct mb_device { FridaDeviceManager *manager; FridaDevice *device; };
-struct mb_session { FridaSession *session; uintptr_t handle; mb_detached_cb detached; };
-struct mb_script { FridaScript *script; uintptr_t handle; mb_message_cb message; };
+struct mb_session { FridaSession *session; mb_callback_owner callback; mb_detached_cb detached; };
+struct mb_script { FridaScript *script; mb_callback_owner callback; mb_message_cb message; };
 static volatile gint mb_frida_refs = 0;
 static volatile gint mb_frida_initialized = 0;
 
@@ -94,6 +102,45 @@ static void mb_set_error(char **out, GError *error) {
   if (out != NULL) *out = _strdup(error != NULL ? error->message : "frida operation failed");
   if (error != NULL) g_error_free(error);
 }
+static void mb_callback_owner_init(mb_callback_owner *owner, uintptr_t handle) {
+  g_mutex_init(&owner->mutex);
+  g_cond_init(&owner->drained);
+  owner->closing = FALSE;
+  owner->in_flight = 0;
+  owner->handle = handle;
+}
+static gboolean mb_callback_owner_enter(mb_callback_owner *owner, uintptr_t *handle) {
+  gboolean entered = FALSE;
+  g_mutex_lock(&owner->mutex);
+  if (!owner->closing) {
+    owner->in_flight++;
+    *handle = owner->handle;
+    entered = TRUE;
+  }
+  g_mutex_unlock(&owner->mutex);
+  return entered;
+}
+static void mb_callback_owner_leave(mb_callback_owner *owner) {
+  g_mutex_lock(&owner->mutex);
+  g_assert(owner->in_flight > 0);
+  owner->in_flight--;
+  if (owner->closing && owner->in_flight == 0) g_cond_broadcast(&owner->drained);
+  g_mutex_unlock(&owner->mutex);
+}
+static void mb_callback_owner_close(mb_callback_owner *owner) {
+  g_mutex_lock(&owner->mutex);
+  owner->closing = TRUE;
+  g_mutex_unlock(&owner->mutex);
+}
+static void mb_callback_owner_drain(mb_callback_owner *owner) {
+  g_mutex_lock(&owner->mutex);
+  while (owner->in_flight != 0) g_cond_wait(&owner->drained, &owner->mutex);
+  g_mutex_unlock(&owner->mutex);
+}
+static void mb_callback_owner_clear(mb_callback_owner *owner) {
+  g_cond_clear(&owner->drained);
+  g_mutex_clear(&owner->mutex);
+}
 static uint32_t mb_process_ppid(FridaProcess *process) {
   GHashTable *params = frida_process_get_parameters(process);
   GVariant *v = params != NULL ? g_hash_table_lookup(params, "ppid") : NULL;
@@ -111,13 +158,17 @@ static char *mb_process_path(FridaProcess *process) {
   return _strdup(g_variant_get_string(v, NULL));
 }
 static void mb_on_message(FridaScript *script, const gchar *message, GBytes *data, gpointer user_data) {
-  mb_script *owner = user_data; gsize size = 0;
+  mb_script *owner = user_data; gsize size = 0; uintptr_t handle = 0; (void) script;
+  if (!mb_callback_owner_enter(&owner->callback, &handle)) return;
   const guint8 *bytes = data != NULL ? g_bytes_get_data(data, &size) : NULL;
-  if (owner->message != NULL) owner->message(owner->handle, (char *) message, (uint8_t *) bytes, size);
+  if (owner->message != NULL) owner->message(handle, (char *) message, (uint8_t *) bytes, size);
+  mb_callback_owner_leave(&owner->callback);
 }
 static void mb_on_detached(FridaSession *session, FridaSessionDetachReason reason, FridaCrash *crash, gpointer user_data) {
-  mb_session *owner = user_data; (void) session; (void) crash;
-  if (owner->detached != NULL) owner->detached(owner->handle, (int) reason);
+  mb_session *owner = user_data; uintptr_t handle = 0; (void) session; (void) crash;
+  if (!mb_callback_owner_enter(&owner->callback, &handle)) return;
+  if (owner->detached != NULL) owner->detached(handle, (int) reason);
+  mb_callback_owner_leave(&owner->callback);
 }
 
 mb_device *mb_device_open(char **error) {
@@ -154,7 +205,14 @@ void mb_processes_free(mb_process *items, size_t count) { if (items == NULL) ret
 mb_session *mb_device_attach(mb_device *device, uint32_t pid, uintptr_t handle, mb_detached_cb callback, char **error) {
   GError *native_error = NULL; FridaSession *session = frida_device_attach_sync(device->device, pid, NULL, NULL, &native_error);
   if (session == NULL) { mb_set_error(error, native_error); return NULL; }
-  mb_session *owner = calloc(1, sizeof(mb_session)); owner->session=session; owner->handle=handle; owner->detached=callback;
+  mb_session *owner = calloc(1, sizeof(mb_session));
+  if (owner == NULL) {
+    frida_session_detach_sync(session, NULL, NULL);
+    frida_unref(session);
+    mb_set_text_error(error, "out of memory");
+    return NULL;
+  }
+  owner->session=session; owner->detached=callback; mb_callback_owner_init(&owner->callback, handle);
   g_signal_connect_data(session, "detached", G_CALLBACK(mb_on_detached), owner, NULL, 0); return owner;
 }
 void mb_device_close(mb_device *device) { if(device==NULL)return; if(device->device)frida_unref(device->device); if(device->manager){frida_device_manager_close_sync(device->manager,NULL,NULL);frida_unref(device->manager);} free(device); mb_frida_release(); }
@@ -163,11 +221,13 @@ mb_script *mb_session_load_script(mb_session *session, const char *source, uintp
   GError *native_error=NULL; FridaScriptOptions *options=frida_script_options_new();
   FridaScript *script=frida_session_create_script_sync(session->session,source,options,NULL,&native_error); frida_unref(options);
   if(script==NULL){mb_set_error(error,native_error);return NULL;}
-  mb_script *owner=calloc(1,sizeof(mb_script)); owner->script=script;owner->handle=handle;owner->message=callback;
+  mb_script *owner=calloc(1,sizeof(mb_script));
+  if(owner==NULL){frida_unref(script);mb_set_text_error(error,"out of memory");return NULL;}
+  owner->script=script;owner->message=callback;mb_callback_owner_init(&owner->callback,handle);
   g_signal_connect_data(script,"message",G_CALLBACK(mb_on_message),owner,NULL,0); frida_script_load_sync(script,NULL,&native_error);
-  if(native_error!=NULL){mb_set_error(error,native_error);g_signal_handlers_disconnect_by_data(script,owner);frida_unref(script);free(owner);return NULL;} return owner;
+  if(native_error!=NULL){mb_set_error(error,native_error);mb_callback_owner_close(&owner->callback);g_signal_handlers_disconnect_by_data(script,owner);mb_callback_owner_drain(&owner->callback);frida_unref(script);mb_callback_owner_clear(&owner->callback);free(owner);return NULL;} return owner;
 }
-int mb_session_detach(mb_session *session, char **error) { if(session==NULL)return 1; GError *e=NULL; g_signal_handlers_disconnect_by_data(session->session,session);frida_session_detach_sync(session->session,NULL,&e);frida_unref(session->session);free(session);if(e){mb_set_error(error,e);return 0;}return 1; }
+int mb_session_detach(mb_session *session, char **error) { if(session==NULL)return 1; GError *e=NULL;mb_callback_owner_close(&session->callback);g_signal_handlers_disconnect_by_data(session->session,session);frida_session_detach_sync(session->session,NULL,&e);mb_callback_owner_drain(&session->callback);frida_unref(session->session);mb_callback_owner_clear(&session->callback);free(session);if(e){mb_set_error(error,e);return 0;}return 1; }
 int mb_script_post(mb_script *script, const char *json, char **error) { (void)error; if(script==NULL)return 0;frida_script_post(script->script,json,NULL);return 1; }
-int mb_script_unload(mb_script *script, char **error) { if(script==NULL)return 1;GError *e=NULL;g_signal_handlers_disconnect_by_data(script->script,script);frida_script_unload_sync(script->script,NULL,&e);frida_unref(script->script);free(script);if(e){mb_set_error(error,e);return 0;}return 1; }
+int mb_script_unload(mb_script *script, char **error) { if(script==NULL)return 1;GError *e=NULL;mb_callback_owner_close(&script->callback);g_signal_handlers_disconnect_by_data(script->script,script);frida_script_unload_sync(script->script,NULL,&e);mb_callback_owner_drain(&script->callback);frida_unref(script->script);mb_callback_owner_clear(&script->callback);free(script);if(e){mb_set_error(error,e);return 0;}return 1; }
 void mb_error_free(char *error) { free(error); }
