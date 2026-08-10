@@ -179,6 +179,11 @@ verifies the official Frida devkit archive and zlib `1.3.1`, builds the opaque C
 ABI shim with MSVC, runs `go test -tags frida -race ./...`, and produces the
 tagged CLI package in `dist`.
 
+That tagged test command is self-contained and does not require WeChat or a
+WMPF process. Interactive target enumeration, attach, Agent lifecycle, and
+reattach tests use the separate `frida live` tags and are exercised by the
+Windows live smoke workflow.
+
 ## Versions and releases
 
 The initial source and SDK release is `v0.0.1`. Later releases must use

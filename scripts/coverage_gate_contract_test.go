@@ -75,6 +75,37 @@ func TestBuildWindowsUsesRepositoryRootAndTaggedRace(t *testing.T) {
 	}
 }
 
+func TestHostedNativeTestsExcludeLiveWMPF(t *testing.T) {
+	_, source, _, ok := runtimeCallerForCoverageGate(t)
+	if !ok {
+		t.Fatal("runtime caller failed")
+	}
+	root := filepath.Dir(filepath.Dir(source))
+	tags := map[string]string{
+		"internal/frida/native_windows_test.go":         "//go:build windows && frida && live",
+		"internal/frida/zz_native_unit_windows_test.go": "//go:build windows && frida && !live",
+	}
+	for name, want := range tags {
+		data, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(name)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		first, _, _ := strings.Cut(strings.ReplaceAll(string(data), "\r\n", "\n"), "\n")
+		if first != want {
+			t.Errorf("%s build tag=%q want %q", name, first, want)
+		}
+	}
+	for _, name := range []string{"scripts/build-windows.ps1", "scripts/coverage-gate.ps1"} {
+		data, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(name)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if strings.Contains(string(data), "frida live") {
+			t.Errorf("hosted native command in %s enables live WMPF tests", name)
+		}
+	}
+}
+
 func runtimeCallerForCoverageGate(t *testing.T) (uintptr, string, int, bool) {
 	return runtime.Caller(0)
 }

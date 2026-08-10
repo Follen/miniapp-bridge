@@ -148,3 +148,7 @@ manifest error contracts are covered by package tests. See
 [`verification.md`](verification.md) for the stable command contract and its
 linked Native report containing exact exits, key outputs, acceptance status,
 and live result.
+
+Hosted native tests use `-tags frida` and require no WeChat/WMPF process.
+Interactive process enumeration, attach, Agent lifecycle, and reattach tests
+use `-tags "frida live"` and remain part of the separate Windows live gate.

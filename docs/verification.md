@@ -34,6 +34,11 @@ $env:MINIAPP_BRIDGE_NATIVE_PATH = (Resolve-Path '.\dist\miniapp-frida.dll').Path
 go test -v -tags frida ./internal/... -count=1
 go test -v -tags frida ./sdk -count=1
 
+# Interactive Windows only; hosted CI intentionally does not run these.
+go test -v -tags "frida live" ./internal/frida `
+  -run 'TestNative(EnumeratesWMPFTargetMetadata|AgentLifecycleAndReattach)' `
+  -count=1
+
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/coverage-gate.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/native-release.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-windows-release.ps1 `

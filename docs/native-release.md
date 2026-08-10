@@ -94,6 +94,8 @@ git push origin v0.0.1
 Hosted CI verifies deterministic and native packaging behavior but has no live
 WMPF target. Run `scripts/smoke-windows.ps1 -CDPMode all` on an interactive
 Windows environment before claiming a new live target version.
+The ordinary `frida` test tag is hosted-CI safe; only `frida live` enables tests
+that enumerate, attach to, or reload a real WMPF process.
 
 ## Runtime preparation
 

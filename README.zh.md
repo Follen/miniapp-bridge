@@ -163,6 +163,10 @@ go build -tags frida -o .\dist\my-app.exe .\cmd\my-app
 Frida devkit 和 zlib `1.3.1`，使用 MSVC 构建不透明 C ABI shim，运行
 `go test -tags frida -race ./...`，并在 `dist` 生成带 tag 的 CLI 包。
 
+这条 tagged 测试命令完全自包含，不依赖微信或 WMPF 进程。真实目标的枚举、
+attach、Agent 生命周期和 reattach 测试使用独立的 `frida live` tags，并由
+Windows live smoke 流程执行。
+
 ## 版本与发布
 
 源码和 SDK 的首发版本统一为 `v0.0.1`。后续版本必须使用不带 build metadata
