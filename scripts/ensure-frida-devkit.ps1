@@ -62,6 +62,52 @@ function Move-DirectoryAtomically {
     [System.IO.Directory]::Move($Source, $Destination)
 }
 
+function Stop-ProcessTreeBounded {
+    param([System.Diagnostics.Process]$Process)
+
+    $killTreeMethod = $Process.GetType().GetMethod('Kill', [type[]]@([bool]))
+    if ($null -ne $killTreeMethod) {
+        try {
+            [void]$killTreeMethod.Invoke($Process, @($true))
+            return
+        } catch {}
+    }
+
+    # Windows PowerShell 5.1 runs on .NET Framework, whose Process.Kill has no
+    # process-tree overload. taskkill keeps child processes from retaining the
+    # download handles after the parent curl process is terminated.
+    $taskkill = Get-Command taskkill.exe -ErrorAction SilentlyContinue
+    if ($null -ne $taskkill) {
+        $startInfo = [System.Diagnostics.ProcessStartInfo]::new()
+        $startInfo.FileName = $taskkill.Source
+        $startInfo.Arguments = "/PID $($Process.Id) /T /F"
+        $startInfo.UseShellExecute = $false
+        $startInfo.CreateNoWindow = $true
+        $startInfo.RedirectStandardOutput = $true
+        $startInfo.RedirectStandardError = $true
+        $killer = [System.Diagnostics.Process]::new()
+        $killer.StartInfo = $startInfo
+        try {
+            if ($killer.Start()) {
+                $stdoutTask = $killer.StandardOutput.ReadToEndAsync()
+                $stderrTask = $killer.StandardError.ReadToEndAsync()
+                if (-not $killer.WaitForExit(5000)) {
+                    try { $killer.Kill() } catch {}
+                    throw 'taskkill.exe exceeded process-tree termination timeout'
+                }
+                [void]$stdoutTask.GetAwaiter().GetResult()
+                [void]$stderrTask.GetAwaiter().GetResult()
+            }
+        } finally {
+            $killer.Dispose()
+        }
+    }
+
+    if (-not $Process.HasExited) {
+        try { $Process.Kill() } catch {}
+    }
+}
+
 function Invoke-BoundedDownload {
     param(
         [string]$URL,
@@ -108,8 +154,10 @@ function Invoke-BoundedDownload {
             $stderrTask = $process.StandardError.ReadToEndAsync()
             $waitMilliseconds = [int][Math]::Min([int]::MaxValue, $TimeoutSeconds * 1000)
             if (-not $process.WaitForExit($waitMilliseconds)) {
-                try { $process.Kill($true) } catch { try { $process.Kill() } catch {} }
-                $process.WaitForExit()
+                Stop-ProcessTreeBounded -Process $process
+                if (-not $process.WaitForExit(5000)) {
+                    throw 'curl.exe did not exit after hard-timeout termination'
+                }
                 throw "curl.exe exceeded hard timeout of ${TimeoutSeconds}s"
             }
             $stdout = $stdoutTask.GetAwaiter().GetResult()

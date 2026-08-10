@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"testing"
@@ -20,6 +21,7 @@ func TestCoverageGateRunsTaggedRaceAndUsesStableScope(t *testing.T) {
 	}
 	script := string(data)
 	for _, token := range []string{
+		"go test ./... -count=1 -timeout 180s",
 		"go test ./cmd/... ./frida -count=1 -timeout 90s",
 		"go test -tags frida ./internal/... ./sdk -count=1 -timeout 180s",
 		"go test -tags frida -race ./... -count=1 -timeout 240s",
@@ -95,13 +97,34 @@ func TestHostedNativeTestsExcludeLiveWMPF(t *testing.T) {
 			t.Errorf("%s build tag=%q want %q", name, first, want)
 		}
 	}
-	for _, name := range []string{"scripts/build-windows.ps1", "scripts/coverage-gate.ps1"} {
-		data, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(name)))
+	entrypoints := []string{
+		filepath.Join(root, "scripts", "build-windows.ps1"),
+		filepath.Join(root, "scripts", "coverage-gate.ps1"),
+	}
+	for _, pattern := range []string{
+		filepath.Join(root, ".github", "workflows", "*.yml"),
+		filepath.Join(root, ".github", "workflows", "*.yaml"),
+	} {
+		matches, err := filepath.Glob(pattern)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if strings.Contains(string(data), "frida live") {
-			t.Errorf("hosted native command in %s enables live WMPF tests", name)
+		entrypoints = append(entrypoints, matches...)
+	}
+	liveTag := regexp.MustCompile(`(?i)(?:-tags(?:\s+|=)|GOFLAGS[^\r\n:=]*[:=])[^\r\n]*\blive\b`)
+	for _, name := range entrypoints {
+		data, err := os.ReadFile(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		content := strings.ToLower(strings.ReplaceAll(string(data), "\r\n", "\n"))
+		if liveTag.MatchString(content) {
+			t.Errorf("hosted entrypoint in %s enables live Go build tags", name)
+		}
+		for _, forbidden := range []string{"smoke-windows", "wechatappex", "xweixin:", "weixin:"} {
+			if strings.Contains(content, forbidden) {
+				t.Errorf("hosted entrypoint in %s references live environment marker %q", name, forbidden)
+			}
 		}
 	}
 }
