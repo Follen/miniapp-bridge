@@ -10,7 +10,9 @@ func TestParseVersion(t *testing.T) {
 
 func TestSelectParentUsesReferenceStableTieOrder(t *testing.T) {
 	ps := []Process{{Name: "WeChatAppEx.exe", ParentPID: 20}, {Name: "WeChatAppEx.exe", ParentPID: 10}}
-	if got, _ := SelectParent(ps, "WeChatAppEx.exe"); got != 10 { t.Fatalf("got %d want last equal-frequency parent 10", got) }
+	if got, _ := SelectParent(ps, "WeChatAppEx.exe"); got != 10 {
+		t.Fatalf("got %d want last equal-frequency parent 10", got)
+	}
 }
 
 func TestSelectParent(t *testing.T) {

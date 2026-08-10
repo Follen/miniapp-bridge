@@ -29,6 +29,16 @@ func TestHub(t *testing.T) {
 		t.Fatalf("%d %d", a.n, h.Count())
 	}
 }
+
+func TestHubRemove(t *testing.T) {
+	h := NewHub()
+	client := &tc{}
+	h.Add(client)
+	h.Remove(client)
+	if count := h.Count(); count != 0 {
+		t.Fatalf("clients=%d want 0", count)
+	}
+}
 func TestListener(t *testing.T) {
 	l := NewListener("127.0.0.1:0", func(c net.Conn) { c.Close() })
 	if err := l.Start(); err != nil {

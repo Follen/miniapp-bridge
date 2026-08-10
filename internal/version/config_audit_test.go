@@ -1,8 +1,14 @@
 package version
 
 import (
+	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
+	"os"
+	"path/filepath"
 	"reflect"
 	"sort"
+	"strings"
 	"testing"
 )
 
@@ -32,8 +38,8 @@ func TestAuditAddressConfigSetAndFields(t *testing.T) {
 		if _, err := config.Offset(config.CDPFilterHookOffset); err != nil {
 			t.Errorf("version %d CDPFilterHookOffset: %v", version, err)
 		}
-		if len(config.SceneOffsets) != 3 && len(config.SceneOffsets) != 6 {
-			t.Errorf("version %d SceneOffsets length=%d, want 3 or 6", version, len(config.SceneOffsets))
+		if len(config.SceneOffsets) != 6 {
+			t.Errorf("version %d SceneOffsets length=%d, want 6", version, len(config.SceneOffsets))
 		}
 	}
 	sort.Ints(got)
@@ -42,9 +48,36 @@ func TestAuditAddressConfigSetAndFields(t *testing.T) {
 	}
 }
 
+func TestAuditAddressConfigBytesMatchPinnedReferenceManifest(t *testing.T) {
+	t.Parallel()
+	files, err := filepath.Glob("../../configs/addresses/addresses.*.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	sort.Strings(files)
+	var manifest strings.Builder
+	for _, path := range files {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		data = bytes.ReplaceAll(data, []byte("\r\n"), []byte("\n"))
+		sum := sha256.Sum256(data)
+		manifest.WriteString(filepath.Base(path))
+		manifest.WriteByte(':')
+		manifest.WriteString(strings.ToUpper(hex.EncodeToString(sum[:])))
+		manifest.WriteByte('\n')
+	}
+	sum := sha256.Sum256([]byte(manifest.String()))
+	const want = "3C67F88B93561B31D56122173AEEF556D652B9875A41E8117E03BA618EDA3831"
+	if got := strings.ToUpper(hex.EncodeToString(sum[:])); got != want {
+		t.Fatalf("address config aggregate SHA-256=%s, want %s", got, want)
+	}
+}
+
 func TestAuditSelectRejectsNearestVersionFallback(t *testing.T) {
 	t.Parallel()
-	configs := map[int]AddressConfig{19027: {Version: 19027, SceneOffsets: []int{1, 2, 3}}}
+	configs := map[int]AddressConfig{19027: {Version: 19027, SceneOffsets: []int{1, 2, 3, 4, 5, 6}}}
 	if _, err := Select(configs, 19028); err == nil {
 		t.Fatal("Select accepted a non-exact version")
 	}

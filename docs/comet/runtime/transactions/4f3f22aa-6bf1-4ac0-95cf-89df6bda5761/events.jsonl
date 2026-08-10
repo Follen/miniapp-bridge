@@ -1,8 +1,0 @@
-{"sequence":1,"timestamp":"2026-08-07T18:00:12.376Z","type":"prepared"}
-{"sequence":2,"timestamp":"2026-08-07T18:00:13.225Z","type":"operation-started","operationId":"spec-1-miniapp-bridge"}
-{"sequence":3,"timestamp":"2026-08-07T18:00:13.350Z","type":"operation-completed","operationId":"spec-1-miniapp-bridge"}
-{"sequence":4,"timestamp":"2026-08-07T18:00:14.064Z","type":"operation-started","operationId":"archive-change"}
-{"sequence":5,"timestamp":"2026-08-07T18:00:14.412Z","type":"operation-completed","operationId":"archive-change"}
-{"sequence":6,"timestamp":"2026-08-07T18:00:14.652Z","type":"archive-finalization-started"}
-{"sequence":7,"timestamp":"2026-08-07T18:00:14.724Z","type":"archive-finalized"}
-{"sequence":8,"timestamp":"2026-08-07T18:00:14.769Z","type":"commit"}

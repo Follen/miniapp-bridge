@@ -1,0 +1,181 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: true
+
+env:
+  GO_VERSION: 1.23.x
+  ACTIONLINT_VERSION: 1.7.7
+  FRIDA_CORE_VERSION: 17.3.2
+  ZLIB_VERSION: 1.3.1
+
+jobs:
+  linux:
+    name: Linux untagged
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: go.sum
+
+      - name: Verify module graph
+        shell: bash
+        run: |
+          go mod download
+          go mod verify
+          go mod tidy
+          git diff --exit-code -- go.mod go.sum
+
+      - name: Check Go formatting
+        shell: bash
+        run: |
+          mapfile -d '' go_files < <(git ls-files -z -- '*.go')
+          unformatted="$(gofmt -l "${go_files[@]}")"
+          if [[ -n "$unformatted" ]]; then
+            printf 'The following tracked Go files require gofmt:\n%s\n' "$unformatted"
+            exit 1
+          fi
+
+      - name: Lint GitHub Actions workflows
+        shell: bash
+        run: go run "github.com/rhysd/actionlint/cmd/actionlint@v${ACTIONLINT_VERSION}" -ignore 'unexpected key.*queue.*concurrency'
+
+      - name: Unit tests
+        shell: bash
+        run: |
+          mkdir -p ci-artifacts
+          set -o pipefail
+          go test ./... -count=1 -timeout 120s 2>&1 | tee ci-artifacts/linux-unit.log
+
+      - name: Vet
+        shell: bash
+        run: |
+          set -o pipefail
+          go vet ./... 2>&1 | tee ci-artifacts/linux-vet.log
+
+      - name: Race tests
+        shell: bash
+        run: |
+          set -o pipefail
+          go test -race ./... -count=1 -timeout 240s 2>&1 | tee ci-artifacts/linux-race.log
+
+      - name: Upload Linux test logs
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: linux-test-logs-${{ github.run_id }}
+          path: ci-artifacts/*.log
+          if-no-files-found: warn
+          retention-days: 7
+
+  windows:
+    name: Windows native and coverage
+    runs-on: windows-2022
+    timeout-minutes: 90
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: go.sum
+
+      - name: Restore pinned native caches
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            third_party/downloads/frida-core-devkit-17.3.2-windows-x86_64.tar.xz
+            third_party/downloads/cache/zlib-1.3.1.tar.gz
+            third_party/frida/devkit-17.3.2
+          key: native-${{ runner.os }}-${{ runner.arch }}-frida-${{ env.FRIDA_CORE_VERSION }}-zlib-${{ env.ZLIB_VERSION }}-${{ hashFiles('go.sum') }}
+
+      - name: Configure Windows build tools
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $mingw = @(
+            'C:\mingw64\bin',
+            'C:\msys64\mingw64\bin',
+            'C:\ProgramData\mingw64\mingw64\bin'
+          ) | Where-Object {
+            (Test-Path (Join-Path $_ 'gcc.exe')) -and
+            (Test-Path (Join-Path $_ 'ar.exe'))
+          } | Select-Object -First 1
+          if (-not $mingw) { throw 'GitHub Windows runner does not provide gcc.exe and ar.exe' }
+          $mingw | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+          $expected = 'C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools'
+          if (-not (Test-Path (Join-Path $expected 'Common7\Tools\VsDevCmd.bat'))) {
+            $vswhere = 'C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe'
+            $installation = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+            if (-not $installation -or -not (Test-Path (Join-Path $installation 'Common7\Tools\VsDevCmd.bat'))) {
+              throw 'Visual Studio 2022 C++ build tools were not found'
+            }
+            New-Item -ItemType Directory -Force -Path (Split-Path $expected) | Out-Null
+            New-Item -ItemType Junction -Path $expected -Target $installation | Out-Null
+          }
+
+      - name: Windows native build
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force -Path ci-artifacts | Out-Null
+          $zlibSource = 'third_party\zlib\src-1.3.1'
+          if (Test-Path -LiteralPath $zlibSource) {
+            Remove-Item -LiteralPath $zlibSource -Recurse -Force
+          }
+          & .\scripts\build-windows.ps1 *>&1 | Tee-Object -FilePath ci-artifacts\windows-native-build.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Complete Windows coverage gate
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & .\scripts\coverage-gate.ps1 *>&1 | Tee-Object -FilePath ci-artifacts\windows-coverage-gate.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Upload Windows verification logs
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: windows-verification-logs-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ci-artifacts/*.log
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Upload trusted Windows binaries
+        if: success() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: windows-binaries-${{ github.sha }}-${{ github.run_attempt }}
+          path: |
+            dist/miniapp-bridge.exe
+            dist/miniapp-frida.dll
+            dist/manifest.json
+            dist/native/miniapp-frida-native-17.3.2-abi1-windows-amd64.zip
+            dist/native/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 7

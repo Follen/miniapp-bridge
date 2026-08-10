@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"miniapp-bridge/internal/logging"
+	"github.com/Follen/miniapp-bridge/internal/logging"
 )
 
 func TestAuditLoggerReferenceStreamsAndDebugGates(t *testing.T) {

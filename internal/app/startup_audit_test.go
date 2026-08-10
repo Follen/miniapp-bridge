@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Follen/miniapp-bridge/internal/logging"
 	"github.com/gorilla/websocket"
-	"miniapp-bridge/internal/logging"
 )
 
 func TestAuditStartRollsBackDebugListenerWhenCDPBindFails(t *testing.T) {

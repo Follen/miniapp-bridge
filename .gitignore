@@ -1,6 +1,6 @@
 .reference/
 dist/
-third_party/frida/devkit-17.3.2/frida-core.lib
+third_party/frida/devkit-17.3.2/
 third_party/downloads/
 third_party/frida/runtime-17.3.2/*.dll
 third_party/frida/runtime-17.3.2/*.lib
@@ -12,3 +12,9 @@ third_party/zlib/src-1.3.1/
 captures/
 coverage*.out
 coverage-before
+
+# Local Comet projections and raw runtime evidence are machine-specific.
+.codex/hooks.json
+docs/comet/changes/*/runtime/
+docs/comet/archive/*/runtime/
+docs/comet/runtime/

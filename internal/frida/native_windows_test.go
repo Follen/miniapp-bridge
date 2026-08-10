@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	agent "miniapp-bridge/frida"
-	"miniapp-bridge/internal/process"
+	agent "github.com/Follen/miniapp-bridge/frida"
+	"github.com/Follen/miniapp-bridge/internal/process"
 )
 
 func TestNativeEnumeratesWMPFTargetMetadata(t *testing.T) {
@@ -71,6 +71,57 @@ func TestNativeAgentLifecycleAndReattach(t *testing.T) {
 	if err := second.Close(); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func TestNativeLoadErrorContract(t *testing.T) {
+	detail := errors.New("loader detail")
+	loadErr := &NativeLoadError{Code: NativeLoadExportMissing, Err: detail}
+	if loadErr.Error() != detail.Error() || !errors.Is(loadErr, detail) {
+		t.Fatalf("native load error=%v", loadErr)
+	}
+}
+
+func TestNativeMessageQueueIsNonBlockingAndDrains(t *testing.T) {
+	received := make(chan Message, 4)
+	device := &NativeDevice{
+		handler:      func(message Message) { received <- message },
+		messageQueue: make(chan Message, 2),
+		messageStop:  make(chan struct{}),
+		messageDone:  make(chan struct{}),
+	}
+	device.dispatch(Message{Type: "first"})
+	device.dispatch(Message{Type: "second"})
+	close(device.messageStop)
+	go device.runMessageQueue()
+	<-device.messageDone
+	if first, second := <-received, <-received; first.Type != "first" || second.Type != "second" {
+		t.Fatalf("queued order=%q,%q", first.Type, second.Type)
+	}
+
+	full := &NativeDevice{messageQueue: make(chan Message, 1)}
+	full.messageQueue <- Message{Type: "occupied"}
+	returned := make(chan struct{})
+	go func() {
+		full.dispatch(Message{Type: "dropped"})
+		close(returned)
+	}()
+	select {
+	case <-returned:
+	case <-time.After(time.Second):
+		t.Fatal("full native message queue blocked callback")
+	}
+	full.closed = true
+	full.dispatch(Message{Type: "closed"})
+
+	fallbackCalled := false
+	fallback := &NativeDevice{handler: func(Message) { fallbackCalled = true }}
+	fallback.dispatch(Message{Type: "fallback"})
+	if !fallbackCalled {
+		t.Fatal("test fallback handler was not called")
+	}
+	fallback.SetMessageHandler(nil)
+	fallback.dispatch(Message{Type: "ignored"})
+	fallback.deliverMessage(Message{Type: "ignored-worker"})
 }
 
 func TestNativeReachableErrorAndIdempotencyBranches(t *testing.T) {
@@ -274,6 +325,65 @@ func TestNativeInjectedCFailuresAndCallbacks(t *testing.T) {
 	}
 	if callbackMessages[0].Type != "send" || string(callbackMessages[0].Payload) != "payload" || string(callbackMessages[0].Data) != "xy" {
 		t.Fatalf("first callback=%+v", callbackMessages[0])
+	}
+}
+
+func TestNativeSessionOwnsScriptsDuringDetach(t *testing.T) {
+	var nilScript *NativeScript
+	if err := nilScript.Unload(); err != nil {
+		t.Fatalf("nil script unload=%v", err)
+	}
+	if err := nilScript.Post(nil); err == nil {
+		t.Fatal("nil script post unexpectedly succeeded")
+	}
+	if err := (&NativeScript{}).Unload(); err != nil {
+		t.Fatalf("empty script unload=%v", err)
+	}
+	if err := (&NativeScript{}).Post(nil); err == nil {
+		t.Fatal("empty script post unexpectedly succeeded")
+	}
+
+	device, err := NewNativeDevice()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = device.Close() }()
+	processes, err := device.Enumerate(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	pid, err := process.SelectParent(processes, "WeChatAppEx.exe")
+	if err != nil {
+		t.Fatal(err)
+	}
+	sessionValue, err := device.Attach(pid)
+	if err != nil {
+		t.Fatal(err)
+	}
+	session := sessionValue.(*NativeSession)
+	session.scripts = nil
+	scriptValue, err := session.LoadScript(`send("detach-owned")`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	script := scriptValue.(*NativeScript)
+	closedScript := &NativeScript{session: session, closed: true}
+	session.scripts[closedScript] = struct{}{}
+
+	originalFailure := nativeFailure
+	nativeFailure = func(operation string) error {
+		if operation == "unload" {
+			return errors.New("injected detach unload failure")
+		}
+		return nil
+	}
+	err = session.Detach()
+	nativeFailure = originalFailure
+	if err == nil || !strings.Contains(err.Error(), "frida: unload:") {
+		t.Fatalf("detach did not aggregate script unload failure: %v", err)
+	}
+	if err := script.Unload(); err != nil {
+		t.Fatalf("script unload after session detach=%v", err)
 	}
 }
 

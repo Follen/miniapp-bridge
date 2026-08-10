@@ -4,19 +4,21 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"reflect"
 	"regexp"
 	"strings"
 	"testing"
 
-	agent "miniapp-bridge/frida"
-	"miniapp-bridge/internal/version"
+	agent "github.com/Follen/miniapp-bridge/frida"
+	"github.com/Follen/miniapp-bridge/internal/version"
 )
 
 func TestAuditEmbeddedAgentMatchesPinnedReference(t *testing.T) {
 	t.Parallel()
-	sum := sha256.Sum256([]byte(agent.AgentSource))
+	canonical := strings.ReplaceAll(agent.AgentSource, "\r\n", "\n")
+	sum := sha256.Sum256([]byte(canonical))
 	got := strings.ToUpper(hex.EncodeToString(sum[:]))
-	const want = "3278DB6CCE182619D87A19756C83F1081F237859FF214560DF1B1758E67C53D5"
+	const want = "D2D6BCECA0ACD668E6F5C387E3FF3F8E6FA5E0C2B5EC561DB01983E75EAE6FAC"
 	if got != want {
 		t.Fatalf("embedded Agent SHA-256=%s, want %s", got, want)
 	}
@@ -40,6 +42,38 @@ func TestAuditAgentConfigReplacementIsStructuredAndComplete(t *testing.T) {
 	}
 	if got.Version != config.Version || got.LoadStartHookOffset != config.LoadStartHookOffset || got.CDPFilterHookOffset != config.CDPFilterHookOffset || len(got.SceneOffsets) != 6 {
 		t.Fatalf("embedded config=%+v", got)
+	}
+}
+
+func TestAuditAgentConfigReplacementCoversEveryPinnedVersion(t *testing.T) {
+	t.Parallel()
+	configs, err := version.LoadDir("../../configs/addresses")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(configs) != 47 {
+		t.Fatalf("address configs=%d, want 47", len(configs))
+	}
+	re := regexp.MustCompile("(?s)const rawConfig = `([^`]*)`;")
+	for number, config := range configs {
+		source := agent.SourceForConfig(config)
+		if strings.Contains(source, "@@CONFIG@@") {
+			t.Errorf("version %d still contains config placeholder", number)
+			continue
+		}
+		match := re.FindStringSubmatch(source)
+		if len(match) != 2 {
+			t.Errorf("version %d rawConfig literal not found", number)
+			continue
+		}
+		var got version.AddressConfig
+		if err := json.Unmarshal([]byte(match[1]), &got); err != nil {
+			t.Errorf("version %d embedded config: %v", number, err)
+			continue
+		}
+		if !reflect.DeepEqual(got, config) {
+			t.Errorf("version %d embedded config=%+v want=%+v", number, got, config)
+		}
 	}
 }
 

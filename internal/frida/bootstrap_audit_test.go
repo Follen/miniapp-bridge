@@ -8,8 +8,8 @@ import (
 	"reflect"
 	"testing"
 
-	"miniapp-bridge/internal/process"
-	"miniapp-bridge/internal/version"
+	"github.com/Follen/miniapp-bridge/internal/process"
+	"github.com/Follen/miniapp-bridge/internal/version"
 )
 
 type auditDevice struct {
@@ -61,7 +61,7 @@ func (auditScript) Post([]byte) error { return nil }
 func writeAuditConfig(t *testing.T) string {
 	t.Helper()
 	dir := t.TempDir()
-	content := []byte(`{"Version":25297,"LoadStartHookOffset":"0x1","CDPFilterHookOffset":"0x2","SceneOffsets":[1,2,3]}`)
+	content := []byte(`{"Version":25297,"LoadStartHookOffset":"0x1","CDPFilterHookOffset":"0x2","SceneOffsets":[1,2,3,4,5,6]}`)
 	if err := os.WriteFile(filepath.Join(dir, "addresses.25297.json"), content, 0o600); err != nil {
 		t.Fatal(err)
 	}

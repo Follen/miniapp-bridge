@@ -12,10 +12,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Follen/miniapp-bridge/internal/capture"
+	"github.com/Follen/miniapp-bridge/internal/logging"
+	"github.com/Follen/miniapp-bridge/internal/wmpf"
 	"github.com/gorilla/websocket"
-	"miniapp-bridge/internal/capture"
-	"miniapp-bridge/internal/logging"
-	"miniapp-bridge/internal/wmpf"
 )
 
 func TestCoverageAppFrameAndReplayErrors(t *testing.T) {
@@ -57,6 +57,12 @@ func TestCoverageAppFrameAndReplayErrors(t *testing.T) {
 	noContext := New(0, 0, logging.New(false, false))
 	if !noContext.handleCDPFrame(websocket.BinaryMessage, []byte(`{"method":"Runtime.enable"}`), nil) {
 		t.Fatal("binary CDP frame rejected")
+	}
+}
+
+func TestDecodeExactJSONValueRejectsMalformedInput(t *testing.T) {
+	if _, err := decodeExactJSONValue([]byte(`{"id":`)); err == nil {
+		t.Fatal("malformed JSON was accepted")
 	}
 }
 

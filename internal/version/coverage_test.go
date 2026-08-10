@@ -45,11 +45,37 @@ func TestLoadFileAndDirRemainingBranches(t *testing.T) {
 	if _, err := LoadDir(dir); err == nil {
 		t.Fatal("expected invalid member error")
 	}
-	if err := os.WriteFile(path, []byte(`{"Version":1,"LoadStartHookOffset":"0x1","CDPFilterHookOffset":"0x2","SceneOffsets":[1,2,3]}`), 0o600); err != nil {
+	if err := os.WriteFile(path, []byte(`{"Version":1,"LoadStartHookOffset":"0x1","CDPFilterHookOffset":"0x2","SceneOffsets":[1,2,3,4,5,6]}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	configs, err := LoadDir(dir)
 	if err != nil || configs[1].Version != 1 {
 		t.Fatalf("configs=%+v err=%v", configs, err)
+	}
+
+	for name, body := range map[string]string{
+		"addresses.bad.json": `{"Version":1,"LoadStartHookOffset":"0x1","CDPFilterHookOffset":"0x2","SceneOffsets":[1,2,3,4,5,6]}`,
+		"addresses.2.json":   `{"Version":1,"LoadStartHookOffset":"0x1","CDPFilterHookOffset":"0x2","SceneOffsets":[1,2,3,4,5,6]}`,
+	} {
+		invalidDir := t.TempDir()
+		if err := os.WriteFile(filepath.Join(invalidDir, name), []byte(body), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := LoadDir(invalidDir); err == nil {
+			t.Errorf("LoadDir accepted %s", name)
+		}
+	}
+
+	for name, body := range map[string]string{
+		"short scene offsets": `{"Version":1,"LoadStartHookOffset":"0x1","CDPFilterHookOffset":"0x2","SceneOffsets":[1,2,3]}`,
+		"bad load offset":     `{"Version":1,"LoadStartHookOffset":"bad","CDPFilterHookOffset":"0x2","SceneOffsets":[1,2,3,4,5,6]}`,
+		"bad filter offset":   `{"Version":1,"LoadStartHookOffset":"0x1","CDPFilterHookOffset":"bad","SceneOffsets":[1,2,3,4,5,6]}`,
+	} {
+		if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := LoadFile(path); err == nil {
+			t.Errorf("LoadFile accepted %s", name)
+		}
 	}
 }

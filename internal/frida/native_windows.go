@@ -3,9 +3,8 @@
 package frida
 
 /*
-#cgo windows CFLAGS: -I${SRCDIR}/shim
-#cgo windows LDFLAGS: -L${SRCDIR}/../../third_party/frida/runtime-17.3.2 -lminiapp-frida
-#include "miniapp_frida.h"
+#cgo windows CFLAGS: -I${SRCDIR} -I${SRCDIR}/shim
+#include "loader_windows.h"
 #include <stdlib.h>
 
 extern void goFridaMessage(uintptr_t handle, char *message, uint8_t *data, size_t size);
@@ -19,37 +18,68 @@ static mb_script *mb_session_load_script_go(mb_session *session, const char *sou
 */
 import "C"
 
+// The runtime asset is the pinned frida-core 17.3.2 build formerly stored in
+// runtime-17.3.2; it is loaded by the opaque Windows loader at runtime.
+
 import (
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"runtime/cgo"
 	"sync"
+	"syscall"
 	"unsafe"
 
-	"miniapp-bridge/internal/process"
+	"github.com/Follen/miniapp-bridge/internal/process"
 )
 
+type NativeLoadCode int
+
+const (
+	NativeLoadOK NativeLoadCode = iota
+	NativeLoadFailure
+	NativeLoadConflict
+	NativeLoadExportMissing
+	NativeLoadVersionMismatch
+	NativeLoadABIMismatch
+)
+
+// NativeLoadError preserves the loader's stable failure class and detailed
+// Win32/export/version message without exposing a native handle.
+type NativeLoadError struct {
+	Code NativeLoadCode
+	Err  error
+}
+
+func (e *NativeLoadError) Error() string { return e.Err.Error() }
+func (e *NativeLoadError) Unwrap() error { return e.Err }
+
 type NativeDevice struct {
-	ptr     *C.mb_device
-	mu      sync.Mutex
-	closed  bool
-	handler func(Message)
+	ptr          *C.mb_device
+	mu           sync.Mutex
+	closed       bool
+	handler      func(Message)
+	messageQueue chan Message
+	messageStop  chan struct{}
+	messageDone  chan struct{}
 }
 
 type NativeSession struct {
-	device *NativeDevice
-	ptr    *C.mb_session
-	h      cgo.Handle
-	mu     sync.Mutex
-	closed bool
+	device  *NativeDevice
+	ptr     *C.mb_session
+	h       cgo.Handle
+	mu      sync.Mutex
+	closed  bool
+	scripts map[*NativeScript]struct{}
 }
 
 type NativeScript struct {
-	ptr    *C.mb_script
-	mu     sync.Mutex
-	closed bool
+	session *NativeSession
+	ptr     *C.mb_script
+	closed  bool
 }
 
 // nativeFailure is nil in production. Tests use it to exercise C failure
@@ -58,6 +88,108 @@ var nativeFailure func(string) error
 
 var nativeDeviceOpen = func(errorOut **C.char) *C.mb_device {
 	return C.mb_device_open(errorOut)
+}
+
+var nativeRuntimePath = func() (string, error) {
+	if value := os.Getenv("MINIAPP_BRIDGE_NATIVE_PATH"); value != "" {
+		return filepath.Abs(value)
+	}
+	exe, err := nativeExecutable()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(filepath.Dir(exe), "miniapp-frida.dll"), nil
+}
+
+var nativeExecutable = os.Executable
+
+const maxNativeZlibOutput = 256 << 20
+
+func loadNativeRuntime() error {
+	path, err := nativeRuntimePath()
+	if err != nil {
+		return fmt.Errorf("frida: native runtime path: %w", err)
+	}
+	wide, err := syscall.UTF16FromString(path)
+	if err != nil {
+		return fmt.Errorf("frida: native runtime path: %w", err)
+	}
+	var cErr *C.char
+	var loadCode C.int
+	if C.mb_native_load((*C.wchar_t)(unsafe.Pointer(&wide[0])), &cErr, &loadCode) == 0 {
+		return fmt.Errorf("frida: native runtime: %w", &NativeLoadError{Code: NativeLoadCode(loadCode), Err: nativeError(cErr)})
+	}
+	return nil
+}
+
+func retainNativeRuntime() (func(), error) {
+	if C.mb_native_retain_loaded() != 0 {
+		return func() { C.mb_native_release() }, nil
+	}
+	if err := loadNativeRuntime(); err != nil {
+		return nil, err
+	}
+	return func() { C.mb_native_release() }, nil
+}
+
+func nativeZlibInput(data []byte) (*C.uint8_t, func()) {
+	if len(data) == 0 {
+		return nil, func() {}
+	}
+	value := C.CBytes(data)
+	return (*C.uint8_t)(value), func() { C.free(value) }
+}
+
+// ZlibCompress uses the pinned zlib implementation exported by the loaded
+// native runtime. The returned bytes are copied before the DLL is released.
+func ZlibCompress(data []byte) ([]byte, error) {
+	if len(data) > maxNativeZlibOutput {
+		return nil, fmt.Errorf("frida: zlib input exceeds %d bytes", maxNativeZlibOutput)
+	}
+	release, err := retainNativeRuntime()
+	if err != nil {
+		return nil, err
+	}
+	defer release()
+	input, freeInput := nativeZlibInput(data)
+	defer freeInput()
+	var output *C.uint8_t
+	var outputSize C.size_t
+	var cErr *C.char
+	if C.mb_zlib_compress(input, C.size_t(len(data)), &output, &outputSize, &cErr) == 0 {
+		return nil, fmt.Errorf("frida: zlib compress: %w", nativeError(cErr))
+	}
+	defer C.mb_bytes_free(output)
+	if uint64(outputSize) > maxNativeZlibOutput {
+		return nil, fmt.Errorf("frida: zlib output exceeds %d bytes", maxNativeZlibOutput)
+	}
+	return C.GoBytes(unsafe.Pointer(output), C.int(outputSize)), nil
+}
+
+// ZlibDecompress validates the caller's expected size when non-zero and
+// always enforces a bounded allocation for corrupt or hostile frames.
+func ZlibDecompress(data []byte, expectedSize int) ([]byte, error) {
+	if len(data) > maxNativeZlibOutput || expectedSize < 0 || expectedSize > maxNativeZlibOutput {
+		return nil, fmt.Errorf("frida: zlib input or expected output exceeds %d bytes", maxNativeZlibOutput)
+	}
+	release, err := retainNativeRuntime()
+	if err != nil {
+		return nil, err
+	}
+	defer release()
+	input, freeInput := nativeZlibInput(data)
+	defer freeInput()
+	var output *C.uint8_t
+	var outputSize C.size_t
+	var cErr *C.char
+	if C.mb_zlib_decompress(input, C.size_t(len(data)), C.size_t(expectedSize), C.size_t(maxNativeZlibOutput), &output, &outputSize, &cErr) == 0 {
+		return nil, fmt.Errorf("frida: zlib decompress: %w", nativeError(cErr))
+	}
+	defer C.mb_bytes_free(output)
+	if uint64(outputSize) > maxNativeZlibOutput {
+		return nil, fmt.Errorf("frida: zlib output exceeds %d bytes", maxNativeZlibOutput)
+	}
+	return C.GoBytes(unsafe.Pointer(output), C.int(outputSize)), nil
 }
 
 func nilNativeDeviceOpen(**C.char) *C.mb_device { return nil }
@@ -82,15 +214,24 @@ func NewNativeDevice() (*NativeDevice, error) {
 	if err := forcedNativeFailure("open"); err != nil {
 		return nil, fmt.Errorf("frida: local device: %w", err)
 	}
+	if err := loadNativeRuntime(); err != nil {
+		return nil, err
+	}
 	var cErr *C.char
 	var ptr *C.mb_device
 	if forcedNativeFailure("open-c") == nil {
 		ptr = nativeDeviceOpen(&cErr)
 	}
 	if ptr == nil {
+		C.mb_native_release()
 		return nil, fmt.Errorf("frida: local device: %w", nativeError(cErr))
 	}
-	return &NativeDevice{ptr: ptr}, nil
+	device := &NativeDevice{
+		ptr: ptr, messageQueue: make(chan Message, 256),
+		messageStop: make(chan struct{}), messageDone: make(chan struct{}),
+	}
+	go device.runMessageQueue()
+	return device, nil
 }
 
 func (d *NativeDevice) Enumerate(ctx context.Context) ([]process.Process, error) {
@@ -125,7 +266,7 @@ func (d *NativeDevice) Attach(pid uint32) (Session, error) {
 	if d.closed {
 		return nil, errors.New("frida: device closed")
 	}
-	ns := &NativeSession{device: d}
+	ns := &NativeSession{device: d, scripts: make(map[*NativeScript]struct{})}
 	ns.h = cgo.NewHandle(ns)
 	var cErr *C.char
 	ns.ptr = C.mb_device_attach_go(d.ptr, C.uint32_t(pid), C.uintptr_t(ns.h), &cErr)
@@ -138,13 +279,23 @@ func (d *NativeDevice) Attach(pid uint32) (Session, error) {
 
 func (d *NativeDevice) Close() error {
 	d.mu.Lock()
-	defer d.mu.Unlock()
 	if d.closed {
+		d.mu.Unlock()
 		return nil
 	}
 	d.closed = true
-	C.mb_device_close(d.ptr)
+	ptr := d.ptr
 	d.ptr = nil
+	stop, done := d.messageStop, d.messageDone
+	if stop != nil {
+		close(stop)
+	}
+	d.mu.Unlock()
+	C.mb_device_close(ptr)
+	if done != nil {
+		<-done
+	}
+	C.mb_native_release()
 	return nil
 }
 
@@ -169,7 +320,12 @@ func (s *NativeSession) LoadScript(source string) (Script, error) {
 	if ptr == nil {
 		return nil, fmt.Errorf("frida: load script: %w", nativeError(cErr))
 	}
-	return &NativeScript{ptr: ptr}, nil
+	script := &NativeScript{session: s, ptr: ptr}
+	if s.scripts == nil {
+		s.scripts = make(map[*NativeScript]struct{})
+	}
+	s.scripts[script] = struct{}{}
+	return script, nil
 }
 
 func (s *NativeSession) Detach() error {
@@ -179,19 +335,40 @@ func (s *NativeSession) Detach() error {
 		return nil
 	}
 	s.closed = true
+	var cleanup []error
+	for script := range s.scripts {
+		if script.closed {
+			delete(s.scripts, script)
+			continue
+		}
+		script.closed = true
+		var cErr *C.char
+		ok := C.mb_script_unload(script.ptr, &cErr)
+		script.ptr = nil
+		delete(s.scripts, script)
+		if ok == 0 || forcedNativeFailure("unload") != nil {
+			cleanup = append(cleanup, fmt.Errorf("frida: unload: %w", nativeError(cErr)))
+		}
+	}
 	var cErr *C.char
 	ok := C.mb_session_detach(s.ptr, &cErr)
 	s.ptr = nil
-	s.h.Delete()
-	if ok == 0 || forcedNativeFailure("detach") != nil {
-		return fmt.Errorf("frida: detach: %w", nativeError(cErr))
+	if s.h != 0 {
+		s.h.Delete()
+		s.h = 0
 	}
-	return nil
+	if ok == 0 || forcedNativeFailure("detach") != nil {
+		cleanup = append(cleanup, fmt.Errorf("frida: detach: %w", nativeError(cErr)))
+	}
+	return errors.Join(cleanup...)
 }
 
 func (s *NativeScript) Unload() error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	if s == nil || s.session == nil {
+		return nil
+	}
+	s.session.mu.Lock()
+	defer s.session.mu.Unlock()
 	if s.closed {
 		return nil
 	}
@@ -199,6 +376,7 @@ func (s *NativeScript) Unload() error {
 	var cErr *C.char
 	ok := C.mb_script_unload(s.ptr, &cErr)
 	s.ptr = nil
+	delete(s.session.scripts, s)
 	if ok == 0 || forcedNativeFailure("unload") != nil {
 		return fmt.Errorf("frida: unload: %w", nativeError(cErr))
 	}
@@ -206,9 +384,12 @@ func (s *NativeScript) Unload() error {
 }
 
 func (s *NativeScript) Post(payload []byte) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.closed {
+	if s == nil || s.session == nil {
+		return errors.New("frida: script unloaded")
+	}
+	s.session.mu.Lock()
+	defer s.session.mu.Unlock()
+	if s.closed || s.session.closed {
 		return errors.New("frida: script unloaded")
 	}
 	text := C.CString(string(payload))
@@ -278,9 +459,60 @@ func invokeFridaDetachedForTest(handle uintptr, reason int) {
 
 func (d *NativeDevice) dispatch(m Message) {
 	d.mu.Lock()
+	if d.closed {
+		d.mu.Unlock()
+		return
+	}
+	queue := d.messageQueue
+	d.mu.Unlock()
+	if queue != nil {
+		select {
+		case queue <- m:
+		default:
+		}
+		return
+	}
+	d.deliverMessage(m)
+}
+
+func (d *NativeDevice) runMessageQueue() {
+	defer close(d.messageDone)
+	for {
+		select {
+		case <-d.messageStop:
+			d.drainMessageQueue()
+			return
+		default:
+		}
+		select {
+		case message := <-d.messageQueue:
+			d.deliverMessage(message)
+		case <-d.messageStop:
+			d.drainMessageQueue()
+			return
+		}
+	}
+}
+
+func (d *NativeDevice) drainMessageQueue() {
+	for {
+		select {
+		case message := <-d.messageQueue:
+			d.deliverMessage(message)
+		default:
+			return
+		}
+	}
+}
+
+func (d *NativeDevice) deliverMessage(message Message) {
+	d.mu.Lock()
 	handler := d.handler
 	d.mu.Unlock()
 	if handler != nil {
-		handler(m)
+		func() {
+			defer func() { _ = recover() }()
+			handler(message)
+		}()
 	}
 }

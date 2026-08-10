@@ -3,8 +3,8 @@ package app
 import (
 	"context"
 	"fmt"
-	"miniapp-bridge/internal/logging"
-	"miniapp-bridge/internal/wmpf"
+	"github.com/Follen/miniapp-bridge/internal/logging"
+	"github.com/Follen/miniapp-bridge/internal/wmpf"
 	"testing"
 	"time"
 

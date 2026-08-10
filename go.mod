@@ -1,4 +1,4 @@
-module miniapp-bridge
+module github.com/Follen/miniapp-bridge
 
 go 1.23
 

@@ -3,7 +3,7 @@ package frida
 import (
 	_ "embed"
 	"encoding/json"
-	"miniapp-bridge/internal/version"
+	"github.com/Follen/miniapp-bridge/internal/version"
 	"strings"
 )
 
