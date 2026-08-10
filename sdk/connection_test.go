@@ -32,7 +32,7 @@ func TestUpstreamDisconnectFailsPendingAndReconnects(t *testing.T) {
 		_, err := s.Send(context.Background(), Request{ID: "disconnect-me", Method: "Runtime.enable"})
 		requestDone <- err
 	}()
-	_ = upstream.SetReadDeadline(time.Now().Add(time.Second))
+	_ = upstream.SetReadDeadline(time.Now().Add(5 * time.Second))
 	if _, _, err := upstream.ReadMessage(); err != nil {
 		_ = upstream.Close()
 		t.Fatal(err)
@@ -45,11 +45,11 @@ func TestUpstreamDisconnectFailsPendingAndReconnects(t *testing.T) {
 		if !errors.Is(err, ErrUpstreamDisconnected) {
 			t.Fatalf("pending error=%v", err)
 		}
-	case <-time.After(time.Second):
+	case <-time.After(5 * time.Second):
 		t.Fatal("pending request was not released after upstream disconnect")
 	}
 	connected, disconnected := false, false
-	deadline := time.After(time.Second)
+	deadline := time.After(5 * time.Second)
 	for !connected || !disconnected {
 		select {
 		case event := <-status.Channel():

@@ -21,6 +21,7 @@ import (
 )
 
 const zlibOfflineArchiveName = "zlib-1.3.1.tar.gz"
+const zlibLegacyArchiveSHA256 = "9A93B2B7DFDAC77CEBA5A558A580E74667DD6FEDE4585B91EEFB60F03B72DF23"
 
 func TestZlibBuildOfflineCacheIntegration(t *testing.T) {
 	_, source, _, ok := runtime.Caller(0)
@@ -50,6 +51,9 @@ func TestZlibBuildOfflineCacheIntegration(t *testing.T) {
 		t.Fatalf("copy pinned zlib archive into isolated cache: %v", err)
 	}
 	archiveHash := fileSHA256(t, archive)
+	if archiveHash != zlibLegacyArchiveSHA256 {
+		t.Fatalf("pinned fixture archive hash = %s, want legacy fixture hash %s", archiveHash, zlibLegacyArchiveSHA256)
+	}
 	buildArgs := []string{
 		"-Offline",
 		"-CacheDirectory", cache,
