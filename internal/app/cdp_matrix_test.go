@@ -55,6 +55,7 @@ func TestSimulatedEndToEndCDPMatrix(t *testing.T) {
 	clientA, clientB := auditDial(t, cp), auditDial(t, cp)
 	defer clientA.Close()
 	defer clientB.Close()
+	auditWaitForCDPClients(t, a, 2)
 
 	sendContext(t, upstream, wmpf.CategoryAddJsContext, "ctx-main")
 	sendContext(t, upstream, wmpf.CategoryAddJsContext, "ctx-worker")
@@ -146,12 +147,10 @@ func TestSimulatedEndToEndCDPMatrix(t *testing.T) {
 		t.Fatal(err)
 	}
 	clientB.Close()
-	deadline = time.Now().Add(time.Second)
-	for a.CDPHub.Count() != 1 && time.Now().Before(deadline) {
-		time.Sleep(time.Millisecond)
-	}
+	auditWaitForCDPClients(t, a, 1)
 	clientB = auditDial(t, cp)
 	defer clientB.Close()
+	auditWaitForCDPClients(t, a, 2)
 	reconnectEvent := `{"method":"Network.loadingFinished","params":{"requestId":"r1"}}`
 	frame := wmpf.EncodeDebugMessage(wmpf.DebugMessage{Category: wmpf.CategoryChromeDevtoolsResult, Data: wmpf.EncodeChrome(wmpf.ChromeDevtools{Payload: reconnectEvent})})
 	if err := upstream.WriteMessage(websocket.BinaryMessage, frame); err != nil {
