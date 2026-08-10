@@ -159,7 +159,8 @@ func TestFridaShimBuildIsReproducible(t *testing.T) {
 		"$archive.partial",
 		"Move-Item -LiteralPath $partialArchive -Destination $archive -Force",
 		"$devkit.extracting-$([guid]::NewGuid().ToString('N'))",
-		"tar.exe -xJf $archive",
+		"function Expand-FridaArchive",
+		"tar.exe -xJf $Archive -C $Destination",
 	} {
 		if !strings.Contains(bootstrap, token) {
 			t.Errorf("ensure-frida-devkit.ps1 is missing %q", token)
