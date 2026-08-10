@@ -112,12 +112,17 @@ type PrepareOptions struct {
 
 var (
 	nativeUserCacheDir = os.UserCacheDir
-	nativeOpenPartial  = func(path string) (io.WriteCloser, error) {
-		return os.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o600)
+	nativeOpenPartial  = func(dir, pattern string) (string, io.WriteCloser, error) {
+		file, err := os.CreateTemp(dir, pattern)
+		if err != nil {
+			return "", nil, err
+		}
+		return file.Name(), file, nil
 	}
 	nativeHashFile      = fileSHA256
 	nativeWriteFile     = os.WriteFile
 	nativeReplaceFile   = replaceFileAtomic
+	nativeTryLockFile   = tryLockFile
 	nativeArchiveLimit  = defaultArchiveLimit
 	nativeDLLLimit      = defaultDLLLimit
 	nativeManifestLimit = defaultManifestLimit
@@ -284,9 +289,7 @@ func Prepare(ctx context.Context, opts PrepareOptions) (string, error) {
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return "", &Error{Code: ErrNativeDownload, Operation: "download", Actual: resp.Status, Err: ErrNativeDownload}
 	}
-	tmp := dll + ".partial"
-	_ = os.RemoveAll(tmp)
-	f, err := nativeOpenPartial(tmp)
+	tmp, f, err := nativeOpenPartial(cache, "."+m.DLL+".*.partial")
 	if err != nil {
 		return "", &Error{Code: ErrNativeCache, Operation: "open partial", Path: tmp, Err: err}
 	}
@@ -546,23 +549,27 @@ func fileSHA256(path string) (string, error) {
 }
 
 func acquireLock(ctx context.Context, path string) (func(), error) {
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0o600)
+	if err != nil {
+		return nil, &Error{Code: ErrNativeCache, Operation: "acquire lock", Path: path, Err: err}
+	}
 	for {
-		f, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
-		if err == nil {
+		locked, lockErr := nativeTryLockFile(f)
+		if lockErr != nil {
 			_ = f.Close()
-			return func() { _ = os.Remove(path) }, nil
+			return nil, &Error{Code: ErrNativeCache, Operation: "acquire lock", Path: path, Err: lockErr}
 		}
-		if !errors.Is(err, os.ErrExist) {
-			return nil, &Error{Code: ErrNativeCache, Operation: "acquire lock", Path: path, Err: err}
-		}
-		if info, statErr := os.Stat(path); statErr == nil && time.Since(info.ModTime()) > 10*time.Minute {
-			_ = os.Remove(path)
-			continue
+		if locked {
+			return func() {
+				_ = unlockFile(f)
+				_ = f.Close()
+			}, nil
 		}
 		timer := time.NewTimer(25 * time.Millisecond)
 		select {
 		case <-ctx.Done():
 			timer.Stop()
+			_ = f.Close()
 			return nil, &Error{Code: ErrNativeCache, Operation: "acquire lock", Path: path, Err: ctx.Err()}
 		case <-timer.C:
 		}

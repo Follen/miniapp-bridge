@@ -304,8 +304,7 @@ func (s *Service) Start(ctx context.Context) error {
 	err := s.start(startupCtx)
 	startupCancel()
 	if err != nil {
-		_ = s.closeApp()
-		s.closeNative()
+		err = s.rollbackStart(err)
 	}
 	// A caller-provided path requires a platform native starter. Unsupported
 	// builds return a typed diagnostic instead of silently ignoring the path.
@@ -317,8 +316,7 @@ func (s *Service) Start(ctx context.Context) error {
 			err = &Error{Op: "start", Component: "native", Err: ErrNativeUnavailable}
 		}
 		if err != nil {
-			_ = s.closeApp()
-			s.closeNative()
+			err = s.rollbackStart(err)
 		}
 	}
 	s.mu.Lock()
@@ -353,8 +351,6 @@ func (s *Service) start(ctx context.Context) error {
 		return &Error{Op: "start", Component: "listeners", Err: err}
 	}
 	if err := ctx.Err(); err != nil {
-		_ = s.closeApp()
-		s.closeNative()
 		return err
 	}
 	// Open option-backed recording only after the listener is ready. New stays
@@ -396,7 +392,6 @@ func (s *Service) start(ctx context.Context) error {
 					err = errors.Join(err, closeErr)
 				}
 			}
-			_ = s.closeApp()
 			return &Error{Op: "start", Component: "native", Err: err}
 		}
 		s.mu.Lock()
@@ -406,29 +401,50 @@ func (s *Service) start(ctx context.Context) error {
 		s.mu.Unlock()
 	}
 	if err := ctx.Err(); err != nil {
-		_ = s.closeApp()
-		s.closeNative()
 		return err
 	}
 	if s.replayPath != "" {
 		if err := s.replay(ctx, s.replayPath); err != nil {
-			_ = s.closeApp()
-			s.closeNative()
 			return &Error{Op: "start", Component: "replay", Err: err}
 		}
 	}
 	return nil
 }
 
-func (s *Service) closeNative() {
+func (s *Service) rollbackStart(err error) error {
+	return joinErrors(err, s.closeApp(), s.closeNative())
+}
+
+func joinErrors(errs ...error) error {
+	var nonNil []error
+	for _, err := range errs {
+		if err != nil {
+			nonNil = append(nonNil, err)
+		}
+	}
+	switch len(nonNil) {
+	case 0:
+		return nil
+	case 1:
+		return nonNil[0]
+	default:
+		return errors.Join(nonNil...)
+	}
+}
+
+func (s *Service) closeNative() error {
 	s.mu.Lock()
 	native := s.native
 	s.native = nil
 	s.nativeAttached = false
+	s.status.NativeAttached = false
+	s.status.Native.Attached = false
+	s.status.Target.Attached = false
 	s.mu.Unlock()
 	if native != nil {
-		_ = native.Close(context.Background())
+		return native.Close(context.Background())
 	}
+	return nil
 }
 
 func (s *Service) closeApp() error {
@@ -535,9 +551,10 @@ func (s *Service) shutdown(done chan struct{}) {
 	s.status.Recording.Active = false
 	s.mu.Unlock()
 	if native != nil {
-		if e := native.Close(context.Background()); err == nil {
-			err = e
-		}
+		err = joinErrors(err, native.Close(context.Background()))
+	}
+	if err != nil {
+		err = &Error{Op: "close", Component: "resources", Err: err}
 	}
 	s.mu.Lock()
 	s.closeErr = err
@@ -624,7 +641,7 @@ func (s *Service) updateNativeMetadataLocked(native NativeSession, attached, use
 
 func (s *Service) SelectContext(id string) error {
 	if !s.app.Contexts.Select(id) {
-		return fmt.Errorf("%w: %s", ErrUnknownContext, id)
+		return &Error{Op: "select", Component: "context", Err: fmt.Errorf("%w: %s", ErrUnknownContext, id)}
 	}
 	s.observeContext(app.ContextEvent{Kind: "selected", Context: bridgecontext.Context{ID: id}})
 	return nil
@@ -730,12 +747,12 @@ func (s *Service) Send(ctx context.Context, req Request) (Response, error) {
 		ctx = context.Background()
 	}
 	if req.Method == "" {
-		return Response{}, ErrInvalidRequest
+		return Response{}, &Error{Op: "send", Component: "request", Err: ErrInvalidRequest}
 	}
 	if req.ID == nil {
 		req.ID = nextStructuredRequestID()
 	} else if !validRequestID(req.ID) {
-		return Response{}, ErrInvalidRequest
+		return Response{}, &Error{Op: "send", Component: "request", Err: ErrInvalidRequest}
 	}
 	payload, err := json.Marshal(struct {
 		ID     any            `json:"id"`
@@ -743,7 +760,7 @@ func (s *Service) Send(ctx context.Context, req Request) (Response, error) {
 		Params map[string]any `json:"params,omitempty"`
 	}{req.ID, req.Method, req.Params})
 	if err != nil {
-		return Response{}, err
+		return Response{}, &Error{Op: "send", Component: "request", Err: errors.Join(ErrInvalidRequest, err)}
 	}
 	return s.sendPayload(ctx, payload, req.Route, req.ID, true)
 }
@@ -843,7 +860,7 @@ func (s *Service) SendRawRoute(ctx context.Context, payload []byte, route Route)
 }
 func (s *Service) Notify(req Request) error {
 	if req.Method == "" {
-		return ErrInvalidRequest
+		return &Error{Op: "send", Component: "request", Err: ErrInvalidRequest}
 	}
 	req.ID = nil
 	body, err := json.Marshal(struct {
@@ -851,7 +868,7 @@ func (s *Service) Notify(req Request) error {
 		Params map[string]any `json:"params,omitempty"`
 	}{req.Method, req.Params})
 	if err != nil {
-		return err
+		return &Error{Op: "send", Component: "request", Err: errors.Join(ErrInvalidRequest, err)}
 	}
 	_, err = s.sendPayload(context.Background(), body, req.Route, nil, false)
 	return err

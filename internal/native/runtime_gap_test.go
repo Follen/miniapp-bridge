@@ -38,7 +38,9 @@ func TestNativeStrictManifestAndPrepareBranches(t *testing.T) {
 		return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(bytes.NewReader(archive))}, nil
 	})}
 	originalOpen := nativeOpenPartial
-	nativeOpenPartial = func(string) (io.WriteCloser, error) { return nil, errors.New("open partial injected") }
+	nativeOpenPartial = func(string, string) (string, io.WriteCloser, error) {
+		return "", nil, errors.New("open partial injected")
+	}
 	defer func() { nativeOpenPartial = originalOpen }()
 	if _, err := Prepare(context.Background(), PrepareOptions{CacheDir: t.TempDir(), HTTPClient: client, Manifest: m}); !errors.Is(err, ErrNativeCache) {
 		t.Fatalf("open partial=%v", err)

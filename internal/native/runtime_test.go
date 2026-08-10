@@ -159,17 +159,23 @@ func TestPrepareUsesPinnedArchiveHashByDefault(t *testing.T) {
 			t.Fatalf("untrusted download left cache file %q: %v", path, statErr)
 		}
 	}
+	partials, globErr := filepath.Glob(filepath.Join(cache, "."+NativeDLLFileName+".*.partial"))
+	if globErr != nil || len(partials) != 0 {
+		t.Fatalf("untrusted download left unique partials %v: %v", partials, globErr)
+	}
 }
 
 func TestPrepareLockCancellationAndManifestPath(t *testing.T) {
 	dir := t.TempDir()
 	m := currentPlatformManifest()
-	if err := os.WriteFile(filepath.Join(dir, "miniapp-frida.dll.lock"), []byte{}, 0o600); err != nil {
+	unlock, err := acquireLock(context.Background(), filepath.Join(dir, "miniapp-frida.dll.lock"))
+	if err != nil {
 		t.Fatal(err)
 	}
+	defer unlock()
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	_, err := Prepare(ctx, PrepareOptions{CacheDir: dir, Offline: true, Manifest: m})
+	_, err = Prepare(ctx, PrepareOptions{CacheDir: dir, Offline: true, Manifest: m})
 	if !errors.Is(err, ErrNativeCache) {
 		t.Fatalf("cancelled lock err=%v", err)
 	}

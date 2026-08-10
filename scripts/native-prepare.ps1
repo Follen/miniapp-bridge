@@ -1,6 +1,9 @@
 param(
     [switch]$Offline,
     [ValidateRange(1, 600)][int]$LockTimeoutSeconds = 120,
+    [ValidateRange(1, 10)][int]$DownloadAttempts = 3,
+    [ValidateRange(1, 900)][int]$DownloadTimeoutSeconds = 300,
+    [ValidateRange(0, 60)][int]$DownloadRetrySeconds = 5,
     [string]$Version = '17.3.2-abi1',
     [string]$CacheDirectory = '',
     [string]$DestinationDirectory = '',
@@ -34,7 +37,15 @@ $lock = $null
 $timer = [Diagnostics.Stopwatch]::StartNew()
 
 function Get-SHA256([string]$Path) {
-    return (Get-FileHash -Algorithm SHA256 -LiteralPath $Path).Hash.ToUpperInvariant()
+    $stream = [IO.File]::OpenRead($Path)
+    $sha256 = [Security.Cryptography.SHA256]::Create()
+    try {
+        return ([BitConverter]::ToString($sha256.ComputeHash($stream))).Replace('-', '')
+    }
+    finally {
+        $sha256.Dispose()
+        $stream.Dispose()
+    }
 }
 
 function Test-IntegerValue($Value) {
@@ -42,6 +53,53 @@ function Test-IntegerValue($Value) {
         ($Value -is [int16]) -or ($Value -is [uint16]) -or
         ($Value -is [int32]) -or ($Value -is [uint32]) -or
         ($Value -is [int64]) -or ($Value -is [uint64]))
+}
+
+function Invoke-VerifiedDownload {
+    param(
+        [string]$URL,
+        [string]$Destination,
+        [string]$ExpectedSHA256,
+        [string]$DisplayName
+    )
+
+    $webRequest = Get-Command Invoke-WebRequest
+    $lastError = $null
+    for ($attempt = 1; $attempt -le $DownloadAttempts; $attempt++) {
+        Remove-Item -LiteralPath $Destination -Force -ErrorAction SilentlyContinue
+        $parameters = @{
+            UseBasicParsing = $true
+            Uri             = $URL
+            OutFile         = $Destination
+            ErrorAction     = 'Stop'
+        }
+        if ($webRequest.Parameters.ContainsKey('ConnectionTimeoutSeconds')) {
+            $parameters.ConnectionTimeoutSeconds = [Math]::Min(30, $DownloadTimeoutSeconds)
+            $parameters.OperationTimeoutSeconds = $DownloadTimeoutSeconds
+        } elseif ($webRequest.Parameters.ContainsKey('TimeoutSec')) {
+            $parameters.TimeoutSec = $DownloadTimeoutSeconds
+        }
+
+        Write-Host "Downloading $DisplayName attempt=$attempt/$DownloadAttempts"
+        try {
+            Invoke-WebRequest @parameters
+            $downloadHash = Get-SHA256 $Destination
+            if ($downloadHash -cne $ExpectedSHA256) {
+                throw "native archive SHA-256 mismatch: expected $ExpectedSHA256, got $downloadHash"
+            }
+            return
+        } catch {
+            $lastError = $_
+            Remove-Item -LiteralPath $Destination -Force -ErrorAction SilentlyContinue
+            if ($attempt -lt $DownloadAttempts) {
+                Write-Warning "native archive download attempt $attempt failed: $($_.Exception.Message)"
+                if ($DownloadRetrySeconds -gt 0) {
+                    Start-Sleep -Seconds $DownloadRetrySeconds
+                }
+            }
+        }
+    }
+    throw "native archive download failed after $DownloadAttempts attempts: $($lastError.Exception.Message)"
 }
 
 New-Item -ItemType Directory -Force -Path $cache,$destination | Out-Null
@@ -64,11 +122,7 @@ try {
         }
         Remove-Item -LiteralPath $partial -Force -ErrorAction SilentlyContinue
         try {
-            Invoke-WebRequest -UseBasicParsing -Uri $url -OutFile $partial
-            $downloadHash = Get-SHA256 $partial
-            if ($downloadHash -cne $expectedArchiveSHA) {
-                throw "native archive SHA-256 mismatch: expected $expectedArchiveSHA, got $downloadHash"
-            }
+            Invoke-VerifiedDownload -URL $url -Destination $partial -ExpectedSHA256 $expectedArchiveSHA -DisplayName $asset
             Move-Item -LiteralPath $partial -Destination $archive -Force
         }
         finally {

@@ -3,8 +3,10 @@
 package native
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
+	"syscall"
 	"testing"
 )
 
@@ -35,5 +37,42 @@ func TestReplaceFileAtomicWindows(t *testing.T) {
 	}
 	if err := replaceFileAtomic(filepath.Join(dir, "missing"), destination); err == nil {
 		t.Fatal("missing source replaced destination")
+	}
+}
+
+func TestWindowsFileLockErrors(t *testing.T) {
+	file, err := os.CreateTemp(t.TempDir(), "lock-*")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer file.Close()
+
+	originalLock := lockFileExCall
+	originalUnlock := unlockFileExCall
+	defer func() {
+		lockFileExCall = originalLock
+		unlockFileExCall = originalUnlock
+	}()
+
+	lockFileExCall = func(...uintptr) (uintptr, uintptr, error) {
+		return 0, 0, errorLockViolation
+	}
+	if locked, err := tryLockFile(file); err != nil || locked {
+		t.Fatalf("lock violation locked=%v err=%v", locked, err)
+	}
+
+	want := syscall.ERROR_ACCESS_DENIED
+	lockFileExCall = func(...uintptr) (uintptr, uintptr, error) {
+		return 0, 0, want
+	}
+	if locked, err := tryLockFile(file); locked || !errors.Is(err, want) {
+		t.Fatalf("lock error locked=%v err=%v", locked, err)
+	}
+
+	unlockFileExCall = func(...uintptr) (uintptr, uintptr, error) {
+		return 0, 0, want
+	}
+	if err := unlockFile(file); !errors.Is(err, want) {
+		t.Fatalf("unlock error=%v", err)
 	}
 }

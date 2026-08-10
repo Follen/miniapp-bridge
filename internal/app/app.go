@@ -606,6 +606,16 @@ func (a *App) ClearRequests() int { return a.Requests.Clear() }
 func (a *App) Close(ctx context.Context) error {
 	a.closeOnce.Do(func() {
 		var out error
+		addCloseError := func(err error) {
+			if err == nil || errors.Is(err, net.ErrClosed) {
+				return
+			}
+			if out == nil {
+				out = err
+				return
+			}
+			out = errors.Join(out, err)
+		}
 		a.closing.Store(true)
 		a.replayMu.Lock()
 		if a.replayCancel != nil {
@@ -622,21 +632,17 @@ func (a *App) Close(ctx context.Context) error {
 		debugLn, cdpLn := a.debugLn, a.cdpLn
 		debugSrv, cdpSrv := a.debugSrv, a.cdpSrv
 		if debugSrv != nil {
-			if err := debugSrv.Shutdown(ctx); out == nil {
-				out = err
-			}
+			addCloseError(debugSrv.Shutdown(ctx))
 		}
 		if cdpSrv != nil {
-			if e := cdpSrv.Shutdown(ctx); out == nil {
-				out = e
-			}
+			addCloseError(cdpSrv.Shutdown(ctx))
 		}
 		// Shutdown only knows about listeners that have entered Serve. A custom
 		// Serve implementation (or a startup failure) may leave one unregistered.
 		// Close those listeners explicitly after Shutdown has had first ownership.
 		for _, listener := range []net.Listener{debugLn, cdpLn} {
 			if listener != nil {
-				_ = listener.Close()
+				addCloseError(listener.Close())
 			}
 		}
 		a.serveWG.Wait()
@@ -648,9 +654,7 @@ func (a *App) Close(ctx context.Context) error {
 		recorder := a.TakeRecorder()
 		a.dispatchMu.Unlock()
 		if recorder != nil {
-			if e := recorder.Close(); out == nil {
-				out = e
-			}
+			addCloseError(recorder.Close())
 		}
 		a.closeErr = out
 	})

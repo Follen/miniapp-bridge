@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -17,6 +18,19 @@ type closeSignalListener struct {
 	net.Listener
 	closed chan struct{}
 	once   sync.Once
+}
+
+type secondCloseErrorListener struct {
+	net.Listener
+	err    error
+	closes atomic.Int32
+}
+
+func (listener *secondCloseErrorListener) Close() error {
+	if listener.closes.Add(1) > 1 {
+		return listener.err
+	}
+	return listener.Listener.Close()
 }
 
 func (listener *closeSignalListener) Close() error {
@@ -91,6 +105,43 @@ func TestCloseReleasesListenersBeforeServeStartsAndWaitsForServe(t *testing.T) {
 	close(releaseServe)
 	if err := <-closeDone; err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestClosePropagatesExplicitListenerCloseErrors(t *testing.T) {
+	debugPort, cdpPort := freePort(t), freePort(t)
+	bridge := New(debugPort, cdpPort, logging.New(false, false))
+	wantDebug := errors.New("fixture debug listener close failed")
+	wantCDP := errors.New("fixture CDP listener close failed")
+	var listenCalls atomic.Int32
+	bridge.listen = func(network, address string) (net.Listener, error) {
+		listener, err := net.Listen(network, address)
+		if err != nil {
+			return nil, err
+		}
+		closeErr := wantCDP
+		if listenCalls.Add(1) == 1 {
+			closeErr = wantDebug
+		}
+		return &secondCloseErrorListener{Listener: listener, err: closeErr}, nil
+	}
+	serveEntered := make(chan struct{}, 2)
+	bridge.serve = func(server *http.Server, listener net.Listener) error {
+		serveEntered <- struct{}{}
+		return server.Serve(listener)
+	}
+	if err := bridge.Start(); err != nil {
+		t.Fatal(err)
+	}
+	for range 2 {
+		select {
+		case <-serveEntered:
+		case <-time.After(time.Second):
+			t.Fatal("Serve did not start")
+		}
+	}
+	if err := bridge.Close(context.Background()); !errors.Is(err, wantDebug) || !errors.Is(err, wantCDP) {
+		t.Fatalf("Close error=%v, want both listener causes", err)
 	}
 }
 

@@ -162,6 +162,47 @@ func TestNativePrepareDownloadWarmCacheAndOfflineCache(t *testing.T) {
 	assertNoNativePrepareTemps(t, missingCache, missingDestination)
 }
 
+func TestNativePrepareRetriesTimedOutDownload(t *testing.T) {
+	for _, shell := range []string{"pwsh.exe", "powershell.exe"} {
+		if _, err := exec.LookPath(shell); err != nil {
+			continue
+		}
+		t.Run(strings.TrimSuffix(shell, ".exe"), func(t *testing.T) {
+			fixture := makeNativePrepareFixture(t, nativePrepareArchiveOptions{})
+			var requests atomic.Int32
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				if requests.Add(1) == 1 {
+					time.Sleep(2 * time.Second)
+					return
+				}
+				_, _ = w.Write(fixture.archive)
+			}))
+			defer server.Close()
+
+			root := t.TempDir()
+			cache := filepath.Join(root, "cache")
+			destination := filepath.Join(root, "destination")
+			args := append(nativePrepareArgs(cache, destination, server.URL, fixture.hash),
+				"-DownloadAttempts", "2",
+				"-DownloadTimeoutSeconds", "1",
+				"-DownloadRetrySeconds", "0",
+			)
+			output, err := runNativePrepareWithShell(shell, args...)
+			if err != nil {
+				t.Fatalf("retry prepare failed: %v\n%s", err, output)
+			}
+			if got := requests.Load(); got != 2 {
+				t.Fatalf("retry prepare requests = %d, want 2", got)
+			}
+			if !strings.Contains(output, "Downloading "+nativePrepareAsset+" attempt=2/2") {
+				t.Fatalf("retry attempt was not reported:\n%s", output)
+			}
+			assertNativePrepareInstalled(t, destination, fixture.dll)
+			assertNoNativePrepareTemps(t, cache, destination)
+		})
+	}
+}
+
 func TestNativePrepareSerializesConcurrentColdDownload(t *testing.T) {
 	fixture := makeNativePrepareFixture(t, nativePrepareArchiveOptions{})
 	var requests atomic.Int32
@@ -639,11 +680,15 @@ func nativePrepareArgs(cache, destination, sourceURL, hash string) []string {
 }
 
 func runNativePrepare(args ...string) (string, error) {
-	_, source, _, _ := runtime.Caller(0)
 	shell := "pwsh.exe"
 	if _, err := exec.LookPath(shell); err != nil {
 		shell = "powershell.exe"
 	}
+	return runNativePrepareWithShell(shell, args...)
+}
+
+func runNativePrepareWithShell(shell string, args ...string) (string, error) {
+	_, source, _, _ := runtime.Caller(0)
 	command := exec.Command(shell, append([]string{
 		"-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
 		"-File", filepath.Join(filepath.Dir(source), "native-prepare.ps1"),

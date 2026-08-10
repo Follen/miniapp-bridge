@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -426,9 +427,11 @@ func TestNativePlatformFileErrors(t *testing.T) {
 
 func TestNativeLockWaitsBeforeCancellation(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "held.lock")
-	if err := os.WriteFile(path, nil, 0o600); err != nil {
+	unlock, err := acquireLock(context.Background(), path)
+	if err != nil {
 		t.Fatal(err)
 	}
+	defer unlock()
 	ctx, cancel := context.WithTimeout(context.Background(), 40*time.Millisecond)
 	defer cancel()
 	if _, err := acquireLock(ctx, path); !errors.Is(err, ErrNativeCache) {
@@ -492,20 +495,26 @@ func TestNativePrepareHTTPAndCacheErrors(t *testing.T) {
 	if _, err := Prepare(context.Background(), PrepareOptions{CacheDir: partialDir, HTTPClient: server, ExpectedArchiveSHA: archiveHash, Manifest: m}); err != nil {
 		t.Fatalf("stale partial recovery err=%v", err)
 	}
-	if _, err := os.Stat(filepath.Join(partialDir, NativeDLLFileName+".partial")); !errors.Is(err, os.ErrNotExist) {
-		t.Fatalf("stale partial remains: %v", err)
+	if info, err := os.Stat(filepath.Join(partialDir, NativeDLLFileName+".partial")); err != nil || !info.IsDir() {
+		t.Fatalf("unrelated stale partial changed: info=%v err=%v", info, err)
 	}
 
 	originalOpen, originalHash, originalLimit := nativeOpenPartial, nativeHashFile, nativeArchiveLimit
 	defer func() {
 		nativeOpenPartial, nativeHashFile, nativeArchiveLimit = originalOpen, originalHash, originalLimit
 	}()
-	nativeOpenPartial = func(string) (io.WriteCloser, error) { return &nativeCloseErrorWriter{}, nil }
+	nativeOpenPartial = func(dir, pattern string) (string, io.WriteCloser, error) {
+		return filepath.Join(dir, pattern), &nativeCloseErrorWriter{}, nil
+	}
 	if _, err := Prepare(context.Background(), PrepareOptions{CacheDir: t.TempDir(), HTTPClient: server, Manifest: m}); !errors.Is(err, ErrNativeCache) {
 		t.Fatalf("partial close err=%v", err)
 	}
-	nativeOpenPartial = func(path string) (io.WriteCloser, error) {
-		return os.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o600)
+	nativeOpenPartial = func(dir, pattern string) (string, io.WriteCloser, error) {
+		file, err := os.CreateTemp(dir, pattern)
+		if err != nil {
+			return "", nil, err
+		}
+		return file.Name(), file, nil
 	}
 	nativeArchiveLimit = 3
 	if _, err := Prepare(context.Background(), PrepareOptions{CacheDir: t.TempDir(), HTTPClient: server, Manifest: m}); !errors.Is(err, ErrNativeDownload) {
@@ -546,6 +555,74 @@ func TestNativePrepareStaleLockAndWrapper(t *testing.T) {
 	}
 	if _, err := acquireLock(context.Background(), filepath.Join(t.TempDir(), "missing", "lock")); !errors.Is(err, ErrNativeCache) {
 		t.Fatalf("parent lock err=%v", err)
+	}
+}
+
+func TestNativeOldActiveLockIsNotStolen(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "active.lock")
+	unlock, err := acquireLock(context.Background(), path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer unlock()
+	old := time.Now().Add(-24 * time.Hour)
+	if err := os.Chtimes(path, old, old); err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 40*time.Millisecond)
+	defer cancel()
+	if _, err := acquireLock(ctx, path); !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("old active lock was stolen: %v", err)
+	}
+}
+
+func TestNativePartialNamesAreUnique(t *testing.T) {
+	dir := t.TempDir()
+	const workers = 16
+	paths := make(chan string, workers)
+	errs := make(chan error, workers)
+	var wg sync.WaitGroup
+	for range workers {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			partialPath, partial, err := nativeOpenPartial(dir, ".native.*.partial")
+			if err == nil {
+				err = partial.Close()
+			}
+			paths <- partialPath
+			errs <- err
+		}()
+	}
+	wg.Wait()
+	close(paths)
+	close(errs)
+	for err := range errs {
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	seen := make(map[string]struct{}, workers)
+	for partialPath := range paths {
+		defer os.Remove(partialPath)
+		if _, duplicate := seen[partialPath]; duplicate {
+			t.Fatalf("partial path is shared: %q", partialPath)
+		}
+		seen[partialPath] = struct{}{}
+	}
+	if len(seen) != workers {
+		t.Fatalf("partial paths=%d, want %d", len(seen), workers)
+	}
+}
+
+func TestNativeLockOperationError(t *testing.T) {
+	original := nativeTryLockFile
+	defer func() { nativeTryLockFile = original }()
+	nativeTryLockFile = func(*os.File) (bool, error) {
+		return false, errors.New("lock syscall failed")
+	}
+	if _, err := acquireLock(context.Background(), filepath.Join(t.TempDir(), "error.lock")); !errors.Is(err, ErrNativeCache) {
+		t.Fatalf("lock operation error=%v", err)
 	}
 }
 
