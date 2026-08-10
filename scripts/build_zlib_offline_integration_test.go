@@ -3,8 +3,11 @@
 package main
 
 import (
+	"archive/tar"
+	"compress/gzip"
 	"crypto/sha256"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -171,9 +174,52 @@ func makeZlibArchiveFixture(t *testing.T, root string) zlibArchiveFixture {
 	t.Helper()
 	source := filepath.Join(root, "third_party", "zlib", "src-1.3.1")
 	archive := filepath.Join(t.TempDir(), "zlib-1.3.1.tar.gz")
-	command := exec.Command("tar.exe", "-czf", archive, "-C", filepath.Dir(source), filepath.Base(source))
-	if output, err := command.CombinedOutput(); err != nil {
-		t.Fatalf("create zlib fixture archive: %v\n%s", err, output)
+	file, err := os.Create(archive)
+	if err != nil {
+		t.Fatal(err)
+	}
+	gz := gzip.NewWriter(file)
+	tw := tar.NewWriter(gz)
+	if err := filepath.Walk(source, func(path string, info os.FileInfo, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		relative, err := filepath.Rel(filepath.Dir(source), path)
+		if err != nil {
+			return err
+		}
+		header, err := tar.FileInfoHeader(info, "")
+		if err != nil {
+			return err
+		}
+		header.Name = filepath.ToSlash(relative)
+		if err := tw.WriteHeader(header); err != nil {
+			return err
+		}
+		if !info.Mode().IsRegular() {
+			return nil
+		}
+		input, err := os.Open(path)
+		if err != nil {
+			return err
+		}
+		defer input.Close()
+		_, err = io.Copy(tw, input)
+		return err
+	}); err != nil {
+		_ = tw.Close()
+		_ = gz.Close()
+		_ = file.Close()
+		t.Fatalf("create zlib fixture archive: %v", err)
+	}
+	if err := tw.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := gz.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := file.Close(); err != nil {
+		t.Fatal(err)
 	}
 	data, err := os.ReadFile(archive)
 	if err != nil {

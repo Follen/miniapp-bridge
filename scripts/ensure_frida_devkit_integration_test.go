@@ -344,25 +344,13 @@ func TestFridaBootstrapRetriesTimedOutDownload(t *testing.T) {
 
 func makeFridaArchiveFixture(t *testing.T) fridaArchiveFixture {
 	t.Helper()
-	root := t.TempDir()
-	source := filepath.Join(root, "source")
-	if err := os.MkdirAll(source, 0o755); err != nil {
-		t.Fatal(err)
+	header := []byte("fixture frida-core header")
+	library := []byte("fixture frida-core library")
+	_, source, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("runtime.Caller failed")
 	}
-	header := []byte("fixture frida-core header\n")
-	library := []byte("fixture frida-core library\x00\x01\x02")
-	if err := os.WriteFile(filepath.Join(source, "frida-core.h"), header, 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(source, "frida-core.lib"), library, 0o644); err != nil {
-		t.Fatal(err)
-	}
-	archive := filepath.Join(root, "fixture.tar.xz")
-	command := exec.Command("tar.exe", "-cJf", archive, "-C", source, "frida-core.h", "frida-core.lib")
-	if output, err := command.CombinedOutput(); err != nil {
-		t.Fatalf("create fixture archive: %v\n%s", err, output)
-	}
-	data, err := os.ReadFile(archive)
+	data, err := os.ReadFile(filepath.Join(filepath.Dir(source), "testdata", "frida-fixture.tar.xz"))
 	if err != nil {
 		t.Fatal(err)
 	}
