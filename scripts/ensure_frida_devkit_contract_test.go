@@ -27,7 +27,8 @@ func TestFridaBootstrapSupportsVerifiedOfflineCache(t *testing.T) {
 		"Frida SDK download failed after $DownloadAttempts attempts",
 		"$devkit.extracting-$([guid]::NewGuid().ToString('N'))",
 		"$backupDevkit = \"$devkit.backup-$([guid]::NewGuid().ToString('N'))\"",
-		"Move-Item -LiteralPath $devkit -Destination $backupDevkit -Force",
+		"function Move-DirectoryAtomically",
+		"[System.IO.Directory]::Move($Source, $Destination)",
 		"Frida SDK publication failed: $publishError",
 		"rollback failed:",
 		"backup retained at $backupDevkit",
@@ -72,9 +73,9 @@ func TestFridaBootstrapSerializesCacheMutationAndAlwaysReleasesLock(t *testing.T
 func TestFridaBootstrapPublishesValidatedDevkitWithRollback(t *testing.T) {
 	script := readFridaBootstrap(t)
 	validated := strings.Index(script, "if (-not (Test-ExpectedHash -Path $stagingLibrary")
-	backup := strings.Index(script, "Move-Item -LiteralPath $devkit -Destination $backupDevkit -Force")
-	publish := strings.Index(script, "Move-Item -LiteralPath $stagingDevkit -Destination $devkit -Force")
-	rollback := strings.Index(script, "Move-Item -LiteralPath $backupDevkit -Destination $devkit -Force")
+	backup := strings.Index(script, "Move-DirectoryAtomically -Source $devkit -Destination $backupDevkit")
+	publish := strings.Index(script, "Move-DirectoryAtomically -Source $stagingDevkit -Destination $devkit")
+	rollback := strings.Index(script, "Move-DirectoryAtomically -Source $backupDevkit -Destination $devkit")
 	cleanup := strings.Index(script, "Remove-Item -LiteralPath $backupDevkit -Recurse -Force -ErrorAction Stop")
 	if validated < 0 || backup < 0 || publish < 0 || rollback < 0 || cleanup < 0 {
 		t.Fatal("validated devkit publication must include backup, publish, rollback, and cleanup operations")

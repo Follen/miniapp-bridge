@@ -184,6 +184,80 @@ func TestFridaBootstrapCleansFailedDownloadAndExtraction(t *testing.T) {
 	})
 }
 
+func TestFridaBootstrapPromotionFailurePreservesOldCache(t *testing.T) {
+	fixture := makeFridaArchiveFixture(t)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write(fixture.data)
+	}))
+	defer server.Close()
+
+	root := t.TempDir()
+	cache := filepath.Join(root, "cache")
+	devkit := filepath.Join(root, "devkit")
+	if err := os.MkdirAll(devkit, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	oldHeader := []byte("old verified header\n")
+	oldLibrary := []byte("old verified library\n")
+	if err := os.WriteFile(filepath.Join(devkit, "frida-core.h"), oldHeader, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(devkit, "frida-core.lib"), oldLibrary, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Replace only the staging-to-final rename in a temporary copy to force the
+	// real publication catch/rollback path deterministically.
+	_, source, _, _ := runtime.Caller(0)
+	script, err := os.ReadFile(filepath.Join(filepath.Dir(source), "ensure-frida-devkit.ps1"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	failingScript := strings.Replace(string(script),
+		"Move-DirectoryAtomically -Source $stagingDevkit -Destination $devkit",
+		"throw 'injected promotion failure'", 1)
+	failingPath := filepath.Join(root, "ensure-frida-devkit-failing.ps1")
+	if err := os.WriteFile(failingPath, []byte(failingScript), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	output, runErr := runFridaBootstrapScript(failingPath, fridaBootstrapArgs(cache, devkit, server.URL, fixture)...)
+	if runErr == nil || !strings.Contains(output, "Frida SDK publication failed: injected promotion failure") {
+		t.Fatalf("promotion failure was not reported: err=%v\n%s", runErr, output)
+	}
+	for path, want := range map[string][]byte{
+		filepath.Join(devkit, "frida-core.h"):   oldHeader,
+		filepath.Join(devkit, "frida-core.lib"): oldLibrary,
+	} {
+		got, readErr := os.ReadFile(path)
+		if readErr != nil {
+			t.Fatalf("old cache file %s was removed: %v", path, readErr)
+		}
+		if string(got) != string(want) {
+			t.Fatalf("old cache file %s changed: got %q, want %q", path, got, want)
+		}
+	}
+	assertNoFridaBootstrapTemps(t, cache)
+}
+
+func TestFridaBootstrapSuccessfulPublicationCleansAllTemps(t *testing.T) {
+	fixture := makeFridaArchiveFixture(t)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write(fixture.data)
+	}))
+	defer server.Close()
+
+	root := t.TempDir()
+	cache := filepath.Join(root, "cache")
+	devkit := filepath.Join(root, "devkit")
+	output, err := runFridaBootstrap(fridaBootstrapArgs(cache, devkit, server.URL, fixture)...)
+	if err != nil {
+		t.Fatalf("successful publication failed: %v\n%s", err, output)
+	}
+	assertFridaFixtureInstalled(t, devkit, fixture)
+	assertNoFridaBootstrapTemps(t, cache)
+}
+
 func TestFridaBootstrapSerializesConcurrentColdCache(t *testing.T) {
 	fixture := makeFridaArchiveFixture(t)
 	var requests int32
@@ -306,7 +380,11 @@ func fridaBootstrapArgs(cache, devkit, sourceURL string, fixture fridaArchiveFix
 
 func runFridaBootstrap(args ...string) (string, error) {
 	_, source, _, _ := runtime.Caller(0)
-	commandArgs := []string{"-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", filepath.Join(filepath.Dir(source), "ensure-frida-devkit.ps1")}
+	return runFridaBootstrapScript(filepath.Join(filepath.Dir(source), "ensure-frida-devkit.ps1"), args...)
+}
+
+func runFridaBootstrapScript(scriptPath string, args ...string) (string, error) {
+	commandArgs := []string{"-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", scriptPath}
 	shell := "pwsh.exe"
 	if _, err := exec.LookPath(shell); err != nil {
 		shell = "powershell.exe"

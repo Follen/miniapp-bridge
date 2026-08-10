@@ -50,6 +50,18 @@ function Test-ExpectedHash {
     return (Test-Path -LiteralPath $Path) -and ((Get-FileHash -Algorithm SHA256 -LiteralPath $Path).Hash -eq $Expected)
 }
 
+function Move-DirectoryAtomically {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Source,
+        [Parameter(Mandatory = $true)]
+        [string]$Destination
+    )
+
+    # Directory.Move is a same-volume rename and never degrades to copy/delete.
+    [System.IO.Directory]::Move($Source, $Destination)
+}
+
 function Invoke-VerifiedDownload {
     param(
         [string]$URL,
@@ -173,10 +185,10 @@ try {
             New-Item -ItemType Directory -Force -Path $devkitParent | Out-Null
             if (Test-Path -LiteralPath $devkit) {
                 $backupDevkit = "$devkit.backup-$([guid]::NewGuid().ToString('N'))"
-                Move-Item -LiteralPath $devkit -Destination $backupDevkit -Force
+                Move-DirectoryAtomically -Source $devkit -Destination $backupDevkit
             }
             try {
-                Move-Item -LiteralPath $stagingDevkit -Destination $devkit -Force
+                Move-DirectoryAtomically -Source $stagingDevkit -Destination $devkit
             } catch {
                 $publishError = $_.Exception.Message
                 if (Test-Path -LiteralPath $devkit) {
@@ -184,7 +196,7 @@ try {
                 }
                 if ($null -ne $backupDevkit -and (Test-Path -LiteralPath $backupDevkit)) {
                     try {
-                        Move-Item -LiteralPath $backupDevkit -Destination $devkit -Force
+                        Move-DirectoryAtomically -Source $backupDevkit -Destination $devkit
                     } catch {
                         throw "Frida SDK publication failed: $publishError; rollback failed: $($_.Exception.Message); backup retained at $backupDevkit"
                     }
