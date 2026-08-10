@@ -234,6 +234,17 @@ function Expand-FridaArchive {
     )
 
     $sevenZip = Get-Command 7z.exe -ErrorAction SilentlyContinue
+    if ($null -eq $sevenZip) {
+        foreach ($candidate in @(
+            (Join-Path ${env:ProgramFiles} '7-Zip\7z.exe'),
+            (Join-Path ${env:ProgramFiles(x86)} '7-Zip\7z.exe')
+        )) {
+            if (Test-Path -LiteralPath $candidate) {
+                $sevenZip = [pscustomobject]@{ Source = $candidate }
+                break
+            }
+        }
+    }
     if ($null -ne $sevenZip) {
         # Some hosted Windows images have a tar/xz implementation that can stop
         # producing output while expanding this 322 MiB .lib.  7-Zip handles the
