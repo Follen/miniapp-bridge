@@ -72,17 +72,54 @@ function Invoke-BoundedDownload {
     $connectTimeoutSeconds = [Math]::Min(30, $TimeoutSeconds)
     $curl = Get-Command curl.exe -ErrorAction SilentlyContinue
     if ($null -ne $curl) {
-        & $curl.Source `
-            --fail `
-            --location `
-            --silent `
-            --show-error `
-            --connect-timeout $connectTimeoutSeconds `
-            --max-time $TimeoutSeconds `
-            --output $Destination `
-            --url $URL
-        if ($LASTEXITCODE -ne 0) {
-            throw "curl.exe exited with code $LASTEXITCODE"
+        $curlArguments = @(
+            '--fail', '--location', '--silent', '--show-error',
+            '--connect-timeout', [string]$connectTimeoutSeconds,
+            '--max-time', [string]$TimeoutSeconds,
+            '--output', $Destination,
+            '--url', $URL
+        )
+        $startInfo = [System.Diagnostics.ProcessStartInfo]::new()
+        $startInfo.FileName = $curl.Source
+        $startInfo.UseShellExecute = $false
+        $startInfo.CreateNoWindow = $true
+        $startInfo.RedirectStandardOutput = $true
+        $startInfo.RedirectStandardError = $true
+        $argumentListProperty = $startInfo.GetType().GetProperty('ArgumentList')
+        if ($null -ne $argumentListProperty) {
+            foreach ($argument in $curlArguments) {
+                [void]$startInfo.ArgumentList.Add([string]$argument)
+            }
+        } else {
+            # Windows PowerShell 5.1 lacks ProcessStartInfo.ArgumentList. These
+            # arguments contain no embedded quotes, so quoting whitespace is
+            # sufficient for the URL and destination paths used here.
+            $startInfo.Arguments = ($curlArguments | ForEach-Object {
+                $value = [string]$_
+                if ($value -match '[\s"]') { '"' + $value.Replace('"', '\"') + '"' } else { $value }
+            }) -join ' '
+        }
+
+        $process = [System.Diagnostics.Process]::new()
+        $process.StartInfo = $startInfo
+        try {
+            if (-not $process.Start()) { throw 'curl.exe did not start' }
+            $stdoutTask = $process.StandardOutput.ReadToEndAsync()
+            $stderrTask = $process.StandardError.ReadToEndAsync()
+            $waitMilliseconds = [int][Math]::Min([int]::MaxValue, $TimeoutSeconds * 1000)
+            if (-not $process.WaitForExit($waitMilliseconds)) {
+                try { $process.Kill($true) } catch { try { $process.Kill() } catch {} }
+                $process.WaitForExit()
+                throw "curl.exe exceeded hard timeout of ${TimeoutSeconds}s"
+            }
+            $stdout = $stdoutTask.GetAwaiter().GetResult()
+            $stderr = $stderrTask.GetAwaiter().GetResult()
+            if ($process.ExitCode -ne 0) {
+                $detail = if ([string]::IsNullOrWhiteSpace($stderr)) { $stdout.Trim() } else { $stderr.Trim() }
+                throw "curl.exe exited with code $($process.ExitCode): $detail"
+            }
+        } finally {
+            $process.Dispose()
         }
         return
     }
