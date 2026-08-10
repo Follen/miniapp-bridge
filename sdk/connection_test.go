@@ -27,6 +27,13 @@ func TestUpstreamDisconnectFailsPendingAndReconnects(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	connectDeadline := time.Now().Add(5 * time.Second)
+	for !s.Status().Connections.Upstream && time.Now().Before(connectDeadline) {
+		time.Sleep(10 * time.Millisecond)
+	}
+	if !s.Status().Connections.Upstream {
+		t.Fatal("upstream websocket handshake completed but service did not register the connection")
+	}
 	requestDone := make(chan error, 1)
 	go func() {
 		_, err := s.Send(context.Background(), Request{ID: "disconnect-me", Method: "Runtime.enable"})
