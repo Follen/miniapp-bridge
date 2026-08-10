@@ -1,8 +1,12 @@
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $ensure = Join-Path $PSScriptRoot 'ensure-frida-devkit.ps1'
+Write-Host 'Frida bootstrap: begin'
 & $ensure
+Write-Host 'Frida bootstrap: complete'
+Write-Host 'zlib bootstrap: begin'
 & (Join-Path $PSScriptRoot 'build-zlib.ps1')
+Write-Host 'zlib bootstrap: complete'
 $devkit = Join-Path $root 'third_party\frida\devkit-17.3.2'
 $runtime = Join-Path $root 'third_party\frida\runtime-17.3.2'
 $shim = Join-Path $root 'internal\frida\shim'
@@ -19,12 +23,14 @@ if (Test-Path -LiteralPath $legacyZlibObjectDirectory) { Remove-Item -LiteralPat
 New-Item -ItemType Directory -Force -Path $zlibObjectDirectory | Out-Null
 
 try {
+    Write-Host 'MSVC zlib objects: begin'
     $zlibNames = @('adler32', 'compress', 'crc32', 'deflate', 'gzclose', 'gzlib', 'gzread', 'gzwrite', 'infback', 'inffast', 'inflate', 'inftrees', 'trees', 'uncompr', 'zutil')
     $zlibSources = @($zlibNames | ForEach-Object { '"' + (Join-Path $zlibSource "$_.c") + '"' }) -join ' '
     $zlibObjectOutput = $zlibObjectDirectory.Replace('\', '/') + '/'
     $zlibCompile = 'call "{0}" -arch=x64 -host_arch=x64 >nul && cl /nologo /c /MT /O2 /utf-8 /I"{1}" /Fo"{2}" {3}' -f $vsdev, $zlibSource, $zlibObjectOutput, $zlibSources
     cmd.exe /d /s /c $zlibCompile
     if ($LASTEXITCODE -ne 0) { throw "MSVC zlib build failed with exit $LASTEXITCODE" }
+    Write-Host 'MSVC zlib objects: complete'
     $zlibObjects = @($zlibNames | ForEach-Object {
         $object = Join-Path $zlibObjectDirectory "$_.obj"
         if (-not (Test-Path -LiteralPath $object)) { throw "MSVC zlib build did not produce $object" }
@@ -36,6 +42,7 @@ try {
         (Join-Path $shim 'miniapp_frida.def'), (Join-Path $runtime 'miniapp-frida.dll'), (Join-Path $runtime 'miniapp-frida.lib'), (Join-Path $runtime 'miniapp_frida.obj'), $zlibObjects
     cmd.exe /d /s /c $command
     if ($LASTEXITCODE -ne 0) { throw "MSVC shim build failed with exit $LASTEXITCODE" }
+    Write-Host 'MSVC Frida shim: complete'
 
     # Go loads this DLL through LoadLibraryExW/GetProcAddress. Do not generate or
     # require a Go import library; the MSVC .lib above is only the shim's internal

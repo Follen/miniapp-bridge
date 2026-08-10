@@ -227,6 +227,33 @@ function Invoke-VerifiedDownload {
     throw "Frida SDK download failed after $DownloadAttempts attempts: $($lastError.Exception.Message)"
 }
 
+function Expand-FridaArchive {
+    param(
+        [string]$Archive,
+        [string]$Destination
+    )
+
+    $sevenZip = Get-Command 7z.exe -ErrorAction SilentlyContinue
+    if ($null -ne $sevenZip) {
+        # Some hosted Windows images have a tar/xz implementation that can stop
+        # producing output while expanding this 322 MiB .lib.  7-Zip handles the
+        # xz and tar layers separately and gives the runner a deterministic path.
+        Write-Host "Extracting Frida SDK with 7z.exe: $Archive"
+        & $sevenZip.Source x $Archive "-o$Destination" -y
+        if ($LASTEXITCODE -ne 0) { throw "Frida SDK xz extraction failed with exit $LASTEXITCODE" }
+        $tarArchive = Get-ChildItem -LiteralPath $Destination -Filter '*.tar' -File | Select-Object -First 1
+        if ($null -eq $tarArchive) { throw "Frida SDK xz extraction did not produce a tar archive: $Destination" }
+        & $sevenZip.Source x $tarArchive.FullName "-o$Destination" -y
+        if ($LASTEXITCODE -ne 0) { throw "Frida SDK tar extraction failed with exit $LASTEXITCODE" }
+        Remove-Item -LiteralPath $tarArchive.FullName -Force
+        return
+    }
+
+    Write-Host "Extracting Frida SDK with tar.exe: $Archive"
+    tar.exe -xJf $Archive -C $Destination
+    if ($LASTEXITCODE -ne 0) { throw "Frida SDK extraction failed with exit $LASTEXITCODE" }
+}
+
 New-Item -ItemType Directory -Force -Path $downloadDir | Out-Null
 $lockPath = Join-Path $downloadDir "$archiveName.lock"
 $lockStream = $null
@@ -287,8 +314,7 @@ try {
         if (Test-Path -LiteralPath $stagingDevkit) { Remove-Item -LiteralPath $stagingDevkit -Recurse -Force }
         try {
             New-Item -ItemType Directory -Force -Path $stagingDevkit | Out-Null
-            tar.exe -xJf $archive -C $stagingDevkit
-            if ($LASTEXITCODE -ne 0) { throw "Frida SDK extraction failed with exit $LASTEXITCODE" }
+            Expand-FridaArchive -Archive $archive -Destination $stagingDevkit
 
             $stagingHeader = Join-Path $stagingDevkit 'frida-core.h'
             $stagingLibrary = Join-Path $stagingDevkit 'frida-core.lib'
