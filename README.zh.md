@@ -136,7 +136,7 @@ Go Module 只包含 Go 源码和最小 Windows loader 源码，不提交
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\native-prepare.ps1 `
   -DestinationDirectory .\dist `
-  -ExpectedArchiveSHA256 FDF6FF11678760BF6C072FB68B6775AB0B8F9981B1AB5F8D2C2B4F369C1E76FE
+  -ExpectedArchiveSHA256 DC08BCDBF5B0CE5C15640BF3A12907BD1EDF01A10A59F0FE1FD66E43939F7187
 ```
 
 默认下载地址为：
@@ -162,6 +162,10 @@ go build -tags frida -o .\dist\my-app.exe .\cmd\my-app
 需要本地构建 DLL 时运行 `scripts\build-windows.ps1`。脚本会固定并校验官方
 Frida devkit 和 zlib `1.3.1`，使用 MSVC 构建不透明 C ABI shim，运行
 `go test -tags frida -race ./...`，并在 `dist` 生成带 tag 的 CLI 包。
+
+这条 tagged 测试命令完全自包含，不依赖微信或 WMPF 进程。真实目标的枚举、
+attach、Agent 生命周期和 reattach 测试使用独立的 `frida live` tags，并由
+Windows live smoke 流程执行。
 
 ## 版本与发布
 
@@ -202,7 +206,7 @@ SHA256SUMS
 产品 ZIP 包含 EXE、匹配的 DLL 和 manifest、两份 README，以及所需许可证和
 声明文件。workflow 还会创建或验证默认 SDK 下载地址所使用的不可变
 `native-v17.3.2-abi1` 兼容 Release。native ZIP 必须匹配 SDK 固定的 SHA-256：
-`FDF6FF11678760BF6C072FB68B6775AB0B8F9981B1AB5F8D2C2B4F369C1E76FE`。
+`DC08BCDBF5B0CE5C15640BF3A12907BD1EDF01A10A59F0FE1FD66E43939F7187`。
 发布 job 会创建或恢复 draft，逐字节核对全部资产，并在发布前后检查产品和 native tag commit，
 然后才正式发布。已有产品 Release 不会被覆盖；已有 native Release 的资产必须
 逐字节一致，而且不会被设为 Latest。SemVer 预发布 tag 会被标记为 GitHub

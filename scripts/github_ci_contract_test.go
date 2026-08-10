@@ -34,6 +34,7 @@ func TestGitHubCIWorkflowContract(t *testing.T) {
 		"ACTIONLINT_VERSION: 1.7.7",
 		"FRIDA_CORE_VERSION: 17.3.2",
 		"ZLIB_VERSION: 1.3.1",
+		"ZLIB_ARCHIVE_SHA256: 17E88863F3600672AB49182F217281B6FC4D3C762BDE361935E436A95214D05C",
 		"runs-on: ubuntu-latest",
 		"timeout-minutes: 30",
 		"go mod download",
@@ -56,6 +57,12 @@ func TestGitHubCIWorkflowContract(t *testing.T) {
 		"third_party/frida/devkit-17.3.2",
 		"hashFiles('go.sum')",
 		"frida-${{ env.FRIDA_CORE_VERSION }}-zlib-${{ env.ZLIB_VERSION }}",
+		"${{ env.ZLIB_ARCHIVE_SHA256 }}-${{ hashFiles('go.sum') }}",
+		"Populate Frida devkit archive cache",
+		"GH_TOKEN: ${{ github.token }}",
+		"gh release download $env:FRIDA_CORE_VERSION --repo frida/frida --pattern $asset --output $archive --clobber",
+		"8AF15423D6E534626F91A67FAA0582E42C67A07A95A190F4C622695105549C72",
+		"Frida devkit archive SHA-256 mismatch",
 		".\\scripts\\build-windows.ps1",
 		".\\scripts\\coverage-gate.ps1",
 		"retention-days: 7",
@@ -110,8 +117,16 @@ func TestGitHubCIWorkflowContract(t *testing.T) {
 	})
 
 	buildStep := workflowStep(t, workflow, "Windows native build")
+	populateStep := workflowStep(t, workflow, "Populate Frida devkit archive cache")
+	populate := strings.Index(workflow, "Populate Frida devkit archive cache")
 	removeSource := strings.Index(buildStep, "Remove-Item -LiteralPath $zlibSource -Recurse -Force")
 	buildWindows := strings.Index(buildStep, ".\\scripts\\build-windows.ps1")
+	if populate < 0 || strings.Index(workflow, "gh release download $env:FRIDA_CORE_VERSION") < populate || strings.Index(workflow, "Get-FileHash -Algorithm SHA256 -LiteralPath $archive") < populate {
+		t.Fatal("Windows CI must populate and verify the pinned Frida archive before building")
+	}
+	if !strings.Contains(populateStep, "GH_TOKEN: ${{ github.token }}") {
+		t.Fatal("Frida cache population must use the workflow token for authenticated GitHub downloads")
+	}
 	if removeSource < 0 || buildWindows < 0 || removeSource > buildWindows {
 		t.Fatal("Windows build must remove the cached zlib source tree before the verified archive build")
 	}

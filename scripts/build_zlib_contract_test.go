@@ -17,9 +17,9 @@ func TestZlibBuildDownloadsPinnedArchiveIntoIgnoredCache(t *testing.T) {
 
 	script := readContractFile(t, filepath.Join(root, "scripts", "build-zlib.ps1"))
 	for _, token := range []string{
-		"https://zlib.net/fossils/zlib-1.3.1.tar.gz",
+		"https://github.com/madler/zlib/archive/refs/tags/v1.3.1.tar.gz",
 		"third_party\\downloads\\cache",
-		"9A93B2B7DFDAC77CEBA5A558A580E74667DD6FEDE4585B91EEFB60F03B72DF23",
+		"17E88863F3600672AB49182F217281B6FC4D3C762BDE361935E436A95214D05C",
 		"function Invoke-BoundedDownload",
 		"Get-Command curl.exe -ErrorAction SilentlyContinue",
 		"--connect-timeout $connectTimeoutSeconds",
@@ -152,12 +152,15 @@ func TestFridaShimBuildIsReproducible(t *testing.T) {
 		"6B4DEE14C19BDB03CAA4A25BE51564AA249BC1167AA8DED26F562E238D0B3462",
 		"D763BCF99EFDE43A3DE4138B19D70EC64B586286413473EAA21E6C59B7410A30",
 		"function Invoke-BoundedDownload",
-		"--max-time $TimeoutSeconds",
+		"'--max-time', [string]$TimeoutSeconds",
+		"$process.WaitForExit($waitMilliseconds)",
+		"curl.exe exceeded hard timeout of ${TimeoutSeconds}s",
 		"Get-FileHash -Algorithm SHA256",
 		"$archive.partial",
 		"Move-Item -LiteralPath $partialArchive -Destination $archive -Force",
 		"$devkit.extracting-$([guid]::NewGuid().ToString('N'))",
-		"tar.exe -xJf $archive",
+		"function Expand-FridaArchive",
+		"tar.exe -xJf $Archive -C $Destination",
 	} {
 		if !strings.Contains(bootstrap, token) {
 			t.Errorf("ensure-frida-devkit.ps1 is missing %q", token)

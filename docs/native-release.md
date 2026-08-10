@@ -75,7 +75,7 @@ generated ones, and the native release is never selected as Latest.
 The pinned native archive SHA-256 is:
 
 ```text
-FDF6FF11678760BF6C072FB68B6775AB0B8F9981B1AB5F8D2C2B4F369C1E76FE
+DC08BCDBF5B0CE5C15640BF3A12907BD1EDF01A10A59F0FE1FD66E43939F7187
 ```
 
 Only the final publisher job has `contents: write`; it consumes the verified
@@ -94,6 +94,8 @@ git push origin v0.0.1
 Hosted CI verifies deterministic and native packaging behavior but has no live
 WMPF target. Run `scripts/smoke-windows.ps1 -CDPMode all` on an interactive
 Windows environment before claiming a new live target version.
+The ordinary `frida` test tag is hosted-CI safe; only `frida live` enables tests
+that enumerate, attach to, or reload a real WMPF process.
 
 ## Runtime preparation
 

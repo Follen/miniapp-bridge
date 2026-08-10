@@ -20,17 +20,17 @@ type closeSignalListener struct {
 	once   sync.Once
 }
 
-type secondCloseErrorListener struct {
+type explicitCloseErrorListener struct {
 	net.Listener
 	err    error
 	closes atomic.Int32
 }
 
-func (listener *secondCloseErrorListener) Close() error {
-	if listener.closes.Add(1) > 1 {
-		return listener.err
+func (listener *explicitCloseErrorListener) Close() error {
+	if listener.closes.Add(1) == 1 {
+		_ = listener.Listener.Close()
 	}
-	return listener.Listener.Close()
+	return listener.err
 }
 
 func (listener *closeSignalListener) Close() error {
@@ -123,7 +123,7 @@ func TestClosePropagatesExplicitListenerCloseErrors(t *testing.T) {
 		if listenCalls.Add(1) == 1 {
 			closeErr = wantDebug
 		}
-		return &secondCloseErrorListener{Listener: listener, err: closeErr}, nil
+		return &explicitCloseErrorListener{Listener: listener, err: closeErr}, nil
 	}
 	serveEntered := make(chan struct{}, 2)
 	bridge.serve = func(server *http.Server, listener net.Listener) error {

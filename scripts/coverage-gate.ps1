@@ -28,7 +28,7 @@ if ($rows.Count -ne 13 -or ($rows | Where-Object { $_ -notmatch $implemented }).
     throw 'behavior matrix is incomplete'
 }
 
-Run 'unit' { go test ./... -count=1 -timeout 90s }
+Run 'unit' { go test ./... -count=1 -timeout 180s }
 $publicCoverage = Join-Path $env:TEMP "miniapp-bridge-public-coverage-$([guid]::NewGuid().ToString('N')).out"
 try {
     Run 'public CLI and Frida statement coverage' { go test ./cmd/... ./frida -count=1 -timeout 90s "-coverprofile=$publicCoverage" }
