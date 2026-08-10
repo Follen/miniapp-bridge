@@ -141,18 +141,23 @@ func TestNativePublicWrappers(t *testing.T) {
 		t.Fatalf("default manifest=%+v", m)
 	}
 	missing := filepath.Join(t.TempDir(), "missing.dll")
-	if err := CheckNativeRuntime(missing); !errors.Is(err, ErrNativeMissing) {
-		t.Fatalf("missing native=%v", err)
+	wantMissingCode, wantMissingOperation := ErrNativeMissing, "stat"
+	if runtime.GOOS != "windows" {
+		// DefaultNativeManifest is pinned to the Windows release artifact;
+		// validation therefore precedes file and cache checks elsewhere.
+		wantMissingCode, wantMissingOperation = ErrNativeWrongArch, "manifest platform"
 	}
-	if err := CheckNativeRuntime(missing, m); !errors.Is(err, ErrNativeMissing) {
-		t.Fatalf("explicit native manifest=%v", err)
+	assertNativeError(t, CheckNativeRuntime(missing), wantMissingCode, wantMissingOperation)
+	assertNativeError(t, CheckNativeRuntime(missing, m), wantMissingCode, wantMissingOperation)
+	assertNativeError(t, CheckNativeRuntime(missing, NativeManifest{}), wantMissingCode, wantMissingOperation)
+	wantPrepareCode, wantPrepareOperation := ErrNativeOffline, "offline cache"
+	if runtime.GOOS != "windows" {
+		wantPrepareCode, wantPrepareOperation = ErrNativeWrongArch, "manifest platform"
 	}
-	if err := CheckNativeRuntime(missing, NativeManifest{}); !errors.Is(err, ErrNativeMissing) {
-		t.Fatalf("defaulted native manifest=%v", err)
-	}
-	if _, err := PrepareNativeRuntime(context.Background(), NativePrepareOptions{CacheDir: t.TempDir(), Manifest: m, Offline: true}); !errors.Is(err, ErrNativeOffline) {
-		t.Fatalf("offline prepare=%v", err)
-	}
+	assertNativeError(t, func() error {
+		_, err := PrepareNativeRuntime(context.Background(), NativePrepareOptions{CacheDir: t.TempDir(), Manifest: m, Offline: true})
+		return err
+	}(), wantPrepareCode, wantPrepareOperation)
 }
 
 func TestStartFailurePathsAndNativeCloseError(t *testing.T) {

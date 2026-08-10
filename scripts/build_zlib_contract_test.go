@@ -140,7 +140,7 @@ func TestFridaShimBuildIsReproducible(t *testing.T) {
 		"Get-FileHash -Algorithm SHA256",
 		"$archive.partial",
 		"Move-Item -LiteralPath $partialArchive -Destination $archive -Force",
-		"$archiveName.extracting",
+		"$devkit.extracting-$([guid]::NewGuid().ToString('N'))",
 		"tar.exe -xJf $archive",
 	} {
 		if !strings.Contains(bootstrap, token) {

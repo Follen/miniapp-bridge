@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -63,7 +64,18 @@ func TestPrepareDefaultsManifestBeforeCacheLookup(t *testing.T) {
 	original := nativeUserCacheDir
 	t.Cleanup(func() { nativeUserCacheDir = original })
 	nativeUserCacheDir = func() (string, error) { return "", errors.New("cache unavailable") }
-	if _, err := Prepare(context.Background(), PrepareOptions{}); !errors.Is(err, ErrNativeCache) {
-		t.Fatalf("Prepare() error = %v, want ErrNativeCache", err)
+	wantCode, wantOperation := ErrNativeCache, "cache directory"
+	if runtime.GOOS != "windows" {
+		// The pinned default manifest is Windows-only. Non-Windows builds
+		// reject it before consulting the platform cache directory.
+		wantCode, wantOperation = ErrNativeWrongArch, "manifest platform"
+	}
+	_, err := Prepare(context.Background(), PrepareOptions{})
+	if !errors.Is(err, wantCode) {
+		t.Fatalf("Prepare() error = %v, want %v", err, wantCode)
+	}
+	var typed *Error
+	if !errors.As(err, &typed) || typed.Operation != wantOperation {
+		t.Fatalf("Prepare() typed error = %#v, operation=%q", typed, wantOperation)
 	}
 }

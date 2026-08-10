@@ -2,6 +2,12 @@ param(
     [switch]$Offline,
     [ValidateRange(1, 600)]
     [int]$LockTimeoutSeconds = 120,
+    [ValidateRange(1, 10)]
+    [int]$DownloadAttempts = 3,
+    [ValidateRange(1, 900)]
+    [int]$DownloadTimeoutSeconds = 300,
+    [ValidateRange(0, 60)]
+    [int]$DownloadRetrySeconds = 5,
     [string]$ArchiveFileName = 'frida-core-devkit-17.3.2-windows-x86_64.tar.xz',
     [string]$SourceURL = '',
     [string]$CacheDirectory = '',
@@ -37,10 +43,56 @@ $devkit = if ([string]::IsNullOrWhiteSpace($DevkitDirectory)) {
 $archive = Join-Path $downloadDir $archiveName
 $header = Join-Path $devkit 'frida-core.h'
 $library = Join-Path $devkit 'frida-core.lib'
+$devkitParent = Split-Path -Parent $devkit
 
 function Test-ExpectedHash {
     param([string]$Path, [string]$Expected)
     return (Test-Path -LiteralPath $Path) -and ((Get-FileHash -Algorithm SHA256 -LiteralPath $Path).Hash -eq $Expected)
+}
+
+function Invoke-VerifiedDownload {
+    param(
+        [string]$URL,
+        [string]$Destination,
+        [string]$ExpectedSHA256,
+        [string]$DisplayName
+    )
+
+    $webRequest = Get-Command Invoke-WebRequest
+    $lastError = $null
+    for ($attempt = 1; $attempt -le $DownloadAttempts; $attempt++) {
+        if (Test-Path -LiteralPath $Destination) { Remove-Item -LiteralPath $Destination -Force }
+        $parameters = @{
+            UseBasicParsing = $true
+            Uri             = $URL
+            OutFile         = $Destination
+            ErrorAction     = 'Stop'
+        }
+        if ($webRequest.Parameters.ContainsKey('ConnectionTimeoutSeconds')) {
+            $parameters.ConnectionTimeoutSeconds = [Math]::Min(30, $DownloadTimeoutSeconds)
+            $parameters.OperationTimeoutSeconds = $DownloadTimeoutSeconds
+        } elseif ($webRequest.Parameters.ContainsKey('TimeoutSec')) {
+            $parameters.TimeoutSec = $DownloadTimeoutSeconds
+        }
+
+        Write-Host "Downloading $DisplayName attempt=$attempt/$DownloadAttempts"
+        try {
+            Invoke-WebRequest @parameters
+            $downloadHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $Destination).Hash
+            if ($downloadHash -ne $ExpectedSHA256) {
+                throw "Frida SDK download SHA-256 mismatch: got $downloadHash, want $ExpectedSHA256"
+            }
+            return
+        } catch {
+            $lastError = $_
+            if (Test-Path -LiteralPath $Destination) { Remove-Item -LiteralPath $Destination -Force }
+            if ($attempt -lt $DownloadAttempts) {
+                Write-Warning "Frida SDK download attempt $attempt failed: $($_.Exception.Message)"
+                if ($DownloadRetrySeconds -gt 0) { Start-Sleep -Seconds $DownloadRetrySeconds }
+            }
+        }
+    }
+    throw "Frida SDK download failed after $DownloadAttempts attempts: $($lastError.Exception.Message)"
 }
 
 New-Item -ItemType Directory -Force -Path $downloadDir | Out-Null
@@ -64,7 +116,10 @@ while ($null -eq $lockStream) {
 }
 
 $partialArchive = "$archive.partial"
-$stagingDevkit = Join-Path $downloadDir "$archiveName.extracting"
+# Keep staging and backup beside the final directory so publication is a same-volume
+# rename. This avoids Move-Item falling back to copy/delete semantics across volumes.
+$stagingDevkit = "$devkit.extracting-$([guid]::NewGuid().ToString('N'))"
+$backupDevkit = $null
 try {
     $headerValid = Test-ExpectedHash -Path $header -Expected $headerSHA256
     $libraryValid = Test-ExpectedHash -Path $library -Expected $librarySHA256
@@ -83,13 +138,8 @@ try {
                 throw "Frida SDK cache is unavailable or invalid in offline mode: $devkit"
             }
             if (Test-Path -LiteralPath $partialArchive) { Remove-Item -LiteralPath $partialArchive -Force }
-            Write-Host "Downloading $archiveName"
             try {
-                Invoke-WebRequest -UseBasicParsing -Uri $archiveURL -OutFile $partialArchive
-                $downloadHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $partialArchive).Hash
-                if ($downloadHash -ne $archiveSHA256) {
-                    throw "Frida SDK download SHA-256 mismatch: got $downloadHash, want $archiveSHA256"
-                }
+                Invoke-VerifiedDownload -URL $archiveURL -Destination $partialArchive -ExpectedSHA256 $archiveSHA256 -DisplayName $archiveName
                 Move-Item -LiteralPath $partialArchive -Destination $archive -Force
             } finally {
                 if (Test-Path -LiteralPath $partialArchive) { Remove-Item -LiteralPath $partialArchive -Force }
@@ -116,9 +166,38 @@ try {
             if (-not (Test-ExpectedHash -Path $stagingLibrary -Expected $librarySHA256)) {
                 throw 'Frida SDK library SHA-256 mismatch after extraction'
             }
-            New-Item -ItemType Directory -Force -Path (Split-Path -Parent $devkit) | Out-Null
-            if (Test-Path -LiteralPath $devkit) { Remove-Item -LiteralPath $devkit -Recurse -Force }
-            Move-Item -LiteralPath $stagingDevkit -Destination $devkit
+
+            # Publish only after the complete staging tree has been validated. The
+            # previous install is first renamed to a same-directory backup, then the
+            # new tree is renamed into place. Any publication failure restores it.
+            New-Item -ItemType Directory -Force -Path $devkitParent | Out-Null
+            if (Test-Path -LiteralPath $devkit) {
+                $backupDevkit = "$devkit.backup-$([guid]::NewGuid().ToString('N'))"
+                Move-Item -LiteralPath $devkit -Destination $backupDevkit -Force
+            }
+            try {
+                Move-Item -LiteralPath $stagingDevkit -Destination $devkit -Force
+            } catch {
+                $publishError = $_.Exception.Message
+                if (Test-Path -LiteralPath $devkit) {
+                    Remove-Item -LiteralPath $devkit -Recurse -Force -ErrorAction SilentlyContinue
+                }
+                if ($null -ne $backupDevkit -and (Test-Path -LiteralPath $backupDevkit)) {
+                    try {
+                        Move-Item -LiteralPath $backupDevkit -Destination $devkit -Force
+                    } catch {
+                        throw "Frida SDK publication failed: $publishError; rollback failed: $($_.Exception.Message); backup retained at $backupDevkit"
+                    }
+                }
+                throw "Frida SDK publication failed: $publishError"
+            }
+            if ($null -ne $backupDevkit -and (Test-Path -LiteralPath $backupDevkit)) {
+                try {
+                    Remove-Item -LiteralPath $backupDevkit -Recurse -Force -ErrorAction Stop
+                } catch {
+                    Write-Warning "Frida SDK published successfully but backup cleanup failed; retained at $backupDevkit"
+                }
+            }
         } finally {
             if (Test-Path -LiteralPath $stagingDevkit) { Remove-Item -LiteralPath $stagingDevkit -Recurse -Force }
         }

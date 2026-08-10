@@ -137,6 +137,51 @@ func TestFridaBootstrapCleansFailedDownloadAndExtraction(t *testing.T) {
 		}
 		assertNoFridaBootstrapTemps(t, cache)
 	})
+
+	t.Run("failed extraction preserves existing install", func(t *testing.T) {
+		root := t.TempDir()
+		cache := filepath.Join(root, "cache")
+		devkit := filepath.Join(root, "devkit")
+		if err := os.MkdirAll(devkit, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		oldHeader := []byte("existing header that must survive\n")
+		oldLibrary := []byte("existing library that must survive\n")
+		if err := os.WriteFile(filepath.Join(devkit, "frida-core.h"), oldHeader, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(devkit, "frida-core.lib"), oldLibrary, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		invalid := []byte("not an xz archive")
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			_, _ = w.Write(invalid)
+		}))
+		defer server.Close()
+		fixture := fridaArchiveFixture{
+			data:        invalid,
+			archiveHash: sha256Hex(invalid),
+			headerHash:  sha256Hex([]byte("expected header")),
+			libraryHash: sha256Hex([]byte("expected library")),
+		}
+		output, err := runFridaBootstrap(fridaBootstrapArgs(cache, devkit, server.URL, fixture)...)
+		if err == nil || !strings.Contains(output, "extraction failed") {
+			t.Fatalf("invalid archive did not fail diagnostically: err=%v\n%s", err, output)
+		}
+		for path, want := range map[string][]byte{
+			filepath.Join(devkit, "frida-core.h"):   oldHeader,
+			filepath.Join(devkit, "frida-core.lib"): oldLibrary,
+		} {
+			got, readErr := os.ReadFile(path)
+			if readErr != nil {
+				t.Fatalf("existing install file %s was removed: %v", path, readErr)
+			}
+			if string(got) != string(want) {
+				t.Fatalf("existing install file %s changed: got %q, want %q", path, got, want)
+			}
+		}
+		assertNoFridaBootstrapTemps(t, cache)
+	})
 }
 
 func TestFridaBootstrapSerializesConcurrentColdCache(t *testing.T) {
@@ -175,6 +220,40 @@ func TestFridaBootstrapSerializesConcurrentColdCache(t *testing.T) {
 	}
 	if got := atomic.LoadInt32(&requests); got != 1 {
 		t.Fatalf("concurrent cold bootstrap downloads = %d, want 1", got)
+	}
+	assertFridaFixtureInstalled(t, devkit, fixture)
+	assertNoFridaBootstrapTemps(t, cache)
+}
+
+func TestFridaBootstrapRetriesTimedOutDownload(t *testing.T) {
+	fixture := makeFridaArchiveFixture(t)
+	var requests int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		if atomic.AddInt32(&requests, 1) == 1 {
+			time.Sleep(2 * time.Second)
+			return
+		}
+		_, _ = w.Write(fixture.data)
+	}))
+	defer server.Close()
+
+	root := t.TempDir()
+	cache := filepath.Join(root, "cache")
+	devkit := filepath.Join(root, "devkit")
+	args := append(fridaBootstrapArgs(cache, devkit, server.URL, fixture),
+		"-DownloadAttempts", "2",
+		"-DownloadTimeoutSeconds", "1",
+		"-DownloadRetrySeconds", "0",
+	)
+	output, err := runFridaBootstrap(args...)
+	if err != nil {
+		t.Fatalf("retry bootstrap failed: %v\n%s", err, output)
+	}
+	if got := atomic.LoadInt32(&requests); got != 2 {
+		t.Fatalf("retry bootstrap requests = %d, want 2", got)
+	}
+	if !strings.Contains(output, "Downloading fixture.tar.xz attempt=2/2") {
+		t.Fatalf("retry attempt was not reported:\n%s", output)
 	}
 	assertFridaFixtureInstalled(t, devkit, fixture)
 	assertNoFridaBootstrapTemps(t, cache)
@@ -258,6 +337,18 @@ func assertNoFridaBootstrapTemps(t *testing.T, cache string) {
 	for _, name := range []string{"fixture.tar.xz.partial", "fixture.tar.xz.extracting"} {
 		if _, err := os.Stat(filepath.Join(cache, name)); !os.IsNotExist(err) {
 			t.Fatalf("temporary bootstrap artifact remains: %s (err=%v)", name, err)
+		}
+	}
+	for _, pattern := range []string{
+		filepath.Join(filepath.Dir(cache), "*.extracting-*"),
+		filepath.Join(filepath.Dir(cache), "*.backup-*"),
+	} {
+		matches, err := filepath.Glob(pattern)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(matches) != 0 {
+			t.Fatalf("temporary bootstrap artifacts remain: %v", matches)
 		}
 	}
 }

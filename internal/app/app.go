@@ -25,6 +25,7 @@ import (
 
 var (
 	ErrClosed            = errors.New("app is closed")
+	ErrAlreadyStarted    = errors.New("app is already started")
 	ErrInvalidCDPPayload = errors.New("invalid CDP payload")
 	ErrNoContext         = errors.New("no JavaScript context is selected")
 	ErrUnknownContext    = errors.New("unknown JavaScript context")
@@ -56,6 +57,10 @@ type App struct {
 	Recorder           *capture.Recorder
 	recorderMu         sync.RWMutex
 	debugSrv, cdpSrv   *http.Server
+	debugLn, cdpLn     net.Listener
+	serverMu           sync.Mutex
+	serveWG            sync.WaitGroup
+	started            bool
 	closeOnce          sync.Once
 	closeErr           error
 	closing            atomic.Bool
@@ -267,6 +272,14 @@ func (a *App) ReplayContext(ctx context.Context, path string) error {
 	return replayErr
 }
 func (a *App) Start() error {
+	a.serverMu.Lock()
+	defer a.serverMu.Unlock()
+	if a.closing.Load() {
+		return ErrClosed
+	}
+	if a.started {
+		return ErrAlreadyStarted
+	}
 	up := websocket.Upgrader{CheckOrigin: func(*http.Request) bool { return true }}
 	a.debugSrv = &http.Server{Addr: fmt.Sprintf("127.0.0.1:%d", a.DebugPort), Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		c, e := up.Upgrade(w, r, nil)
@@ -317,15 +330,21 @@ func (a *App) Start() error {
 		_ = debugLn.Close()
 		return err
 	}
+	a.debugLn = debugLn
+	a.cdpLn = cdpLn
+	a.started = true
+	a.serveWG.Add(2)
 	go func() {
+		defer a.serveWG.Done()
 		e := a.serve(a.debugSrv, debugLn)
-		if e != nil && e != http.ErrServerClosed {
+		if e != nil && e != http.ErrServerClosed && !errors.Is(e, net.ErrClosed) {
 			a.Log.Error(e)
 		}
 	}()
 	go func() {
+		defer a.serveWG.Done()
 		e := a.serve(a.cdpSrv, cdpLn)
-		if e != nil && e != http.ErrServerClosed {
+		if e != nil && e != http.ErrServerClosed && !errors.Is(e, net.ErrClosed) {
 			a.Log.Error(e)
 		}
 	}()
@@ -599,16 +618,30 @@ func (a *App) Close(ctx context.Context) error {
 		a.DebugHub.CloseAll()
 		a.CDPHub.CloseAll()
 		a.connMu.Unlock()
-		if a.debugSrv != nil {
-			if err := a.debugSrv.Shutdown(ctx); out == nil {
+		a.serverMu.Lock()
+		debugLn, cdpLn := a.debugLn, a.cdpLn
+		debugSrv, cdpSrv := a.debugSrv, a.cdpSrv
+		if debugSrv != nil {
+			if err := debugSrv.Shutdown(ctx); out == nil {
 				out = err
 			}
 		}
-		if a.cdpSrv != nil {
-			if e := a.cdpSrv.Shutdown(ctx); out == nil {
+		if cdpSrv != nil {
+			if e := cdpSrv.Shutdown(ctx); out == nil {
 				out = e
 			}
 		}
+		// Shutdown only knows about listeners that have entered Serve. A custom
+		// Serve implementation (or a startup failure) may leave one unregistered.
+		// Close those listeners explicitly after Shutdown has had first ownership.
+		for _, listener := range []net.Listener{debugLn, cdpLn} {
+			if listener != nil {
+				_ = listener.Close()
+			}
+		}
+		a.serveWG.Wait()
+		a.started = false
+		a.serverMu.Unlock()
 		a.replayWG.Wait()
 		a.dispatchMu.Lock()
 		a.ClearRequests()
