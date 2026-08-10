@@ -112,6 +112,38 @@ jobs:
             third_party/frida/devkit-17.3.2
           key: native-${{ runner.os }}-${{ runner.arch }}-frida-${{ env.FRIDA_CORE_VERSION }}-zlib-${{ env.ZLIB_VERSION }}-${{ hashFiles('go.sum') }}
 
+      - name: Populate Frida devkit archive cache
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $archive = 'third_party\downloads\frida-core-devkit-17.3.2-windows-x86_64.tar.xz'
+          $expected = '8AF15423D6E534626F91A67FAA0582E42C67A07A95A190F4C622695105549C72'
+          $expectedHeader = '6B4DEE14C19BDB03CAA4A25BE51564AA249BC1167AA8DED26F562E238D0B3462'
+          $expectedLibrary = 'D763BCF99EFDE43A3DE4138B19D70EC64B586286413473EAA21E6C59B7410A30'
+          $header = 'third_party\frida\devkit-17.3.2\frida-core.h'
+          $library = 'third_party\frida\devkit-17.3.2\frida-core.lib'
+          $archiveValid = (Test-Path -LiteralPath $archive) -and ((Get-FileHash -Algorithm SHA256 -LiteralPath $archive).Hash -eq $expected)
+          $devkitValid = (Test-Path -LiteralPath $header) -and (Test-Path -LiteralPath $library) -and
+            ((Get-FileHash -Algorithm SHA256 -LiteralPath $header).Hash -eq $expectedHeader) -and
+            ((Get-FileHash -Algorithm SHA256 -LiteralPath $library).Hash -eq $expectedLibrary)
+          if ($archiveValid -or $devkitValid) {
+            Write-Host "Frida cache already usable: archive=$archiveValid devkit=$devkitValid"
+            exit 0
+          }
+          New-Item -ItemType Directory -Force -Path (Split-Path -Parent $archive) | Out-Null
+          $asset = Split-Path -Leaf $archive
+          Write-Host "Fetching pinned Frida asset with authenticated GitHub CLI: $asset"
+          gh release download $env:FRIDA_CORE_VERSION --repo frida/frida --pattern $asset --output $archive --clobber
+          if ($LASTEXITCODE -ne 0) { throw "gh release download failed with exit $LASTEXITCODE" }
+          $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $archive).Hash.ToUpperInvariant()
+          if ($actual -ne $expected) {
+            Remove-Item -LiteralPath $archive -Force -ErrorAction SilentlyContinue
+            throw "Frida devkit archive SHA-256 mismatch: expected $expected, got $actual"
+          }
+          Write-Host "Frida devkit archive verified: sha256=$actual"
+
       - name: Configure Windows build tools
         shell: pwsh
         run: |
