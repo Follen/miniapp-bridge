@@ -4,10 +4,10 @@ package main
 
 import (
 	"archive/tar"
+	"bytes"
 	"compress/gzip"
 	"crypto/sha256"
 	"fmt"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -28,13 +28,9 @@ func TestZlibBuildOfflineCacheIntegration(t *testing.T) {
 		t.Fatal("runtime.Caller failed")
 	}
 	root := filepath.Dir(filepath.Dir(source))
-	archive := filepath.Join(root, "third_party", "downloads", "cache", zlibOfflineArchiveName)
-	sourceHeader := filepath.Join(root, "third_party", "zlib", "src-1.3.1", "zlib.h")
-	if _, err := os.Stat(archive); err != nil {
+	pinnedArchive := filepath.Join(root, "third_party", "downloads", "cache", zlibOfflineArchiveName)
+	if _, err := os.Stat(pinnedArchive); err != nil {
 		t.Skipf("pinned zlib archive cache is not present: %v", err)
-	}
-	if _, err := os.Stat(sourceHeader); err != nil {
-		t.Skipf("pinned zlib source cache is not present: %v", err)
 	}
 	for _, tool := range []string{"tar.exe", "gcc.exe", "ar.exe"} {
 		if _, err := exec.LookPath(tool); err != nil {
@@ -42,7 +38,25 @@ func TestZlibBuildOfflineCacheIntegration(t *testing.T) {
 		}
 	}
 
-	output, err := runZlibBuild(root, "-Offline")
+	tmp := t.TempDir()
+	cache := filepath.Join(tmp, "cache")
+	sourceDir := filepath.Join(tmp, "source")
+	outputDir := filepath.Join(tmp, "output")
+	if err := os.MkdirAll(cache, 0o755); err != nil {
+		t.Fatalf("create isolated zlib cache: %v", err)
+	}
+	archive := filepath.Join(cache, zlibOfflineArchiveName)
+	if err := copyFile(pinnedArchive, archive); err != nil {
+		t.Fatalf("copy pinned zlib archive into isolated cache: %v", err)
+	}
+	buildArgs := []string{
+		"-Offline",
+		"-CacheDirectory", cache,
+		"-SourceDirectory", sourceDir,
+		"-OutputDirectory", outputDir,
+	}
+
+	output, err := runZlibBuild(root, buildArgs...)
 	if err != nil {
 		t.Fatalf("offline zlib build failed: %v\n%s", err, output)
 	}
@@ -53,22 +67,11 @@ func TestZlibBuildOfflineCacheIntegration(t *testing.T) {
 		t.Fatalf("offline build left temporary archive %s (err=%v)", archive+".partial", err)
 	}
 
-	moved := fmt.Sprintf("%s.offline-test-backup-%d", archive, os.Getpid())
-	if _, err := os.Lstat(moved); err == nil {
-		t.Fatalf("temporary archive path already exists: %s", moved)
-	} else if !os.IsNotExist(err) {
-		t.Fatal(err)
+	if err := os.Remove(archive); err != nil {
+		t.Fatalf("remove isolated archive for invalid-cache test: %v", err)
 	}
-	if err := os.Rename(archive, moved); err != nil {
-		t.Fatalf("temporarily move archive for invalid-cache test: %v", err)
-	}
-	defer func() {
-		if err := os.Rename(moved, archive); err != nil {
-			t.Errorf("restore pinned zlib archive: %v", err)
-		}
-	}()
 
-	output, err = runZlibBuild(root, "-Offline")
+	output, err = runZlibBuild(root, buildArgs...)
 	if err == nil {
 		t.Fatalf("offline build unexpectedly succeeded without archive cache:\n%s", output)
 	}
@@ -86,7 +89,7 @@ func TestZlibBuildRetriesTrickleDownloadAndCleansPartial(t *testing.T) {
 		t.Fatal("runtime.Caller failed")
 	}
 	root := filepath.Dir(filepath.Dir(source))
-	fixture := makeZlibArchiveFixture(t, root)
+	fixture := makeZlibArchiveFixture(t)
 	var requests int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		if atomic.AddInt32(&requests, 1) == 1 {
@@ -170,62 +173,66 @@ type zlibArchiveFixture struct {
 	hash string
 }
 
-func makeZlibArchiveFixture(t *testing.T, root string) zlibArchiveFixture {
+func makeZlibArchiveFixture(t *testing.T) zlibArchiveFixture {
 	t.Helper()
-	source := filepath.Join(root, "third_party", "zlib", "src-1.3.1")
-	archive := filepath.Join(t.TempDir(), "zlib-1.3.1.tar.gz")
-	file, err := os.Create(archive)
-	if err != nil {
-		t.Fatal(err)
-	}
-	gz := gzip.NewWriter(file)
+	var archive bytes.Buffer
+	gz := gzip.NewWriter(&archive)
 	tw := tar.NewWriter(gz)
-	if err := filepath.Walk(source, func(path string, info os.FileInfo, walkErr error) error {
-		if walkErr != nil {
-			return walkErr
-		}
-		relative, err := filepath.Rel(filepath.Dir(source), path)
-		if err != nil {
-			return err
-		}
-		header, err := tar.FileInfoHeader(info, "")
-		if err != nil {
-			return err
-		}
-		header.Name = filepath.ToSlash(relative)
-		if err := tw.WriteHeader(header); err != nil {
-			return err
-		}
-		if !info.Mode().IsRegular() {
-			return nil
-		}
-		input, err := os.Open(path)
-		if err != nil {
-			return err
-		}
-		defer input.Close()
-		_, err = io.Copy(tw, input)
-		return err
-	}); err != nil {
-		_ = tw.Close()
-		_ = gz.Close()
-		_ = file.Close()
-		t.Fatalf("create zlib fixture archive: %v", err)
+	files := []struct {
+		name string
+		data string
+	}{{"zlib.h", "#define ZLIB_VERSION \"1.3.1\"\n"}}
+	for _, name := range []string{
+		"adler32.c", "crc32.c", "deflate.c", "infback.c", "inffast.c",
+		"inflate.c", "inftrees.c", "trees.c", "zutil.c", "compress.c",
+		"uncompr.c", "gzclose.c", "gzlib.c", "gzread.c", "gzwrite.c",
+	} {
+		symbol := strings.NewReplacer(".", "_", "-", "_").Replace(name)
+		files = append(files, struct {
+			name string
+			data string
+		}{name, fmt.Sprintf("int fixture_%s(void) { return 0; }\n", symbol)})
 	}
+	var writeErrors []string
+	for _, file := range files {
+		data := []byte(file.data)
+		header := &tar.Header{
+			Name: "zlib-1.3.1/" + file.name,
+			Mode: 0o644,
+			Size: int64(len(data)),
+		}
+		if err := tw.WriteHeader(header); err != nil {
+			writeErrors = append(writeErrors, file.name+": "+err.Error())
+			break
+		}
+		if _, err := tw.Write(data); err != nil {
+			writeErrors = append(writeErrors, file.name+": "+err.Error())
+			break
+		}
+	}
+	var closeErrors []string
 	if err := tw.Close(); err != nil {
-		t.Fatal(err)
+		closeErrors = append(closeErrors, "tar: "+err.Error())
 	}
 	if err := gz.Close(); err != nil {
-		t.Fatal(err)
+		closeErrors = append(closeErrors, "gzip: "+err.Error())
 	}
-	if err := file.Close(); err != nil {
-		t.Fatal(err)
+	if len(writeErrors) != 0 {
+		t.Fatalf("create zlib fixture archive: %s (close errors: %s)", strings.Join(writeErrors, "; "), strings.Join(closeErrors, "; "))
 	}
-	data, err := os.ReadFile(archive)
-	if err != nil {
-		t.Fatal(err)
+	if len(closeErrors) != 0 {
+		t.Fatalf("close zlib fixture archive: %s", strings.Join(closeErrors, "; "))
 	}
+	data := archive.Bytes()
 	return zlibArchiveFixture{data: data, hash: fmt.Sprintf("%X", sha256.Sum256(data))}
+}
+
+func copyFile(source, destination string) error {
+	data, err := os.ReadFile(source)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(destination, data, 0o644)
 }
 
 func assertNoZlibDownloadTemps(t *testing.T, cache string) {

@@ -75,7 +75,7 @@ generated ones, and the native release is never selected as Latest.
 The pinned native archive SHA-256 is:
 
 ```text
-FDF6FF11678760BF6C072FB68B6775AB0B8F9981B1AB5F8D2C2B4F369C1E76FE
+DC08BCDBF5B0CE5C15640BF3A12907BD1EDF01A10A59F0FE1FD66E43939F7187
 ```
 
 Only the final publisher job has `contents: write`; it consumes the verified

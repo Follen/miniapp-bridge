@@ -27,7 +27,7 @@ func TestBilingualReadmeReleaseContract(t *testing.T) {
 			"miniapp-bridge-v0.0.1-windows-amd64.zip",
 			"miniapp-frida-native-17.3.2-abi1-windows-amd64.zip",
 			"native-v17.3.2-abi1",
-			"FDF6FF11678760BF6C072FB68B6775AB0B8F9981B1AB5F8D2C2B4F369C1E76FE",
+			"DC08BCDBF5B0CE5C15640BF3A12907BD1EDF01A10A59F0FE1FD66E43939F7187",
 			"2b90b77fc6f13dd18480cd07d7dd9c052cc26c9d",
 			"GPL-2.0-only",
 			"47",
