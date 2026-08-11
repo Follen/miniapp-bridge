@@ -109,7 +109,9 @@ func TestAuditNativeCleanupDoesNotTerminateAttachedProcess(t *testing.T) {
 		"WaitForSingleObject(deadline->thread, INFINITE)",
 		"g_object_unref(deadline->cancellable)",
 	} {
-		if !strings.Contains(source, token) { t.Errorf("native deadline contract missing %q", token) }
+		if !strings.Contains(source, token) {
+			t.Errorf("native deadline contract missing %q", token)
+		}
 	}
 	assertOrderedTokens(t, source, "mb_on_message", []string{
 		"mb_callback_owner_enter(&owner->callback, &handle)",

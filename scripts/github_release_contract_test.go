@@ -50,11 +50,11 @@ func TestGitHubReleaseWorkflowSecurityContract(t *testing.T) {
 	}
 
 	allowedActions := map[string]bool{
-		"actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1":          true,
-		"actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e":          true,
-		"actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9":             true,
-		"actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a":   true,
-		"actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c": true,
+		"actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1":                true,
+		"actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e":                true,
+		"actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9":                   true,
+		"actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a":         true,
+		"actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c":       true,
 		"actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a": true,
 	}
 	uses := regexp.MustCompile(`(?m)^\s*-?\s*uses:\s*([^\s]+)(?:\s+#.*)?$`).FindAllStringSubmatch(workflow, -1)
