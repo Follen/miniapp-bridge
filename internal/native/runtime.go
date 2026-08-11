@@ -30,7 +30,7 @@ const (
 	nativeManifestSchema = "miniapp-bridge.native-manifest.v1"
 	// NativeArchiveSHA256 pins the published archive for NativeVersion on
 	// windows/amd64. Release assets for a native version are immutable.
-	NativeArchiveSHA256 = "DC08BCDBF5B0CE5C15640BF3A12907BD1EDF01A10A59F0FE1FD66E43939F7187"
+	NativeArchiveSHA256 = "D7896B281026822E3B4A8CDCEFB5023285DFE4E82927D3EA2CE3082D46449230"
 )
 
 var requiredNativeExports = []string{
