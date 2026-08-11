@@ -18,6 +18,14 @@
 | PowerShell merged | strict 3-shard merge | 2489/2489 commands, 100.00%, 0 missed, 0 failed |
 | Static/security | `go vet ./...`; `govulncheck ./...` | passed; no vulnerabilities |
 
+## CI repair verification
+
+- `go test -race ./internal/app -run TestCoverageGateUpgradeInstallOwnerRace -count=20` passed after serializing the WebSocket upgrade fixture lifecycle.
+- `go test -race ./... -count=1 -timeout 240s` passed in 126.6 seconds.
+- Windows tagged SDK tests passed at 100.0% statement coverage, including deterministic DOS 8.3-to-long-path identity expansion.
+- The three GitHub Windows regressions (`ResolveAndLoaderErrors`, `BootstrapFailureAndSuccess`, and `BlocksReplacementDuringLoad`) passed for 20 consecutive runs.
+- `scripts/build-windows.ps1` passed in 141.8 seconds and produced the DLL, archive, manifest, and SHA256SUMS.
+
 ## Commands and results
 
 关键报告：

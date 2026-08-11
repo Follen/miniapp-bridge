@@ -23,14 +23,26 @@ func preserveNativeRuntimeHooks(t *testing.T) {
 	newFile := nativeNewFile
 	fileInfo := nativeGetFileInformationByHandle
 	finalPath := nativeGetFinalPathNameByHandleCall
+	longPath := nativeGetLongPathNameCall
 	openRuntime := nativeOpenTrustedRuntime
 	t.Cleanup(func() {
 		nativeAbsPath = absPath
 		nativeNewFile = newFile
 		nativeGetFileInformationByHandle = fileInfo
 		nativeGetFinalPathNameByHandleCall = finalPath
+		nativeGetLongPathNameCall = longPath
 		nativeOpenTrustedRuntime = openRuntime
 	})
+}
+
+func TestNativePathsEqualExpandsDOSShortNames(t *testing.T) {
+	preserveNativeRuntimeHooks(t)
+	nativeGetLongPathNameCall = func(_ *uint16, buffer *uint16, size uint32) (uint32, error) {
+		return taggedGapWriteUTF16(buffer, size, `C:\Users\runneradmin\runtime.dll`), nil
+	}
+	if !nativePathsEqual(`C:\Users\RUNNER~1\runtime.dll`, `\\?\C:\Users\runneradmin\runtime.dll`) {
+		t.Fatal("DOS short path did not match its expanded long path")
+	}
 }
 
 func TestNativeFinalPathDefaultCallHandlesInvalidHandle(t *testing.T) {

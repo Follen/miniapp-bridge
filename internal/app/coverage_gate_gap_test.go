@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Follen/miniapp-bridge/internal/logging"
 	"github.com/gorilla/websocket"
@@ -43,14 +44,15 @@ func TestCoverageGateUpgradeInstallOwnerRace(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			a := New(0, 62000, logging.New(false, false))
 			localUpgrader = originalUpgrader
+			originChecked := make(chan struct{})
 			localUpgrader.CheckOrigin = func(*http.Request) bool {
 				a.closing.Store(true)
+				close(originChecked)
 				return true
 			}
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				tc.handler(a, w, r)
 			}))
-			defer server.Close()
 			headers := http.Header{}
 			if tc.origin != "" {
 				headers.Set("Origin", tc.origin)
@@ -60,6 +62,12 @@ func TestCoverageGateUpgradeInstallOwnerRace(t *testing.T) {
 			if conn != nil {
 				_ = conn.Close()
 			}
+			select {
+			case <-originChecked:
+			case <-time.After(2 * time.Second):
+				t.Fatal("websocket upgrade did not reach CheckOrigin")
+			}
+			server.Close()
 			if err == nil && (a.debugOwner != nil || a.cdpOwner != nil) {
 				t.Fatal("owner installed after closing race")
 			}

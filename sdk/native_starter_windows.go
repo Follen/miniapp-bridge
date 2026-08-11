@@ -35,6 +35,7 @@ const (
 var (
 	nativeKernel32                     = syscall.NewLazyDLL("kernel32.dll")
 	nativeGetFinalPathNameByHandleW    = nativeKernel32.NewProc("GetFinalPathNameByHandleW")
+	nativeGetLongPathNameW             = nativeKernel32.NewProc("GetLongPathNameW")
 	nativeExpectedManifest             = DefaultNativeManifest
 	nativeOpenTrustedRuntime           = openTrustedNativeRuntime
 	nativeAbsPath                      = filepath.Abs
@@ -43,6 +44,15 @@ var (
 	nativeGetFinalPathNameByHandleCall = func(handle syscall.Handle, buffer *uint16, size uint32, flags uint32) (uint32, error) {
 		result, _, callErr := nativeGetFinalPathNameByHandleW.Call(
 			uintptr(handle), uintptr(unsafe.Pointer(buffer)), uintptr(size), uintptr(flags),
+		)
+		if result == 0 {
+			return 0, callErr
+		}
+		return uint32(result), nil
+	}
+	nativeGetLongPathNameCall = func(path, buffer *uint16, size uint32) (uint32, error) {
+		result, _, callErr := nativeGetLongPathNameW.Call(
+			uintptr(unsafe.Pointer(path)), uintptr(unsafe.Pointer(buffer)), uintptr(size),
 		)
 		if result == 0 {
 			return 0, callErr
@@ -448,9 +458,17 @@ func nativePathsEqual(left, right string) bool {
 func nativeNormalizeFinalPath(path string) string {
 	path = filepath.Clean(path)
 	if strings.HasPrefix(path, `\\?\UNC\`) {
-		return `\\` + strings.TrimPrefix(path, `\\?\UNC\`)
+		path = `\\` + strings.TrimPrefix(path, `\\?\UNC\`)
+	} else {
+		path = strings.TrimPrefix(path, `\\?\`)
 	}
-	return strings.TrimPrefix(path, `\\?\`)
+	if wide, err := syscall.UTF16PtrFromString(path); err == nil {
+		buffer := make([]uint16, 32768)
+		if length, err := nativeGetLongPathNameCall(wide, &buffer[0], uint32(len(buffer))); err == nil && length > 0 && length < uint32(len(buffer)) {
+			path = syscall.UTF16ToString(buffer[:length])
+		}
+	}
+	return filepath.Clean(path)
 }
 
 func resolveNativePath(path string) (string, error) {
