@@ -41,6 +41,7 @@ func TestNativeLoadErrorsMapToPublicSentinels(t *testing.T) {
 }
 
 func TestNativeStarterRejectsMalformedPEBeforeLoader(t *testing.T) {
+	preserveNativeStarterHooks(t)
 	oldNewDevice := nativeNewDevice
 	defer func() { nativeNewDevice = oldNewDevice }()
 	called := false
@@ -64,11 +65,13 @@ func TestNativeStarterRejectsMalformedPEBeforeLoader(t *testing.T) {
 }
 
 func TestNativeStarterRejectsMissingManifestBeforeLoader(t *testing.T) {
+	preserveNativeStarterHooks(t)
 	oldNewDevice := nativeNewDevice
 	defer func() { nativeNewDevice = oldNewDevice }()
 	called := false
 	nativeNewDevice = func() (platformDevice, error) { called = true; return nil, errors.New("unexpected loader") }
 	dll := copyStarterExecutable(t)
+	setStarterExpectedManifest(t, dll)
 	_, err := defaultNativeStarter(dll, "")(context.Background(), func(LogEvent) {})
 	if !errors.Is(err, ErrNativeUnavailable) || !errors.Is(err, ErrNativeManifest) {
 		t.Fatalf("starter error=%v", err)
@@ -79,6 +82,7 @@ func TestNativeStarterRejectsMissingManifestBeforeLoader(t *testing.T) {
 }
 
 func TestNativeStarterRejectsMissingDLLBeforeLoader(t *testing.T) {
+	preserveNativeStarterHooks(t)
 	oldNewDevice := nativeNewDevice
 	defer func() { nativeNewDevice = oldNewDevice }()
 	called := false
@@ -86,9 +90,7 @@ func TestNativeStarterRejectsMissingDLLBeforeLoader(t *testing.T) {
 	dir := t.TempDir()
 	dll := filepath.Join(dir, NativeDLLFileName)
 	manifest := DefaultNativeManifest()
-	manifest.Size = 1
-	manifest.SHA256 = fmt.Sprintf("%064x", 1)
-	encoded, err := json.Marshal(manifest)
+	encoded, err := marshalStarterManifest(manifest)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,12 +106,34 @@ func TestNativeStarterRejectsMissingDLLBeforeLoader(t *testing.T) {
 	}
 }
 
+func marshalStarterManifest(manifest NativeManifest) ([]byte, error) {
+	return json.Marshal(struct {
+		Schema           string   `json:"schema"`
+		NativeVersion    string   `json:"nativeVersion"`
+		FridaCoreVersion string   `json:"fridaCoreVersion"`
+		ZlibVersion      string   `json:"zlibVersion"`
+		ABIVersion       uint32   `json:"abiVersion"`
+		OS               string   `json:"os"`
+		Arch             string   `json:"arch"`
+		DLL              string   `json:"dll"`
+		Size             int64    `json:"size"`
+		SHA256           string   `json:"sha256"`
+		RequiredExports  []string `json:"requiredExports"`
+	}{
+		Schema: manifest.Schema, NativeVersion: manifest.NativeVersion, FridaCoreVersion: manifest.FridaCoreVersion,
+		ZlibVersion: manifest.ZlibVersion, ABIVersion: manifest.ABIVersion, OS: manifest.OS, Arch: manifest.Arch,
+		DLL: manifest.DLL, Size: manifest.Size, SHA256: manifest.SHA256, RequiredExports: manifest.RequiredExports,
+	})
+}
+
 func TestNativeStarterRejectsMalformedManifestBeforeLoader(t *testing.T) {
+	preserveNativeStarterHooks(t)
 	oldNewDevice := nativeNewDevice
 	defer func() { nativeNewDevice = oldNewDevice }()
 	called := false
 	nativeNewDevice = func() (platformDevice, error) { called = true; return nil, errors.New("unexpected loader") }
 	dll := copyStarterExecutable(t)
+	setStarterExpectedManifest(t, dll)
 	if err := os.WriteFile(filepath.Join(filepath.Dir(dll), "manifest.json"), []byte("{"), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -123,6 +147,7 @@ func TestNativeStarterRejectsMalformedManifestBeforeLoader(t *testing.T) {
 }
 
 func TestNativeStarterRejectsHashMismatchBeforeLoader(t *testing.T) {
+	preserveNativeStarterHooks(t)
 	oldNewDevice := nativeNewDevice
 	defer func() { nativeNewDevice = oldNewDevice }()
 	called := false
@@ -139,6 +164,7 @@ func TestNativeStarterRejectsHashMismatchBeforeLoader(t *testing.T) {
 }
 
 func TestNativeStarterValidManifestReachesLoader(t *testing.T) {
+	preserveNativeStarterHooks(t)
 	oldNewDevice := nativeNewDevice
 	defer func() { nativeNewDevice = oldNewDevice }()
 	called := false
@@ -183,6 +209,21 @@ func copyStarterExecutable(t *testing.T) string {
 
 func writeStarterManifest(t *testing.T, dll string, mutate func(*NativeManifest)) {
 	t.Helper()
+	manifest := setStarterExpectedManifest(t, dll)
+	if mutate != nil {
+		mutate(&manifest)
+	}
+	encoded, err := marshalStarterManifest(manifest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(filepath.Dir(dll), "manifest.json"), encoded, 0o600); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func setStarterExpectedManifest(t *testing.T, dll string) NativeManifest {
+	t.Helper()
 	data, err := os.ReadFile(dll)
 	if err != nil {
 		t.Fatal(err)
@@ -191,14 +232,12 @@ func writeStarterManifest(t *testing.T, dll string, mutate func(*NativeManifest)
 	manifest := DefaultNativeManifest()
 	manifest.Size = int64(len(data))
 	manifest.SHA256 = hex.EncodeToString(sum[:])
-	if mutate != nil {
-		mutate(&manifest)
+	old := nativeExpectedManifest
+	nativeExpectedManifest = func() NativeManifest {
+		copy := manifest
+		copy.RequiredExports = append([]string(nil), manifest.RequiredExports...)
+		return copy
 	}
-	encoded, err := json.Marshal(manifest)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(filepath.Dir(dll), "manifest.json"), encoded, 0o600); err != nil {
-		t.Fatal(err)
-	}
+	t.Cleanup(func() { nativeExpectedManifest = old })
+	return manifest
 }

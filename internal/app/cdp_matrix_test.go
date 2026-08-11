@@ -52,10 +52,10 @@ func TestSimulatedEndToEndCDPMatrix(t *testing.T) {
 	})
 	upstream := auditDial(t, dp)
 	defer upstream.Close()
-	clientA, clientB := auditDial(t, cp), auditDial(t, cp)
+	clientA := auditDial(t, cp)
 	defer clientA.Close()
-	defer clientB.Close()
-	auditWaitForCDPClients(t, a, 2)
+	auditRejectedDial(t, cp, "owner_exists")
+	auditWaitForCDPClients(t, a, 1)
 
 	sendContext(t, upstream, wmpf.CategoryAddJsContext, "ctx-main")
 	sendContext(t, upstream, wmpf.CategoryAddJsContext, "ctx-worker")
@@ -110,7 +110,7 @@ func TestSimulatedEndToEndCDPMatrix(t *testing.T) {
 		time.Sleep(time.Millisecond)
 	}
 	workerRequest := `{"id":"worker-1","method":"Runtime.evaluate","params":{"expression":"throw new Error('matrix')"}}`
-	if err := clientB.WriteMessage(websocket.BinaryMessage, []byte(workerRequest)); err != nil {
+	if err := clientA.WriteMessage(websocket.BinaryMessage, []byte(workerRequest)); err != nil {
 		t.Fatal(err)
 	}
 	_, workerChrome := readOutgoingChrome(t, upstream)
@@ -132,11 +132,9 @@ func TestSimulatedEndToEndCDPMatrix(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	for _, client := range []*websocket.Conn{clientA, clientB} {
-		for i, want := range payloads {
-			if got := string(auditRead(t, client, websocket.TextMessage)); got != want {
-				t.Fatalf("broadcast[%d]=%q want %q", i, got, want)
-			}
+	for i, want := range payloads {
+		if got := string(auditRead(t, clientA, websocket.TextMessage)); got != want {
+			t.Fatalf("broadcast[%d]=%q want %q", i, got, want)
 		}
 	}
 	if got := a.Requests.Len(); got != len(commands) {
@@ -146,21 +144,19 @@ func TestSimulatedEndToEndCDPMatrix(t *testing.T) {
 	if err := upstream.WriteMessage(websocket.BinaryMessage, []byte{0xff}); err != nil {
 		t.Fatal(err)
 	}
-	clientB.Close()
-	auditWaitForCDPClients(t, a, 1)
-	clientB = auditDial(t, cp)
+	clientA.Close()
+	auditWaitForCDPClients(t, a, 0)
+	clientB := auditDial(t, cp)
 	defer clientB.Close()
-	auditWaitForCDPClients(t, a, 2)
+	auditWaitForCDPClients(t, a, 1)
 	reconnectEvent := `{"method":"Network.loadingFinished","params":{"requestId":"r1"}}`
 	frame := wmpf.EncodeDebugMessage(wmpf.DebugMessage{Category: wmpf.CategoryChromeDevtoolsResult, Data: wmpf.EncodeChrome(wmpf.ChromeDevtools{Payload: reconnectEvent})})
 	if err := upstream.WriteMessage(websocket.BinaryMessage, frame); err != nil {
 		t.Fatal(err)
 	}
-	for _, client := range []*websocket.Conn{clientA, clientB} {
-		var env map[string]any
-		body := auditRead(t, client, websocket.TextMessage)
-		if err := json.Unmarshal(body, &env); err != nil || env["method"] != "Network.loadingFinished" {
-			t.Fatalf("reconnect event=%s err=%v", body, err)
-		}
+	var env map[string]any
+	body := auditRead(t, clientB, websocket.TextMessage)
+	if err := json.Unmarshal(body, &env); err != nil || env["method"] != "Network.loadingFinished" {
+		t.Fatalf("reconnect event=%s err=%v", body, err)
 	}
 }

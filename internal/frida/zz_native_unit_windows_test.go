@@ -183,6 +183,9 @@ func TestNativeNonLiveSessionAndScriptLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// Exercise the defensive lazy initialization in Attach; normal devices
+	// initialize this map eagerly.
+	device.sessions = nil
 	t.Cleanup(func() { _ = device.Close() })
 	originalFailure := nativeFailure
 	t.Cleanup(func() { nativeFailure = originalFailure })
@@ -307,6 +310,21 @@ func TestNativeNonLiveSessionAndScriptLifecycle(t *testing.T) {
 	if err := active.Unload(); err != nil {
 		t.Fatalf("script unload after failed session detach=%v", err)
 	}
+	closeValue, err := device.Attach(pid)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = closeValue
+	nativeFailure = func(operation string) error {
+		if operation == "detach" {
+			return errors.New("injected device close detach failure")
+		}
+		return nil
+	}
+	if err := device.Close(); err == nil || !strings.Contains(err.Error(), "frida: detach:") {
+		t.Fatalf("device close did not aggregate session detach failure: %v", err)
+	}
+	nativeFailure = nil
 }
 
 func TestZZNativeRuntimeShutdown(t *testing.T) {

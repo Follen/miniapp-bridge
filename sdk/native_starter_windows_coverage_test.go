@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	fridacore "github.com/Follen/miniapp-bridge/internal/frida"
 	"github.com/Follen/miniapp-bridge/internal/process"
@@ -80,10 +81,10 @@ func (*starterCoverageScript) Post([]byte) error { return nil }
 func preserveNativeStarterHooks(t *testing.T) {
 	t.Helper()
 	executable, lookup, set, unset := nativeExecutable, nativeLookupEnv, nativeSetEnv, nativeUnsetEnv
-	newDevice := nativeNewDevice
+	newDevice, bindTarget := nativeNewDevice, nativeBindTarget
 	t.Cleanup(func() {
 		nativeExecutable, nativeLookupEnv, nativeSetEnv, nativeUnsetEnv = executable, lookup, set, unset
-		nativeNewDevice = newDevice
+		nativeNewDevice, nativeBindTarget = newDevice, bindTarget
 	})
 }
 
@@ -92,6 +93,15 @@ func TestNativeNewDeviceDefaultLoaderFailure(t *testing.T) {
 	t.Setenv("MINIAPP_BRIDGE_NATIVE_PATH", filepath.Join(t.TempDir(), NativeDLLFileName))
 	if _, err := nativeNewDevice(); err == nil {
 		t.Fatal("nativeNewDevice() succeeded with a missing runtime")
+	}
+}
+
+func TestNativeBindTargetDefaultPropagatesPeerQueryFailure(t *testing.T) {
+	preserveNativeStarterHooks(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if _, err := nativeBindTarget(ctx, process.Process{PID: 1}); err == nil {
+		t.Fatal("default target binder ignored canceled peer query")
 	}
 }
 
@@ -134,6 +144,10 @@ func TestDefaultNativeStarterBootstrapFailureAndSuccess(t *testing.T) {
 		session: session,
 	}
 	nativeNewDevice = func() (platformDevice, error) { return device, nil }
+	nativeBindTarget = func(ctx context.Context, target process.Process) (process.Process, error) {
+		target.Identity = process.TargetIdentity{PID: target.PID, StartTime: time.Now().UTC(), AppID: "fixture-app", RendererType: "renderer"}
+		return target, nil
+	}
 	var logs []LogEvent
 	native, err := defaultNativeStarter(dll, "")(context.Background(), func(event LogEvent) { logs = append(logs, event) })
 	if err != nil {
@@ -195,7 +209,7 @@ func TestLoadNativeManifestValidationBranches(t *testing.T) {
 			if test.mutate != nil {
 				test.mutate(&manifest)
 			}
-			data, err := json.Marshal(manifest)
+			data, err := marshalStarterManifest(manifest)
 			if err != nil {
 				t.Fatal(err)
 			}

@@ -30,7 +30,8 @@ func TestGitHubCIWorkflowContract(t *testing.T) {
 	for _, required := range []string{
 		"  group: ci-${{ github.workflow }}-${{ github.event.pull_request.head.sha || github.sha }}\n",
 		"  cancel-in-progress: true\n",
-		"GO_VERSION: 1.23.x",
+		"GO_VERSION: 1.26.x",
+		"GOVULNCHECK_VERSION: v1.6.0",
 		"ACTIONLINT_VERSION: 1.7.7",
 		"FRIDA_CORE_VERSION: 17.3.2",
 		"ZLIB_VERSION: 1.3.1",
@@ -54,7 +55,7 @@ func TestGitHubCIWorkflowContract(t *testing.T) {
 		"ar.exe",
 		"third_party/downloads/frida-core-devkit-17.3.2-windows-x86_64.tar.xz",
 		"third_party/downloads/cache/zlib-1.3.1.tar.gz",
-		"third_party/frida/devkit-17.3.2",
+		"third_party/downloads/frida-core-devkit-17.3.2-windows-x86_64.tar.xz",
 		"hashFiles('go.sum')",
 		"frida-${{ env.FRIDA_CORE_VERSION }}-zlib-${{ env.ZLIB_VERSION }}",
 		"${{ env.ZLIB_ARCHIVE_SHA256 }}-${{ hashFiles('go.sum') }}",
@@ -113,7 +114,6 @@ func TestGitHubCIWorkflowContract(t *testing.T) {
 	assertMultilineValues(t, cacheStep, "path", []string{
 		"third_party/downloads/frida-core-devkit-17.3.2-windows-x86_64.tar.xz",
 		"third_party/downloads/cache/zlib-1.3.1.tar.gz",
-		"third_party/frida/devkit-17.3.2",
 	})
 
 	buildStep := workflowStep(t, workflow, "Windows native build")
@@ -133,9 +133,10 @@ func TestGitHubCIWorkflowContract(t *testing.T) {
 
 	linuxLogs := workflowStep(t, workflow, "Upload Linux test logs")
 	assertStepLine(t, linuxLogs, "if: always()")
+	assertStepLine(t, linuxLogs, "path: ci-artifacts/**")
 	windowsLogs := workflowStep(t, workflow, "Upload Windows verification logs")
 	assertStepLine(t, windowsLogs, "if: always()")
-	assertStepLine(t, windowsLogs, "path: ci-artifacts/*.log")
+	assertStepLine(t, windowsLogs, "path: ci-artifacts/**")
 	if strings.Contains(windowsLogs, "dist/") {
 		t.Fatal("always-run Windows log upload must not include build outputs")
 	}

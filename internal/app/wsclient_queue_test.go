@@ -205,17 +205,20 @@ func TestAppDisconnectAndCloseClearRequests(t *testing.T) {
 	}
 }
 
-func TestAppOnlyLastUpstreamDisconnectClearsRequests(t *testing.T) {
+func TestAppStaleUpstreamDisconnectDoesNotClearCurrentOwnerState(t *testing.T) {
 	a := New(0, 0, logging.New(false, false))
-	first := &wsClient{conn: &coverageWebsocketConnection{}}
-	second := &wsClient{conn: &coverageWebsocketConnection{}}
+	first := &wsClient{conn: &coverageWebsocketConnection{}, generation: 1}
+	second := &wsClient{conn: &coverageWebsocketConnection{}, generation: 2}
 	a.DebugHub.Add(first)
 	a.DebugHub.Add(second)
+	a.debugOwner = second
+	a.debugGeneration = 2
+	a.connectionWG.Add(2)
 	a.Requests.Add(cdpRequest("still-live"))
 
 	a.readDebug(first)
 	if clients, pending := a.DebugClientCount(), a.Requests.Len(); clients != 1 || pending != 1 {
-		t.Fatalf("after first disconnect clients=%d pending=%d want 1,1", clients, pending)
+		t.Fatalf("after stale disconnect clients=%d pending=%d want 1,1", clients, pending)
 	}
 	a.readDebug(second)
 	if clients, pending := a.DebugClientCount(), a.Requests.Len(); clients != 0 || pending != 0 {

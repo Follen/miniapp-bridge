@@ -38,6 +38,7 @@ type nativePrepareEntry struct {
 }
 
 type nativePrepareArchiveOptions struct {
+	dll               []byte
 	mutateManifest    func(map[string]any)
 	manifestBytes     []byte
 	omitManifest      bool
@@ -380,24 +381,199 @@ func TestNativePrepareAtomicPublishContract(t *testing.T) {
 	for _, token := range []string{
 		"$temporaryDLL = \"$installed.partial\"",
 		"$temporaryManifest = \"$installedManifest.partial\"",
-		"Move-Item -LiteralPath $installed -Destination $backupDLL -Force",
-		"Move-Item -LiteralPath $installedManifest -Destination $backupManifest -Force",
+		"$destinationLockPath = Join-Path $stateRoot 'update.lock'",
+		"$journalPath = Join-Path $stateRoot 'transaction.json'",
+		"$currentPath = Join-Path $stateRoot 'current.json'",
+		"function Recover-NativeTransaction",
+		"phase = 'prepare'",
+		"phase = 'verify'",
+		"phase = 'publish'",
+		"phase = 'cleanup'",
+		"Move-Item -LiteralPath $versionStage -Destination $versionDirectory",
 		"Move-Item -LiteralPath $temporaryManifest -Destination $installedManifest -Force",
 		"Move-Item -LiteralPath $temporaryDLL -Destination $installed -Force",
-		"Move-Item -LiteralPath $backupManifest -Destination $installedManifest -Force",
-		"Move-Item -LiteralPath $backupDLL -Destination $installed -Force",
 		"Remove-Item -LiteralPath $partial,$temporaryDLL,$temporaryManifest",
 	} {
 		if !strings.Contains(text, token) {
 			t.Errorf("native prepare atomic contract missing %q", token)
 		}
 	}
-	backupMarker := strings.Index(text, "Move-Item -LiteralPath $installed -Destination $backupDLL -Force")
-	backupManifest := strings.Index(text, "Move-Item -LiteralPath $installedManifest -Destination $backupManifest -Force")
+	prepare := strings.Index(text, "phase = 'prepare'")
+	verify := strings.Index(text, "phase = 'verify'")
+	publish := strings.Index(text, "phase = 'publish'")
 	manifestPublish := strings.Index(text, "Move-Item -LiteralPath $temporaryManifest -Destination $installedManifest -Force")
 	dllPublish := strings.Index(text, "Move-Item -LiteralPath $temporaryDLL -Destination $installed -Force")
-	if backupMarker < 0 || backupManifest < backupMarker || manifestPublish < backupManifest || dllPublish < manifestPublish {
-		t.Fatal("native publish must back up the old DLL marker and manifest, then publish manifest and DLL in order")
+	if prepare < 0 || verify < prepare || publish < verify || manifestPublish < 0 || dllPublish < manifestPublish {
+		t.Fatal("native transaction must prepare, verify and publish an immutable version before committing the DLL marker")
+	}
+}
+
+func TestNativePrepareVersionedPublishRollbackAndRetention(t *testing.T) {
+	first := makeNativePrepareFixture(t, nativePrepareArchiveOptions{dll: []byte("first native DLL")})
+	second := makeNativePrepareFixture(t, nativePrepareArchiveOptions{dll: []byte("second native DLL")})
+	root := t.TempDir()
+	cache := filepath.Join(root, "cache")
+	destination := filepath.Join(root, "destination")
+
+	writeNativePrepareCache(t, cache, first.archive)
+	args := append(nativePrepareArgs(cache, destination, "http://127.0.0.1:1/unreachable", first.hash), "-Offline")
+	if output, err := runNativePrepare(args...); err != nil {
+		t.Fatalf("first version publish failed: %v\n%s", err, output)
+	}
+	writeNativePrepareCache(t, cache, second.archive)
+	args = append(nativePrepareArgs(cache, destination, "http://127.0.0.1:1/unreachable", second.hash), "-Offline")
+	if output, err := runNativePrepare(args...); err != nil {
+		t.Fatalf("second version publish failed: %v\n%s", err, output)
+	}
+	assertFileContent(t, filepath.Join(destination, "miniapp-frida.dll"), second.dll)
+
+	rollbackArgs := []string{"-CacheDirectory", cache, "-DestinationDirectory", destination, "-Rollback"}
+	output, err := runNativePrepare(rollbackArgs...)
+	if err != nil || !strings.Contains(output, "native_rollback=") {
+		t.Fatalf("rollback failed: %v\n%s", err, output)
+	}
+	assertFileContent(t, filepath.Join(destination, "miniapp-frida.dll"), first.dll)
+	output, err = runNativePrepare(rollbackArgs...)
+	if err != nil || !strings.Contains(output, "native_rollback=noop") {
+		t.Fatalf("idempotent rollback failed: %v\n%s", err, output)
+	}
+	versions, err := os.ReadDir(filepath.Join(destination, ".native-runtime", "versions"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(versions) != 2 {
+		t.Fatalf("retained version count=%d, want 2", len(versions))
+	}
+}
+
+func TestNativePrepareMultiRoundUpdateSoak(t *testing.T) {
+	root := t.TempDir()
+	cache := filepath.Join(root, "cache")
+	destination := filepath.Join(root, "destination")
+	for round := 0; round < 5; round++ {
+		fixture := makeNativePrepareFixture(t, nativePrepareArchiveOptions{
+			dll: []byte(fmt.Sprintf("native update soak round %d", round)),
+		})
+		writeNativePrepareCache(t, cache, fixture.archive)
+		args := append(nativePrepareArgs(cache, destination, "unused", fixture.hash), "-Offline")
+		if output, err := runNativePrepare(args...); err != nil {
+			t.Fatalf("round %d publish failed: %v\n%s", round, err, output)
+		}
+		assertFileContent(t, filepath.Join(destination, "miniapp-frida.dll"), fixture.dll)
+		pointerBytes, err := os.ReadFile(filepath.Join(destination, ".native-runtime", "current.json"))
+		if err != nil {
+			t.Fatalf("round %d current pointer: %v", round, err)
+		}
+		var pointer struct {
+			VersionDirectory string `json:"versionDirectory"`
+		}
+		if err := json.Unmarshal(pointerBytes, &pointer); err != nil || pointer.VersionDirectory == "" {
+			t.Fatalf("round %d invalid current pointer: %v %s", round, err, pointerBytes)
+		}
+		if info, err := os.Stat(pointer.VersionDirectory); err != nil || !info.IsDir() {
+			t.Fatalf("round %d current version directory: info=%v err=%v", round, info, err)
+		}
+		assertNoNativePrepareTemps(t, cache, destination)
+	}
+	versions, err := os.ReadDir(filepath.Join(destination, ".native-runtime", "versions"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(versions) != 2 {
+		t.Fatalf("retained version count after soak=%d, want 2", len(versions))
+	}
+}
+
+func TestNativePrepareCanaryFailureRollsBack(t *testing.T) {
+	first := makeNativePrepareFixture(t, nativePrepareArchiveOptions{dll: []byte("canary baseline DLL")})
+	second := makeNativePrepareFixture(t, nativePrepareArchiveOptions{dll: []byte("canary candidate DLL")})
+	root := t.TempDir()
+	cache := filepath.Join(root, "cache")
+	destination := filepath.Join(root, "destination")
+	writeNativePrepareCache(t, cache, first.archive)
+	if output, err := runNativePrepare(append(nativePrepareArgs(cache, destination, "unused", first.hash), "-Offline")...); err != nil {
+		t.Fatalf("baseline publish failed: %v\n%s", err, output)
+	}
+	writeNativePrepareCache(t, cache, second.archive)
+	args := append(nativePrepareArgs(cache, destination, "unused", second.hash), "-Offline", "-CanaryCommand", "cmd /c exit 7")
+	output, err := runNativePrepare(args...)
+	if err == nil || !strings.Contains(output, "native canary failed with exit code 7") {
+		t.Fatalf("canary failure was not propagated: %v\n%s", err, output)
+	}
+	assertFileContent(t, filepath.Join(destination, "miniapp-frida.dll"), first.dll)
+}
+
+func TestNativePrepareRecoversInterruptedPublishJournal(t *testing.T) {
+	first := makeNativePrepareFixture(t, nativePrepareArchiveOptions{dll: []byte("journal baseline DLL")})
+	second := makeNativePrepareFixture(t, nativePrepareArchiveOptions{dll: []byte("journal candidate DLL")})
+	root := t.TempDir()
+	cache := filepath.Join(root, "cache")
+	destination := filepath.Join(root, "destination")
+	writeNativePrepareCache(t, cache, first.archive)
+	if output, err := runNativePrepare(append(nativePrepareArgs(cache, destination, "unused", first.hash), "-Offline")...); err != nil {
+		t.Fatalf("baseline publish failed: %v\n%s", err, output)
+	}
+	state := filepath.Join(destination, ".native-runtime")
+	firstPointer, err := os.ReadFile(filepath.Join(state, "current.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var firstCurrent struct {
+		VersionDirectory string `json:"versionDirectory"`
+	}
+	if err := json.Unmarshal(firstPointer, &firstCurrent); err != nil {
+		t.Fatal(err)
+	}
+	writeNativePrepareCache(t, cache, second.archive)
+	if output, err := runNativePrepare(append(nativePrepareArgs(cache, destination, "unused", second.hash), "-Offline")...); err != nil {
+		t.Fatalf("candidate publish failed: %v\n%s", err, output)
+	}
+	journal, err := json.Marshal(map[string]string{
+		"phase": "publish", "stage": "", "previousVersionDirectory": firstCurrent.VersionDirectory,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(state, "transaction.json"), journal, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	args := append(nativePrepareArgs(cache, destination, "unused", second.hash), "-Offline")
+	output, err := runNativePrepareWithPublishFailure("after-dll-backup", args...)
+	if err == nil || !strings.Contains(output, "injected native publish failure") {
+		t.Fatalf("post-recovery failure was not injected: %v\n%s", err, output)
+	}
+	assertFileContent(t, filepath.Join(destination, "miniapp-frida.dll"), first.dll)
+	if _, err := os.Stat(filepath.Join(state, "transaction.json")); !os.IsNotExist(err) {
+		t.Fatalf("recovery journal remains: %v", err)
+	}
+}
+
+func TestNativePrepareDestinationLockTimeout(t *testing.T) {
+	root := t.TempDir()
+	cache := filepath.Join(root, "cache")
+	destination := filepath.Join(root, "destination")
+	state := filepath.Join(destination, ".native-runtime")
+	if err := os.MkdirAll(filepath.Join(state, "versions"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	lockPath := filepath.Join(state, "update.lock")
+	if err := os.WriteFile(lockPath, nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	name, err := syscall.UTF16PtrFromString(lockPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	handle, err := syscall.CreateFile(name, syscall.GENERIC_READ|syscall.GENERIC_WRITE, 0, nil, syscall.OPEN_EXISTING, syscall.FILE_ATTRIBUTE_NORMAL, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	output, runErr := runNativePrepare("-CacheDirectory", cache, "-DestinationDirectory", destination, "-Rollback", "-LockTimeoutSeconds", "1")
+	if err := syscall.CloseHandle(handle); err != nil {
+		t.Fatal(err)
+	}
+	if runErr == nil || !strings.Contains(output, "native destination lock timeout") {
+		t.Fatalf("destination lock did not time out: %v\n%s", runErr, output)
 	}
 }
 
@@ -613,6 +789,9 @@ func TestNativePrepareLockTimeoutDoesNotDeleteOwnerTemps(t *testing.T) {
 func makeNativePrepareFixture(t *testing.T, options nativePrepareArchiveOptions) nativePrepareFixture {
 	t.Helper()
 	dll := []byte("fixture miniapp-frida DLL bytes\x00\x01\x02")
+	if options.dll != nil {
+		dll = options.dll
+	}
 	manifest := map[string]any{
 		"schema":           "miniapp-bridge.native-manifest.v1",
 		"nativeVersion":    "17.3.2-abi1",
@@ -782,6 +961,8 @@ func assertNoNativePrepareTemps(t *testing.T, cache, destination string) {
 		filepath.Join(cache, nativePrepareAsset+".lock"),
 		filepath.Join(destination, "miniapp-frida.dll.partial"),
 		filepath.Join(destination, "manifest.json.partial"),
+		filepath.Join(destination, ".native-runtime", "update.lock"),
+		filepath.Join(destination, ".native-runtime", "transaction.json"),
 	}
 	for _, path := range paths {
 		if _, err := os.Lstat(path); !os.IsNotExist(err) {
@@ -791,6 +972,7 @@ func assertNoNativePrepareTemps(t *testing.T, cache, destination string) {
 	for _, pattern := range []string{
 		filepath.Join(destination, "miniapp-frida.dll.backup-*"),
 		filepath.Join(destination, "manifest.json.backup-*"),
+		filepath.Join(destination, ".native-runtime", "versions", "*.staging-*"),
 	} {
 		matches, err := filepath.Glob(pattern)
 		if err != nil {

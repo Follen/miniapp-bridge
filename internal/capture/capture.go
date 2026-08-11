@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"sync"
 	"time"
 )
@@ -24,10 +25,25 @@ var (
 	ErrFrameTooLarge   = errors.New("capture frame exceeds size limit")
 	ErrCaptureTooLarge = errors.New("capture exceeds aggregate size limit")
 	ErrTooManyFrames   = errors.New("capture exceeds frame count limit")
+	ErrRecorderFailed  = errors.New("capture recorder entered failed state")
+	ErrCaptureInUse    = errors.New("capture path is already owned by another recorder")
 )
 
 var createSnapshotFile = func() (*os.File, error) {
 	return os.CreateTemp("", "miniapp-bridge-capture-*.snapshot")
+}
+
+var createRecorderTemp = os.CreateTemp
+var renameRecorderPath = os.Rename
+
+// syncRecorderFile is kept injectable so durability failures can be tested
+// without changing the on-disk capture format. A successful WriteFrame has
+// reached the filesystem, rather than only a userspace bufio buffer.
+var syncRecorderFile = func(f *os.File) error {
+	if f == nil {
+		return nil
+	}
+	return f.Sync()
 }
 
 type Direction string
@@ -45,6 +61,11 @@ type FrameMetadata struct {
 	Size      uint32    `json:"size"`
 }
 
+type FrameRecorder interface {
+	WriteFrame(Direction, time.Time, []byte) error
+	Close() error
+}
+
 func MetadataPath(path string) string { return path + ".meta.jsonl" }
 
 type Recorder struct {
@@ -54,24 +75,59 @@ type Recorder struct {
 	metadataFile   *os.File
 	metadataWriter *bufio.Writer
 	nextIndex      uint64
+	path           string
+	tempPath       string
+	metadataPath   string
+	metadataTemp   string
+	lockPath       string
+	lockFile       *os.File
+	bytesWritten   uint64
+	failed         bool
+	failure        error
 }
 
 func Start(path string) (*Recorder, error) {
-	f, e := os.Create(path)
-	if e != nil {
-		return nil, e
+	metadataPath := MetadataPath(path)
+	if info, err := os.Stat(path); err == nil && info.IsDir() {
+		return nil, fmt.Errorf("capture path is a directory: %s", path)
 	}
-	metadataFile, e := os.Create(MetadataPath(path))
-	if e != nil {
+	if info, err := os.Stat(metadataPath); err == nil && info.IsDir() {
+		return nil, fmt.Errorf("capture metadata path is a directory: %s", metadataPath)
+	}
+	lockPath := path + ".lock"
+	lockFile, err := os.OpenFile(lockPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	if err != nil {
+		if errors.Is(err, os.ErrExist) {
+			return nil, ErrCaptureInUse
+		}
+		return nil, err
+	}
+	dir, base := filepath.Dir(path), filepath.Base(path)
+	f, err := createRecorderTemp(dir, "."+base+".capture-*")
+	if err != nil {
+		_ = lockFile.Close()
+		_ = os.Remove(lockPath)
+		return nil, err
+	}
+	metadataFile, err := createRecorderTemp(dir, "."+base+".meta-*")
+	if err != nil {
 		_ = f.Close()
-		_ = os.Remove(path)
-		return nil, e
+		_ = os.Remove(f.Name())
+		_ = lockFile.Close()
+		_ = os.Remove(lockPath)
+		return nil, err
 	}
 	return &Recorder{
 		f:              f,
 		w:              bufio.NewWriter(f),
 		metadataFile:   metadataFile,
 		metadataWriter: bufio.NewWriter(metadataFile),
+		path:           path,
+		tempPath:       f.Name(),
+		metadataPath:   metadataPath,
+		metadataTemp:   metadataFile.Name(),
+		lockPath:       lockPath,
+		lockFile:       lockFile,
 	}, nil
 }
 func (r *Recorder) Write(frame []byte) error {
@@ -83,8 +139,17 @@ func (r *Recorder) WriteFrame(direction Direction, timestamp time.Time, frame []
 	if r.w == nil {
 		return ErrRecorderClosed
 	}
+	if r.failed {
+		return errors.Join(ErrRecorderFailed, r.failure)
+	}
 	if len(frame) > MaxFrameSize {
 		return fmt.Errorf("%w: capture frame length %d exceeds limit %d", ErrFrameTooLarge, len(frame), MaxFrameSize)
+	}
+	if r.bytesWritten+uint64(len(frame)) > MaxCaptureSize {
+		return r.failLocked(fmt.Errorf("%w: capture payload exceeds %d bytes", ErrCaptureTooLarge, MaxCaptureSize))
+	}
+	if r.nextIndex >= MaxCaptureFrames {
+		return r.failLocked(fmt.Errorf("%w: capture has more than %d frames", ErrTooManyFrames, MaxCaptureFrames))
 	}
 	if direction == "" {
 		direction = DirectionUnknown
@@ -95,26 +160,45 @@ func (r *Recorder) WriteFrame(direction Direction, timestamp time.Time, frame []
 	var n [4]byte
 	binary.BigEndian.PutUint32(n[:], uint32(len(frame)))
 	if _, e := r.w.Write(n[:]); e != nil {
-		return e
+		return r.failLocked(e)
 	}
 	if _, e := r.w.Write(frame); e != nil {
-		return e
+		return r.failLocked(e)
 	}
 	if e := r.w.Flush(); e != nil {
-		return e
+		return r.failLocked(e)
+	}
+	if e := syncRecorderFile(r.f); e != nil {
+		return r.failLocked(e)
 	}
 	metadata := FrameMetadata{Index: r.nextIndex, Direction: direction, Timestamp: timestamp.UTC(), Size: uint32(len(frame))}
 	r.nextIndex++
 	if r.metadataWriter != nil {
 		if e := json.NewEncoder(r.metadataWriter).Encode(metadata); e != nil {
-			return e
+			return r.failLocked(e)
 		}
 		if e := r.metadataWriter.Flush(); e != nil {
-			return e
+			return r.failLocked(e)
+		}
+		if e := syncRecorderFile(r.metadataFile); e != nil {
+			return r.failLocked(e)
 		}
 	}
+	r.bytesWritten += uint64(len(frame))
 	return nil
 }
+
+func (r *Recorder) failLocked(err error) error {
+	if err == nil {
+		return nil
+	}
+	r.failed = true
+	if r.failure == nil {
+		r.failure = err
+	}
+	return errors.Join(ErrRecorderFailed, r.failure)
+}
+
 func (r *Recorder) Close() error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -124,23 +208,48 @@ func (r *Recorder) Close() error {
 	var out error
 	if r.w != nil {
 		if err := r.w.Flush(); err != nil {
-			out = err
+			out = joinCaptureErrors(out, err)
 		}
 	}
 	if r.f != nil {
-		if err := r.f.Close(); err != nil && out == nil {
-			out = err
+		if !r.failed {
+			if err := r.f.Sync(); err != nil {
+				out = joinCaptureErrors(out, err)
+			}
+		}
+		if err := r.f.Close(); err != nil {
+			out = joinCaptureErrors(out, err)
 		}
 	}
 	if r.metadataWriter != nil {
-		if err := r.metadataWriter.Flush(); err != nil && out == nil {
-			out = err
+		if err := r.metadataWriter.Flush(); err != nil {
+			out = joinCaptureErrors(out, err)
 		}
 	}
 	if r.metadataFile != nil {
-		if err := r.metadataFile.Close(); err != nil && out == nil {
-			out = err
+		if !r.failed {
+			if err := r.metadataFile.Sync(); err != nil {
+				out = joinCaptureErrors(out, err)
+			}
 		}
+		if err := r.metadataFile.Close(); err != nil {
+			out = joinCaptureErrors(out, err)
+		}
+	}
+	if r.failure != nil {
+		out = joinCaptureErrors(out, r.failure)
+	}
+	if r.path != "" {
+		if r.failed || out != nil {
+			_ = os.Remove(r.tempPath)
+			_ = os.Remove(r.metadataTemp)
+		} else {
+			out = joinCaptureErrors(out, publishGeneration(r.tempPath, r.path, r.metadataTemp, r.metadataPath))
+		}
+	}
+	if r.lockFile != nil {
+		out = joinCaptureErrors(out, r.lockFile.Close())
+		_ = os.Remove(r.lockPath)
 	}
 	r.w = nil
 	r.f = nil
@@ -149,23 +258,80 @@ func (r *Recorder) Close() error {
 	return out
 }
 
+func joinCaptureErrors(first, second error) error {
+	if first == nil {
+		return second
+	}
+	if second == nil {
+		return first
+	}
+	return errors.Join(first, second)
+}
+
+func publishGeneration(tempPath, path, metadataTemp, metadataPath string) error {
+	backup := path + ".previous"
+	metadataBackup := metadataPath + ".previous"
+	if _, err := os.Stat(path); err == nil {
+		_ = os.Remove(backup)
+		if err := renameRecorderPath(path, backup); err != nil {
+			return err
+		}
+	}
+	if _, err := os.Stat(metadataPath); err == nil {
+		_ = os.Remove(metadataBackup)
+		if err := renameRecorderPath(metadataPath, metadataBackup); err != nil {
+			_ = renameRecorderPath(backup, path)
+			return err
+		}
+	}
+	if err := renameRecorderPath(tempPath, path); err != nil {
+		_ = renameRecorderPath(backup, path)
+		_ = renameRecorderPath(metadataBackup, metadataPath)
+		return err
+	}
+	if err := renameRecorderPath(metadataTemp, metadataPath); err != nil {
+		_ = os.Remove(path)
+		_ = renameRecorderPath(backup, path)
+		_ = renameRecorderPath(metadataBackup, metadataPath)
+		return err
+	}
+	_ = os.Remove(backup)
+	_ = os.Remove(metadataBackup)
+	return nil
+}
+
 func ReplayMetadata(path string) ([]FrameMetadata, error) {
 	f, err := os.Open(MetadataPath(path))
 	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			exists, segmentErr := segmentedCaptureExists(path)
+			if segmentErr != nil {
+				return nil, segmentErr
+			}
+			if exists {
+				return replaySegmentMetadata(path)
+			}
+		}
 		return nil, err
 	}
 	defer f.Close()
-	decoder := json.NewDecoder(f)
 	var out []FrameMetadata
-	for {
+	scanner := bufio.NewScanner(f)
+	scanner.Buffer(make([]byte, 4<<10), 1<<20)
+	for scanner.Scan() {
+		if len(out) >= MaxCaptureFrames {
+			return nil, fmt.Errorf("%w: metadata has more than %d frames", ErrTooManyFrames, MaxCaptureFrames)
+		}
 		var metadata FrameMetadata
-		if err := decoder.Decode(&metadata); err == io.EOF {
-			return out, nil
-		} else if err != nil {
+		if err := json.Unmarshal(scanner.Bytes(), &metadata); err != nil {
 			return nil, err
 		}
 		out = append(out, metadata)
 	}
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 func Replay(path string) ([][]byte, error) {
 	return ReplayContext(context.Background(), path)
@@ -180,6 +346,27 @@ func ReplayContext(ctx context.Context, path string) ([][]byte, error) {
 	}
 	f, e := os.Open(path)
 	if e != nil {
+		if errors.Is(e, os.ErrNotExist) {
+			exists, segmentErr := segmentedCaptureExists(path)
+			if segmentErr != nil {
+				return nil, segmentErr
+			}
+			if exists {
+				snapshot, createErr := createSnapshotFile()
+				if createErr != nil {
+					return nil, createErr
+				}
+				snapshotPath := snapshot.Name()
+				defer func() {
+					_ = snapshot.Close()
+					_ = os.Remove(snapshotPath)
+				}()
+				if segmentErr := snapshotSegmentsContext(ctx, path, snapshot); segmentErr != nil {
+					return nil, segmentErr
+				}
+				return replayFramesContext(ctx, snapshot)
+			}
+		}
 		return nil, e
 	}
 	defer f.Close()
@@ -238,6 +425,15 @@ func ValidateContext(ctx context.Context, path string) error {
 	}
 	f, err := os.Open(path)
 	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			exists, segmentErr := segmentedCaptureExists(path)
+			if segmentErr != nil {
+				return segmentErr
+			}
+			if exists {
+				return replaySegmentsContext(ctx, path, func([]byte, FrameMetadata) error { return nil })
+			}
+		}
 		return err
 	}
 	defer f.Close()
@@ -257,6 +453,27 @@ func ReplayEachContext(ctx context.Context, path string, submit func([]byte) err
 	}
 	source, err := os.Open(path)
 	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			exists, segmentErr := segmentedCaptureExists(path)
+			if segmentErr != nil {
+				return segmentErr
+			}
+			if exists {
+				snapshot, createErr := createSnapshotFile()
+				if createErr != nil {
+					return createErr
+				}
+				snapshotPath := snapshot.Name()
+				defer func() {
+					_ = snapshot.Close()
+					_ = os.Remove(snapshotPath)
+				}()
+				if segmentErr := snapshotSegmentsContext(ctx, path, snapshot); segmentErr != nil {
+					return segmentErr
+				}
+				return replaySnapshotContext(ctx, snapshot, submit)
+			}
+		}
 		return err
 	}
 	defer source.Close()
@@ -270,7 +487,9 @@ func ReplayEachContext(ctx context.Context, path string, submit func([]byte) err
 		_ = snapshot.Close()
 		_ = os.Remove(snapshotPath)
 	}()
-	if _, _, err := validateReader(ctx, source, 0, 0, snapshot); err != nil {
+	// The snapshot is the immutable replay source, so validation and replay
+	// must use the same aggregate limits as the regular Replay API.
+	if _, _, err := validateReader(ctx, source, MaxCaptureSize, MaxCaptureFrames, snapshot); err != nil {
 		return err
 	}
 	return replaySnapshotContext(ctx, snapshot, submit)

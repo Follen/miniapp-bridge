@@ -109,13 +109,15 @@ func TestCoverageAppStartHandlersServeAndClose(t *testing.T) {
 	}
 	a.closing.Store(true)
 	for _, port := range []int{dp, cp} {
-		conn, _, err := websocket.DefaultDialer.Dial(fmt.Sprintf("ws://127.0.0.1:%d", port), nil)
-		if err != nil {
-			t.Fatal(err)
+		conn, response, err := websocket.DefaultDialer.Dial(fmt.Sprintf("ws://127.0.0.1:%d", port), nil)
+		if conn != nil {
+			_ = conn.Close()
+			t.Fatal("closing app accepted a WebSocket")
 		}
-		_ = conn.SetReadDeadline(time.Now().Add(time.Second))
-		_, _, _ = conn.ReadMessage()
-		_ = conn.Close()
+		if err == nil || response == nil || response.StatusCode != http.StatusServiceUnavailable {
+			t.Fatalf("closing dial err=%v response=%v", err, response)
+		}
+		_ = response.Body.Close()
 	}
 	a.closing.Store(false)
 	if err := a.Close(ctx); err != nil {

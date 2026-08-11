@@ -1,0 +1,69 @@
+Frida bootstrap: begin
+frida_core_version=17.3.2
+archive_cache=verified
+archive_sha256=8AF15423D6E534626F91A67FAA0582E42C67A07A95A190F4C622695105549C72
+archive_expected_sha256=8AF15423D6E534626F91A67FAA0582E42C67A07A95A190F4C622695105549C72
+header_sha256=6B4DEE14C19BDB03CAA4A25BE51564AA249BC1167AA8DED26F562E238D0B3462
+library_sha256=D763BCF99EFDE43A3DE4138B19D70EC64B586286413473EAA21E6C59B7410A30
+Frida bootstrap: complete
+zlib bootstrap: begin
+zlib_version=1.3.1
+archive_sha256=17E88863F3600672AB49182F217281B6FC4D3C762BDE361935E436A95214D05C
+library_sha256=9DE45B674DA1FC9F11D3E1833CFC6FA98AE27468D5F0E222556E65FC9B950D2A
+zlib bootstrap: complete
+MSVC zlib objects: begin
+adler32.c
+compress.c
+crc32.c
+deflate.c
+gzclose.c
+gzlib.c
+gzread.c
+gzwrite.c
+infback.c
+inffast.c
+inflate.c
+inftrees.c
+trees.c
+uncompr.c
+zutil.c
+正在生成代码...
+MSVC zlib objects: complete
+miniapp_frida.c
+  正在创建库 D:\Code\third-partry\miniapp-bridge\.worktree\production-hardening-single-client\third_party\frida\runtime-17.3.2\miniapp-frida.lib 和对象 D:\Code\third-partry\miniapp-bridge\.worktree\production-hardening-single-client\third_party\frida\runtime-17.3.2\miniapp-frida.exp
+MSVC Frida shim: complete
+native_version=17.3.2-abi1
+frida_core_version=17.3.2
+abi_version=1
+dll_sha256=6A130634349B81DF3B7D22DFD124AD9575457FCEB40F28327BB4B5B25CB33741
+ok  	github.com/Follen/miniapp-bridge/cmd/miniapp-bridge	1.078s
+?   	github.com/Follen/miniapp-bridge/examples/sdk	[no test files]
+ok  	github.com/Follen/miniapp-bridge/frida	1.047s
+ok  	github.com/Follen/miniapp-bridge/internal/app	2.555s
+ok  	github.com/Follen/miniapp-bridge/internal/capture	5.430s
+ok  	github.com/Follen/miniapp-bridge/internal/cdp	1.127s
+ok  	github.com/Follen/miniapp-bridge/internal/config	1.079s
+ok  	github.com/Follen/miniapp-bridge/internal/context	1.079s
+ok  	github.com/Follen/miniapp-bridge/internal/frida	20.172s
+ok  	github.com/Follen/miniapp-bridge/internal/logging	1.048s
+ok  	github.com/Follen/miniapp-bridge/internal/native	65.226s
+ok  	github.com/Follen/miniapp-bridge/internal/process	2.092s
+ok  	github.com/Follen/miniapp-bridge/internal/proxy	1.172s
+ok  	github.com/Follen/miniapp-bridge/internal/version	1.079s
+ok  	github.com/Follen/miniapp-bridge/internal/wmpf	1.403s
+ok  	github.com/Follen/miniapp-bridge/scripts	124.300s
+ok  	github.com/Follen/miniapp-bridge/scripts/smoke-process-runner	2.294s
+ok  	github.com/Follen/miniapp-bridge/sdk	3.860s
+asset=D:\Code\third-partry\miniapp-bridge\.worktree\production-hardening-single-client\dist\native\miniapp-frida-native-17.3.2-abi1-windows-amd64.zip
+manifest=manifest.json (inside archive)
+dll_size=67791872
+dll_sha256=6A130634349B81DF3B7D22DFD124AD9575457FCEB40F28327BB4B5B25CB33741
+archive_sha256=160F1AE6965F8F78F2BB33B1FE3DCC67F951890BE4E09F725D7A179403B2FB5A
+sha256sums=D:\Code\third-partry\miniapp-bridge\.worktree\production-hardening-single-client\dist\native\SHA256SUMS
+
+Algorithm       Hash                                                                   Path
+---------       ----                                                                   ----
+SHA256          168DB80D65532141F65652237C079A0D1C9D53129F8250479A4B2AFEF3CDBA3A       D:\Code\third-partry\miniapp-bri…
+SHA256          6A130634349B81DF3B7D22DFD124AD9575457FCEB40F28327BB4B5B25CB33741       D:\Code\third-partry\miniapp-bri…
+SHA256          F02077EFFC345272490073C2D4B2EB023D26EB7684FE38CCAA8EAEFB1CDD140E       D:\Code\third-partry\miniapp-bri…
+

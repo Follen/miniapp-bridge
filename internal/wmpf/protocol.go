@@ -267,15 +267,26 @@ func WrapData(data []byte, category string, algo CompressAlgo) ([]byte, uint32, 
 	return append([]byte(nil), data...), 0, nil
 }
 func UnwrapDebugMessage(m DebugMessage) (Unwrapped, error) {
+	return UnwrapDebugMessageWithLimit(m, DefaultMaxDecompressedDebugMessageBytes)
+}
+
+// UnwrapDebugMessageWithLimit unwraps a debug message with a caller-supplied
+// maximum inflated payload size.
+func UnwrapDebugMessageWithLimit(m DebugMessage, maxOutput int) (Unwrapped, error) {
 	raw := append([]byte(nil), m.Data...)
+	if maxOutput <= 0 {
+		return Unwrapped{Category: m.Category, Raw: raw}, fmt.Errorf("%w: limit=%d", ErrDecompressedDebugMessageTooLarge, maxOutput)
+	}
 	d := raw
 	var e error
 	if m.CompressAlgo&CompressZlib != 0 {
-		d, e = zlibDecompress(raw)
+		d, e = zlibDecompressBounded(raw, m.OriginalSize, maxOutput)
 		if e != nil {
 			return Unwrapped{Category: m.Category, Raw: raw}, e
 		}
 		compressionSavedBytes.Add(int64(len(d) - len(raw)))
+	} else if len(d) > maxOutput {
+		return Unwrapped{Category: m.Category, Raw: raw}, fmt.Errorf("%w: actual=%d limit=%d", ErrDecompressedDebugMessageTooLarge, len(d), maxOutput)
 	}
 	category := m.Category
 	if category == "" {

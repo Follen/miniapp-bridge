@@ -79,7 +79,9 @@ function Invoke-VerifiedDownload {
         [string]$ExpectedSHA256
     )
 
-    $lastError = $null
+    $lastError = [TimeoutException]::new(
+        "zlib archive download exceeded total timeout of $DownloadTotalTimeoutSeconds seconds"
+    )
     $timer = [Diagnostics.Stopwatch]::StartNew()
     for ($attempt = 1; $attempt -le $DownloadAttempts; $attempt++) {
         $remaining = $DownloadTotalTimeoutSeconds - $timer.Elapsed.TotalSeconds
@@ -106,10 +108,7 @@ function Invoke-VerifiedDownload {
             }
         }
     }
-    if ($null -ne $lastError) {
-        throw "zlib archive download failed after $DownloadAttempts attempts: $($lastError.Exception.Message)"
-    }
-    throw "zlib archive download exceeded total timeout of $DownloadTotalTimeoutSeconds seconds"
+    throw "zlib archive download failed after $DownloadAttempts attempts: $($lastError.Exception.Message)"
 }
 
 New-Item -ItemType Directory -Force -Path $cache | Out-Null

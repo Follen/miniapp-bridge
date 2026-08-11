@@ -22,9 +22,9 @@ if ($codex.debug_wrap.Count -ne 7 -or $codex.developer_outgoing.Count -ne 11 -or
 }
 
 $matrix = Get-Content docs/behavior-matrix.md -Encoding UTF8 -Raw
-$rows = $matrix -split "`n" | Where-Object { $_ -match '^\|' -and $_ -notmatch '^\|---' } | Select-Object -Skip 1
+$rows = @($matrix -split "`n" | Where-Object { $_ -match '^\|' -and $_ -notmatch '^\|---' } | Select-Object -Skip 1)
 $implemented = -join @([char]0x5df2, [char]0x5b9e, [char]0x73b0)
-if ($rows.Count -ne 13 -or ($rows | Where-Object { $_ -notmatch $implemented }).Count -ne 0) {
+if ($rows.Count -ne 13 -or @($rows | Where-Object { $_ -notmatch $implemented }).Count -ne 0) {
     throw 'behavior matrix is incomplete'
 }
 
@@ -105,4 +105,8 @@ try {
 }
 Run 'race' { go test -race ./... -count=1 -timeout 180s }
 Run 'vet' { go vet ./... }
-Write-Output 'coverage_gate=100% reference behaviors; cli_frida_go_statements=100.0%; internal_go_statements=100.0%; sdk_go_statements=100.0%; tagged_internal_sdk_go_statements=100.0%; smoke_runner_go_statements=100.0%; unit/race/tagged-race/vet=passed'
+Run 'C shim native line and branch-site coverage' {
+    & (Join-Path $PSScriptRoot 'cshim-coverage.ps1') -ReportPath (Join-Path $repo 'ci-artifacts\c-shim-coverage.log')
+    if ($LASTEXITCODE -ne 0) { throw "C shim coverage failed with exit $LASTEXITCODE" }
+}
+Write-Output 'coverage_gate=100% reference behaviors; cli_frida_go_statements=100.0%; internal_go_statements=100.0%; sdk_go_statements=100.0%; tagged_internal_sdk_go_statements=100.0%; smoke_runner_go_statements=100.0%; c_shim_lines=100.0%; c_shim_branch_sites=100.0%; unit/race/tagged-race/vet=passed'

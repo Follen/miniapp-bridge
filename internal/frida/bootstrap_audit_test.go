@@ -100,6 +100,44 @@ func TestAuditBootstrapOrderAndSelectedMetadata(t *testing.T) {
 	}
 }
 
+func TestAuditBootstrapBindsIdentityBeforeAttach(t *testing.T) {
+	t.Parallel()
+	d := &auditDevice{processes: auditProcesses(), session: &auditSession{}}
+	called := false
+	b := Bootstrap{
+		Device: d, ConfigDir: writeAuditConfig(t),
+		BindTarget: func(ctx context.Context, target process.Process) (process.Process, error) {
+			called = true
+			target.Identity = process.TargetIdentity{PID: target.PID, AppID: "app", RendererType: "renderer"}
+			return target, nil
+		},
+	}
+	_, _, target, err := b.Attach(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !called || target.Identity.AppID != "app" || target.Identity.RendererType != "renderer" {
+		t.Fatalf("identity binding not applied: called=%v target=%+v", called, target)
+	}
+}
+
+func TestAuditBootstrapRejectsIdentityBeforeAttach(t *testing.T) {
+	t.Parallel()
+	d := &auditDevice{processes: auditProcesses(), session: &auditSession{}}
+	sentinel := errors.New("identity mismatch")
+	b := Bootstrap{
+		Device: d, ConfigDir: writeAuditConfig(t),
+		BindTarget: func(context.Context, process.Process) (process.Process, error) { return process.Process{}, sentinel },
+	}
+	_, _, _, err := b.Attach(context.Background())
+	if !errors.Is(err, sentinel) {
+		t.Fatalf("Attach error=%v, want %v", err, sentinel)
+	}
+	if !reflect.DeepEqual(d.events, []string{"enumerate"}) {
+		t.Fatalf("events=%v, identity rejection must precede attach", d.events)
+	}
+}
+
 func TestAuditBootstrapLoadFailureDetaches(t *testing.T) {
 	t.Parallel()
 	sentinel := errors.New("load failed")

@@ -15,11 +15,13 @@ permissions:
   contents: read
 
 env:
-  GO_VERSION: 1.23.x
+  GO_VERSION: 1.26.x
+  GOVULNCHECK_VERSION: v1.6.0
+  CYCLONEDX_GOMOD_VERSION: v1.10.0
   FRIDA_CORE_VERSION: 17.3.2
   ZLIB_VERSION: 1.3.1
   ZLIB_ARCHIVE_SHA256: 17E88863F3600672AB49182F217281B6FC4D3C762BDE361935E436A95214D05C
-  NATIVE_ARCHIVE_SHA256: D7896B281026822E3B4A8CDCEFB5023285DFE4E82927D3EA2CE3082D46449230
+  NATIVE_ARCHIVE_SHA256: A2F2BA223FA3803A90D1F16E5145C1D61FE2953EFEEB6AFBC6D912934F728EE6
 
 concurrency:
   group: release-native-17.3.2-abi1
@@ -33,6 +35,9 @@ jobs:
     timeout-minutes: 90
     permissions:
       contents: read
+      id-token: write
+      attestations: write
+    environment: production-release
     outputs:
       release_tag: ${{ steps.version.outputs.release_tag }}
       release_version: ${{ steps.version.outputs.release_version }}
@@ -57,8 +62,8 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
-            third_party/downloads
-            third_party/frida/devkit-17.3.2
+            third_party/downloads/frida-core-devkit-17.3.2-windows-x86_64.tar.xz
+            third_party/downloads/cache/zlib-1.3.1.tar.gz
           key: native-${{ runner.os }}-${{ runner.arch }}-frida-${{ env.FRIDA_CORE_VERSION }}-zlib-${{ env.ZLIB_VERSION }}-${{ env.ZLIB_ARCHIVE_SHA256 }}-${{ hashFiles('go.sum') }}
 
       - name: Populate Frida devkit archive cache
@@ -69,11 +74,8 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $archive = 'third_party\downloads\frida-core-devkit-17.3.2-windows-x86_64.tar.xz'
           $expected = '8AF15423D6E534626F91A67FAA0582E42C67A07A95A190F4C622695105549C72'
-          $header = 'third_party\frida\devkit-17.3.2\frida-core.h'
-          $library = 'third_party\frida\devkit-17.3.2\frida-core.lib'
           $archiveValid = (Test-Path -LiteralPath $archive) -and ((Get-FileHash -Algorithm SHA256 -LiteralPath $archive).Hash -eq $expected)
-          $devkitValid = (Test-Path -LiteralPath $header) -and (Test-Path -LiteralPath $library)
-          if ($archiveValid -or $devkitValid) { exit 0 }
+          if ($archiveValid) { exit 0 }
           New-Item -ItemType Directory -Force -Path (Split-Path -Parent $archive) | Out-Null
           $asset = Split-Path -Leaf $archive
           gh release download $env:FRIDA_CORE_VERSION --repo frida/frida --pattern $asset --output $archive --clobber
@@ -113,12 +115,17 @@ jobs:
         env:
           REQUESTED_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
           EVENT_NAME: ${{ github.event_name }}
+          TRIGGER_REF: ${{ github.ref }}
           TRIGGER_SHA: ${{ github.sha }}
         run: |
           $ErrorActionPreference = 'Stop'
           $semver = '^v(0|1)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-(?:0|[1-9][0-9]*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9][0-9]*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*))*)?$'
           if ($env:REQUESTED_TAG -cnotmatch $semver) {
             throw "release tag must be a complete SemVer tag beginning with v: $env:REQUESTED_TAG"
+          }
+          $expectedRef = "refs/tags/$env:REQUESTED_TAG"
+          if ($env:TRIGGER_REF -cne $expectedRef) {
+            throw "release workflow must run from requested tag ref ${expectedRef}; got $env:TRIGGER_REF"
           }
           git fetch --force --tags origin
           if ($LASTEXITCODE -ne 0) { throw "git fetch failed with exit $LASTEXITCODE" }
@@ -129,7 +136,7 @@ jobs:
             throw "release tag does not exist: $env:REQUESTED_TAG"
           }
           $sourceCommit = (git rev-parse HEAD).Trim()
-          if ($env:EVENT_NAME -eq 'push' -and $sourceCommit -cne $env:TRIGGER_SHA) {
+          if ($sourceCommit -cne $env:TRIGGER_SHA) {
             throw "checked out commit $sourceCommit does not match trigger commit $env:TRIGGER_SHA"
           }
           if ($LASTEXITCODE -ne 0 -or $sourceCommit -cne $tagCommit) {
@@ -156,6 +163,13 @@ jobs:
           go test ./... -count=1
           if ($LASTEXITCODE -ne 0) { throw "go test failed with exit $LASTEXITCODE" }
 
+      - name: Scan reachable Go vulnerabilities
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          go run "golang.org/x/vuln/cmd/govulncheck@$env:GOVULNCHECK_VERSION" ./...
+          if ($LASTEXITCODE -ne 0) { throw "govulncheck failed with exit $LASTEXITCODE" }
+
       - name: Enforce coverage race and vet gates
         shell: pwsh
         run: |
@@ -167,8 +181,148 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
+          foreach ($staging in @('third_party\zlib\src-1.3.1', 'third_party\frida\devkit-17.3.2')) {
+            if (Test-Path -LiteralPath $staging) {
+              Remove-Item -LiteralPath $staging -Recurse -Force
+            }
+          }
           & .\scripts\build-windows.ps1
           if ($LASTEXITCODE -ne 0) { throw "Windows build failed with exit $LASTEXITCODE" }
+
+      - name: Scan and vet tagged Go build
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $runtime = (Resolve-Path 'third_party\frida\runtime-17.3.2').Path
+          $env:PATH = "$runtime;$env:PATH"
+          $env:MINIAPP_BRIDGE_NATIVE_PATH = Join-Path $runtime 'miniapp-frida.dll'
+          go vet -tags=frida ./...
+          if ($LASTEXITCODE -ne 0) { throw "tagged go vet failed with exit $LASTEXITCODE" }
+          go run "golang.org/x/vuln/cmd/govulncheck@$env:GOVULNCHECK_VERSION" -tags=frida ./...
+          if ($LASTEXITCODE -ne 0) { throw "tagged govulncheck failed with exit $LASTEXITCODE" }
+
+      - name: Enforce release PE architecture imports and security flags
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $vsdev = 'C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\Tools\VsDevCmd.bat'
+          $targets = [ordered]@{
+            'dist\miniapp-bridge.exe' = @('kernel32.dll')
+            'dist\miniapp-frida.dll' = @(
+              'advapi32.dll', 'bcrypt.dll', 'crypt32.dll', 'dnsapi.dll', 'gdi32.dll',
+              'iphlpapi.dll', 'kernel32.dll', 'ole32.dll', 'psapi.dll', 'setupapi.dll',
+              'shell32.dll', 'shlwapi.dll', 'user32.dll', 'ws2_32.dll'
+            )
+          }
+          foreach ($entry in $targets.GetEnumerator()) {
+            $path = (Resolve-Path $entry.Key).Path
+            $headers = cmd.exe /d /s /c ('call "{0}" -arch=x64 -host_arch=x64 >nul && dumpbin /headers "{1}"' -f $vsdev, $path)
+            if ($LASTEXITCODE -ne 0) { throw "dumpbin headers failed for $path" }
+            $headerText = $headers -join "`n"
+            foreach ($marker in @('8664 machine (x64)', '20B magic # (PE32+)', 'High Entropy Virtual Addresses', 'Dynamic base', 'NX compatible')) {
+              if ($headerText -cnotmatch [regex]::Escape($marker)) { throw "$path is missing PE marker: $marker" }
+            }
+            if ($headerText -notmatch '(?m)^\s*0 \[\s*0\] RVA \[size\] of Delay Import Directory\s*$') {
+              throw "$path contains delay imports"
+            }
+            foreach ($section in [regex]::Matches($headerText, '(?ms)^SECTION HEADER.*?(?=^SECTION HEADER|\z)')) {
+              if ($section.Value -match '(?m)^\s*Execute\s*$' -and $section.Value -match '(?m)^\s*Write\s*$') {
+                throw "$path contains a writable executable PE section"
+              }
+            }
+            $dependents = cmd.exe /d /s /c ('call "{0}" -arch=x64 -host_arch=x64 >nul && dumpbin /dependents "{1}"' -f $vsdev, $path)
+            if ($LASTEXITCODE -ne 0) { throw "dumpbin dependents failed for $path" }
+            $actual = @($dependents | ForEach-Object {
+              if ($_ -match '^\s+([A-Za-z0-9_.-]+\.dll)\s*$') { $Matches[1].ToLowerInvariant() }
+            } | Sort-Object -Unique)
+            $unexpected = @($actual | Where-Object {
+              $_ -notin $entry.Value -and $_ -notlike 'api-ms-win-crt-*.dll'
+            })
+            $missing = @($entry.Value | Where-Object { $_ -notin $actual })
+            if ($unexpected.Count -ne 0 -or $missing.Count -ne 0) {
+              throw "$path import allowlist mismatch; missing=$($missing -join ','); unexpected=$($unexpected -join ',')"
+            }
+          }
+
+      - name: Sign Windows artifacts and bind the signed native trust root
+        shell: pwsh
+        env:
+          WINDOWS_SIGNING_PFX_BASE64: ${{ secrets.WINDOWS_SIGNING_PFX_BASE64 }}
+          WINDOWS_SIGNING_PFX_PASSWORD: ${{ secrets.WINDOWS_SIGNING_PFX_PASSWORD }}
+          WINDOWS_SIGNING_TIMESTAMP_URL: ${{ vars.WINDOWS_SIGNING_TIMESTAMP_URL }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($name in @('WINDOWS_SIGNING_PFX_BASE64', 'WINDOWS_SIGNING_PFX_PASSWORD', 'WINDOWS_SIGNING_TIMESTAMP_URL')) {
+            if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name))) {
+              throw "$name must be configured in the protected production-release environment"
+            }
+          }
+          $signTool = Get-ChildItem -LiteralPath 'C:\Program Files (x86)\Windows Kits\10\bin' -Filter signtool.exe -Recurse |
+            Where-Object { $_.FullName -match '\\x64\\signtool\.exe$' } |
+            Sort-Object FullName -Descending |
+            Select-Object -First 1
+          if ($null -eq $signTool) { throw 'Windows SDK x64 signtool.exe was not found' }
+
+          $pfx = Join-Path $env:RUNNER_TEMP "miniapp-bridge-signing-$([guid]::NewGuid().ToString('N')).pfx"
+          $generatedTrust = Join-Path $PWD 'internal\native\trust_release_signed.go'
+          try {
+            [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:WINDOWS_SIGNING_PFX_BASE64))
+            & $signTool.FullName sign /fd SHA256 /td SHA256 /tr $env:WINDOWS_SIGNING_TIMESTAMP_URL /f $pfx /p $env:WINDOWS_SIGNING_PFX_PASSWORD .\dist\miniapp-frida.dll
+            if ($LASTEXITCODE -ne 0) { throw "DLL Authenticode signing failed with exit $LASTEXITCODE" }
+
+            & .\scripts\native-release.ps1 -RuntimeDirectory .\dist -OutputDirectory .\dist\native -ManifestOutputDirectory .\dist
+            if ($null -ne $LASTEXITCODE -and $LASTEXITCODE -ne 0) { throw "signed native packaging failed with exit $LASTEXITCODE" }
+            $dll = Get-Item -LiteralPath .\dist\miniapp-frida.dll
+            $dllHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $dll.FullName).Hash.ToUpperInvariant()
+            $nativeAsset = "miniapp-frida-native-17.3.2-abi1-windows-amd64.zip"
+            $archiveHash = (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path .\dist\native $nativeAsset)).Hash.ToUpperInvariant()
+            Add-Content -LiteralPath $env:GITHUB_ENV -Value "SIGNED_NATIVE_ARCHIVE_SHA256=$archiveHash"
+            $trustSource = @"
+          //go:build release_signed
+
+          package native
+
+          const (
+          `tNativeDLLSize = int64($($dll.Length))
+          `tNativeDLLSHA256 = "$dllHash"
+          `tNativeArchiveSHA256 = "$archiveHash"
+          )
+          "@
+            [IO.File]::WriteAllText($generatedTrust, $trustSource, [Text.UTF8Encoding]::new($false))
+
+            $env:CGO_ENABLED = '1'
+            $runtime = (Resolve-Path 'third_party\frida\runtime-17.3.2').Path
+            $env:PATH = "$runtime;$env:PATH"
+            $env:MINIAPP_BRIDGE_NATIVE_PATH = (Resolve-Path .\dist\miniapp-frida.dll).Path
+            go test -tags 'frida,release_signed' ./internal/native ./sdk -run '^$'
+            if ($LASTEXITCODE -ne 0) { throw "signed trust-root compile check failed with exit $LASTEXITCODE" }
+            go build -tags 'frida,release_signed' -trimpath -o .\dist\miniapp-bridge.exe .\cmd\miniapp-bridge
+            if ($LASTEXITCODE -ne 0) { throw "signed trust-root executable build failed with exit $LASTEXITCODE" }
+            & $signTool.FullName sign /fd SHA256 /td SHA256 /tr $env:WINDOWS_SIGNING_TIMESTAMP_URL /f $pfx /p $env:WINDOWS_SIGNING_PFX_PASSWORD .\dist\miniapp-bridge.exe
+            if ($LASTEXITCODE -ne 0) { throw "EXE Authenticode signing failed with exit $LASTEXITCODE" }
+          }
+          finally {
+            Remove-Item -LiteralPath $pfx -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $generatedTrust -Force -ErrorAction SilentlyContinue
+          }
+
+      - name: Enforce Authenticode signatures and trusted timestamps
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($path in @('dist\miniapp-bridge.exe', 'dist\miniapp-frida.dll')) {
+            $signature = Get-AuthenticodeSignature -LiteralPath $path
+            if ($signature.Status -ne [Management.Automation.SignatureStatus]::Valid) {
+              throw "$path must have a valid Authenticode signature before release packaging; status=$($signature.Status)"
+            }
+            if ($null -eq $signature.SignerCertificate) {
+              throw "$path Authenticode signer certificate is missing"
+            }
+            if ($null -eq $signature.TimeStamperCertificate) {
+              throw "$path Authenticode trusted timestamp is missing"
+            }
+            Write-Output "authenticode=$path signer=$($signature.SignerCertificate.Thumbprint) timestamp=$($signature.TimeStamperCertificate.Thumbprint)"
+          }
 
       - name: Package release assets
         shell: pwsh
@@ -191,8 +345,11 @@ jobs:
             throw "packaged native asset is missing: $nativeSource"
           }
           $nativeHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $nativeSource).Hash
-          if ($nativeHash -cne $env:NATIVE_ARCHIVE_SHA256) {
-            throw "native archive hash $nativeHash does not match SDK pin $env:NATIVE_ARCHIVE_SHA256"
+          if ($env:SIGNED_NATIVE_ARCHIVE_SHA256 -cnotmatch '^[0-9A-F]{64}$') {
+            throw 'signed native archive pin is missing or malformed'
+          }
+          if ($nativeHash -cne $env:SIGNED_NATIVE_ARCHIVE_SHA256) {
+            throw "native archive hash $nativeHash does not match signed SDK pin $env:SIGNED_NATIVE_ARCHIVE_SHA256"
           }
           $compat = '.\dist\release\native-compat'
           New-Item -ItemType Directory -Force -Path $compat | Out-Null
@@ -208,6 +365,90 @@ jobs:
             }
           }
 
+      - name: Generate deterministic SBOM provenance and license set
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ steps.version.outputs.release_tag }}
+          SOURCE_COMMIT: ${{ steps.version.outputs.source_commit }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $bundle = (Resolve-Path 'dist\release').Path
+          $sbom = Join-Path $bundle 'miniapp-bridge.cdx.json'
+          go run "github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@$env:CYCLONEDX_GOMOD_VERSION" mod `
+            -json -licenses -noserial -notimestamp -output $sbom .
+          if ($LASTEXITCODE -ne 0) { throw "CycloneDX SBOM generation failed with exit $LASTEXITCODE" }
+          $bom = Get-Content -LiteralPath $sbom -Raw | ConvertFrom-Json
+          if ($bom.bomFormat -cne 'CycloneDX' -or $bom.specVersion -cne '1.6') { throw 'unexpected CycloneDX document format' }
+          $bom.metadata.component | Add-Member -NotePropertyName version -NotePropertyValue $env:RELEASE_TAG -Force
+          $bom.metadata | Add-Member -NotePropertyName properties -NotePropertyValue @(
+            [ordered]@{ name = 'miniapp-bridge:source-revision'; value = $env:SOURCE_COMMIT }
+          ) -Force
+          [IO.File]::WriteAllText($sbom, (($bom | ConvertTo-Json -Depth 100) + "`n"), [Text.UTF8Encoding]::new($false))
+
+          $licenseFiles = [ordered]@{
+            'LICENSE' = 'LICENSE'
+            'THIRD_PARTY_NOTICES.md' = 'THIRD_PARTY_NOTICES.md'
+            'FRIDA_COPYING' = 'licenses\frida-17.3.2\COPYING'
+            'FRIDA_COPYING.LIB' = 'licenses\frida-17.3.2\COPYING.LIB'
+            'ZLIB_LICENSE' = 'third_party\zlib\src-1.3.1\LICENSE'
+          }
+          foreach ($entry in $licenseFiles.GetEnumerator()) {
+            Copy-Item -LiteralPath $entry.Value -Destination (Join-Path $bundle $entry.Key) -Force
+          }
+
+          $subjects = @('manifest.json', "miniapp-bridge-$env:RELEASE_TAG-windows-amd64.zip", 'miniapp-frida-native-17.3.2-abi1-windows-amd64.zip', 'miniapp-bridge.cdx.json') |
+            ForEach-Object {
+              [ordered]@{
+                name = $_
+                digest = [ordered]@{ sha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $bundle $_)).Hash.ToLowerInvariant() }
+              }
+            }
+          $provenance = [ordered]@{
+            _type = 'https://in-toto.io/Statement/v1'
+            subject = @($subjects)
+            predicateType = 'https://slsa.dev/provenance/v1'
+            predicate = [ordered]@{
+              buildDefinition = [ordered]@{
+                buildType = 'https://github.com/Follen/miniapp-bridge/.github/workflows/release.yml@v1'
+                externalParameters = [ordered]@{ releaseTag = $env:RELEASE_TAG }
+                internalParameters = [ordered]@{}
+                resolvedDependencies = @([ordered]@{
+                  uri = "git+https://github.com/$env:GITHUB_REPOSITORY@$env:SOURCE_COMMIT"
+                  digest = [ordered]@{ gitCommit = $env:SOURCE_COMMIT }
+                })
+              }
+              runDetails = [ordered]@{
+                builder = [ordered]@{ id = "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/workflows/release.yml@$env:SOURCE_COMMIT" }
+                metadata = [ordered]@{ reproducible = $true }
+                byproducts = @()
+              }
+            }
+          }
+          $provenancePath = Join-Path $bundle 'provenance.intoto.json'
+          [IO.File]::WriteAllText($provenancePath, (($provenance | ConvertTo-Json -Depth 100) + "`n"), [Text.UTF8Encoding]::new($false))
+
+          $sumPath = Join-Path $bundle 'SHA256SUMS'
+          $assets = @(
+            "miniapp-bridge-$env:RELEASE_TAG-windows-amd64.zip",
+            'miniapp-frida-native-17.3.2-abi1-windows-amd64.zip',
+            'manifest.json', 'miniapp-bridge.cdx.json', 'provenance.intoto.json'
+          ) + @($licenseFiles.Keys)
+          $lines = @($assets | Sort-Object | ForEach-Object {
+            "$((Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $bundle $_)).Hash.ToLowerInvariant())  $_"
+          })
+          [IO.File]::WriteAllLines($sumPath, $lines, [Text.UTF8Encoding]::new($false))
+          foreach ($line in Get-Content -LiteralPath $sumPath) {
+            if ($line -notmatch '^([0-9a-f]{64})  ([^\\/]+)$') { throw "invalid generated checksum line: $line" }
+            if ((Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $bundle $Matches[2])).Hash.ToLowerInvariant() -cne $Matches[1]) {
+              throw "generated checksum mismatch for $($Matches[2])"
+            }
+          }
+
+      - name: Attest release bundle provenance
+        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
+        with:
+          subject-checksums: dist/release/SHA256SUMS
+
       - name: Upload verified release bundle
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -222,6 +463,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      attestations: read
+    environment: production-release
     env:
       GH_TOKEN: ${{ github.token }}
       RELEASE_TAG: ${{ needs.verify.outputs.release_tag }}
@@ -240,8 +483,43 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          expected_assets=(
+            "miniapp-bridge-$RELEASE_TAG-windows-amd64.zip"
+            "$NATIVE_ASSET"
+            'manifest.json'
+            'miniapp-bridge.cdx.json'
+            'provenance.intoto.json'
+            'LICENSE'
+            'THIRD_PARTY_NOTICES.md'
+            'FRIDA_COPYING'
+            'FRIDA_COPYING.LIB'
+            'ZLIB_LICENSE'
+          )
+          mapfile -t actual_assets < <(awk 'NF == 2 { print $2 }' release-bundle/SHA256SUMS | sort)
+          mapfile -t expected_assets < <(printf '%s\n' "${expected_assets[@]}" | sort)
+          if [[ "${actual_assets[*]}" != "${expected_assets[*]}" ]]; then
+            printf 'release checksum asset set mismatch\nactual: %s\nexpected: %s\n' \
+              "${actual_assets[*]}" "${expected_assets[*]}" >&2
+            exit 1
+          fi
           (cd release-bundle && sha256sum --check SHA256SUMS)
           (cd release-bundle/native-compat && sha256sum --check SHA256SUMS)
+
+      - name: Verify GitHub provenance attestations
+        shell: bash
+        run: |
+          set -euo pipefail
+          while read -r digest asset; do
+            [[ "$digest" =~ ^[0-9a-f]{64}$ ]]
+            [[ "$asset" =~ ^[^/\\]+$ ]]
+            gh attestation verify "release-bundle/$asset" \
+              --repo "$GITHUB_REPOSITORY" \
+              --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/release.yml" \
+              --signer-digest "$SOURCE_COMMIT" \
+              --source-digest "$SOURCE_COMMIT" \
+              --source-ref "refs/tags/$RELEASE_TAG" \
+              --deny-self-hosted-runners
+          done < release-bundle/SHA256SUMS
 
       - name: Reconcile and publish GitHub Releases
         shell: bash
@@ -514,6 +792,13 @@ jobs:
             "release-bundle/miniapp-bridge-$RELEASE_TAG-windows-amd64.zip"
             "release-bundle/$NATIVE_ASSET"
             "release-bundle/manifest.json"
+            "release-bundle/miniapp-bridge.cdx.json"
+            "release-bundle/provenance.intoto.json"
+            "release-bundle/LICENSE"
+            "release-bundle/THIRD_PARTY_NOTICES.md"
+            "release-bundle/FRIDA_COPYING"
+            "release-bundle/FRIDA_COPYING.LIB"
+            "release-bundle/ZLIB_LICENSE"
             "release-bundle/SHA256SUMS"
           )
           product_release="$(single_release_for_tag "$RELEASE_TAG")"

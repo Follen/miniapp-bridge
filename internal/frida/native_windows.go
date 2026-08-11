@@ -29,7 +29,9 @@ import (
 	"os"
 	"path/filepath"
 	"runtime/cgo"
+	"strings"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"unsafe"
 
@@ -58,22 +60,39 @@ func (e *NativeLoadError) Error() string { return e.Err.Error() }
 func (e *NativeLoadError) Unwrap() error { return e.Err }
 
 type NativeDevice struct {
-	ptr          *C.mb_device
-	mu           sync.Mutex
-	closed       bool
-	handler      func(Message)
-	messageQueue chan Message
-	messageStop  chan struct{}
-	messageDone  chan struct{}
+	ptr                    *C.mb_device
+	mu                     sync.Mutex
+	closing                bool
+	closed                 bool
+	handler                func(Message)
+	messageQueue           chan Message
+	messageQueueBytes      uint64
+	controlQueue           []Message
+	controlQueueBytes      uint64
+	droppedMessages        uint64
+	droppedControlMessages uint64
+	controlWake            chan struct{}
+	messageStop            chan struct{}
+	messageDone            chan struct{}
+	closeDone              chan struct{}
+	sessions               map[*NativeSession]struct{}
 }
 
+const (
+	maxNativeMessageQueue      = 256
+	maxNativeMessageQueueBytes = 8 << 20
+	maxNativeControlQueue      = 64
+	maxNativeControlQueueBytes = 1 << 20
+)
+
 type NativeSession struct {
-	device  *NativeDevice
-	ptr     *C.mb_session
-	h       cgo.Handle
-	mu      sync.Mutex
-	closed  bool
-	scripts map[*NativeScript]struct{}
+	device   *NativeDevice
+	ptr      *C.mb_session
+	h        cgo.Handle
+	mu       sync.Mutex
+	closed   bool
+	scripts  map[*NativeScript]struct{}
+	terminal atomic.Bool
 }
 
 type NativeScript struct {
@@ -160,17 +179,21 @@ func ZlibCompress(data []byte) ([]byte, error) {
 		return nil, fmt.Errorf("frida: zlib compress: %w", nativeError(cErr))
 	}
 	defer C.mb_bytes_free(output)
-	if uint64(outputSize) > maxNativeZlibOutput {
-		return nil, fmt.Errorf("frida: zlib output exceeds %d bytes", maxNativeZlibOutput)
-	}
-	return C.GoBytes(unsafe.Pointer(output), C.int(outputSize)), nil
+	return nativeZlibOutputBytes(unsafe.Pointer(output), uint64(outputSize), maxNativeZlibOutput)
 }
 
 // ZlibDecompress validates the caller's expected size when non-zero and
 // always enforces a bounded allocation for corrupt or hostile frames.
 func ZlibDecompress(data []byte, expectedSize int) ([]byte, error) {
-	if len(data) > maxNativeZlibOutput || expectedSize < 0 || expectedSize > maxNativeZlibOutput {
-		return nil, fmt.Errorf("frida: zlib input or expected output exceeds %d bytes", maxNativeZlibOutput)
+	return ZlibDecompressWithLimit(data, expectedSize, maxNativeZlibOutput)
+}
+
+// ZlibDecompressWithLimit is the bounded variant used by protocol layers that
+// have a tighter per-message budget than the native runtime ceiling. The
+// limit is passed through to the C shim before any native allocation occurs.
+func ZlibDecompressWithLimit(data []byte, expectedSize, maxOutput int) ([]byte, error) {
+	if maxOutput <= 0 || maxOutput > maxNativeZlibOutput || len(data) > maxOutput || expectedSize < 0 || expectedSize > maxOutput {
+		return nil, fmt.Errorf("frida: zlib input or expected output exceeds %d bytes", maxOutput)
 	}
 	release, err := retainNativeRuntime()
 	if err != nil {
@@ -182,14 +205,18 @@ func ZlibDecompress(data []byte, expectedSize int) ([]byte, error) {
 	var output *C.uint8_t
 	var outputSize C.size_t
 	var cErr *C.char
-	if C.mb_zlib_decompress(input, C.size_t(len(data)), C.size_t(expectedSize), C.size_t(maxNativeZlibOutput), &output, &outputSize, &cErr) == 0 {
+	if C.mb_zlib_decompress(input, C.size_t(len(data)), C.size_t(expectedSize), C.size_t(maxOutput), &output, &outputSize, &cErr) == 0 {
 		return nil, fmt.Errorf("frida: zlib decompress: %w", nativeError(cErr))
 	}
 	defer C.mb_bytes_free(output)
-	if uint64(outputSize) > maxNativeZlibOutput {
-		return nil, fmt.Errorf("frida: zlib output exceeds %d bytes", maxNativeZlibOutput)
+	return nativeZlibOutputBytes(unsafe.Pointer(output), uint64(outputSize), uint64(maxOutput))
+}
+
+func nativeZlibOutputBytes(output unsafe.Pointer, outputSize, maxOutput uint64) ([]byte, error) {
+	if outputSize > maxOutput {
+		return nil, fmt.Errorf("frida: zlib output exceeds %d bytes", maxOutput)
 	}
-	return C.GoBytes(unsafe.Pointer(output), C.int(outputSize)), nil
+	return C.GoBytes(output, C.int(outputSize)), nil
 }
 
 func nilNativeDeviceOpen(**C.char) *C.mb_device { return nil }
@@ -227,8 +254,10 @@ func NewNativeDevice() (*NativeDevice, error) {
 		return nil, fmt.Errorf("frida: local device: %w", nativeError(cErr))
 	}
 	device := &NativeDevice{
-		ptr: ptr, messageQueue: make(chan Message, 256),
+		ptr: ptr, messageQueue: make(chan Message, maxNativeMessageQueue),
 		messageStop: make(chan struct{}), messageDone: make(chan struct{}),
+		controlWake: make(chan struct{}, 1), closeDone: make(chan struct{}),
+		sessions: make(map[*NativeSession]struct{}),
 	}
 	go device.runMessageQueue()
 	return device, nil
@@ -240,7 +269,7 @@ func (d *NativeDevice) Enumerate(ctx context.Context) ([]process.Process, error)
 	}
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	if d.closed {
+	if d.closed || d.closing {
 		return nil, errors.New("frida: device closed")
 	}
 	var items *C.mb_process
@@ -263,7 +292,7 @@ func (d *NativeDevice) Enumerate(ctx context.Context) ([]process.Process, error)
 func (d *NativeDevice) Attach(pid uint32) (Session, error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	if d.closed {
+	if d.closed || d.closing {
 		return nil, errors.New("frida: device closed")
 	}
 	ns := &NativeSession{device: d, scripts: make(map[*NativeScript]struct{})}
@@ -274,6 +303,10 @@ func (d *NativeDevice) Attach(pid uint32) (Session, error) {
 		ns.h.Delete()
 		return nil, fmt.Errorf("frida: attach %d: %w", pid, nativeError(cErr))
 	}
+	if d.sessions == nil {
+		d.sessions = make(map[*NativeSession]struct{})
+	}
+	d.sessions[ns] = struct{}{}
 	return ns, nil
 }
 
@@ -283,20 +316,44 @@ func (d *NativeDevice) Close() error {
 		d.mu.Unlock()
 		return nil
 	}
-	d.closed = true
+	if d.closing {
+		done := d.closeDone
+		d.mu.Unlock()
+		if done != nil {
+			<-done
+		}
+		return nil
+	}
+	d.closing = true
 	ptr := d.ptr
 	d.ptr = nil
-	stop, done := d.messageStop, d.messageDone
+	stop, done, closeDone := d.messageStop, d.messageDone, d.closeDone
+	sessions := make([]*NativeSession, 0, len(d.sessions))
+	for session := range d.sessions {
+		sessions = append(sessions, session)
+	}
+	d.mu.Unlock()
+	var cleanup []error
+	for _, session := range sessions {
+		if err := session.Detach(); err != nil {
+			cleanup = append(cleanup, err)
+		}
+	}
+	C.mb_device_close(ptr)
+	d.mu.Lock()
+	d.closed = true
 	if stop != nil {
 		close(stop)
 	}
+	if closeDone != nil {
+		close(closeDone)
+	}
 	d.mu.Unlock()
-	C.mb_device_close(ptr)
 	if done != nil {
 		<-done
 	}
 	C.mb_native_release()
-	return nil
+	return errors.Join(cleanup...)
 }
 
 func ShutdownRuntime() { C.mb_runtime_shutdown() }
@@ -308,9 +365,12 @@ func (d *NativeDevice) SetMessageHandler(handler func(Message)) {
 }
 
 func (s *NativeSession) LoadScript(source string) (Script, error) {
+	if s == nil || s.terminal.Load() {
+		return nil, errors.New("frida: session detached")
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.closed {
+	if s.closed || s.terminal.Load() || s.ptr == nil {
 		return nil, errors.New("frida: session closed")
 	}
 	cs := C.CString(source)
@@ -329,12 +389,16 @@ func (s *NativeSession) LoadScript(source string) (Script, error) {
 }
 
 func (s *NativeSession) Detach() error {
+	if s == nil {
+		return nil
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.closed {
 		return nil
 	}
 	s.closed = true
+	s.terminal.Store(true)
 	var cleanup []error
 	for script := range s.scripts {
 		if script.closed {
@@ -356,6 +420,11 @@ func (s *NativeSession) Detach() error {
 	if s.h != 0 {
 		s.h.Delete()
 		s.h = 0
+	}
+	if s.device != nil {
+		s.device.mu.Lock()
+		delete(s.device.sessions, s)
+		s.device.mu.Unlock()
 	}
 	if ok == 0 || forcedNativeFailure("detach") != nil {
 		cleanup = append(cleanup, fmt.Errorf("frida: detach: %w", nativeError(cErr)))
@@ -389,7 +458,7 @@ func (s *NativeScript) Post(payload []byte) error {
 	}
 	s.session.mu.Lock()
 	defer s.session.mu.Unlock()
-	if s.closed || s.session.closed {
+	if s.closed || s.session.closed || s.session.terminal.Load() || s.ptr == nil {
 		return errors.New("frida: script unloaded")
 	}
 	text := C.CString(string(payload))
@@ -406,7 +475,7 @@ func goFridaMessage(handle C.uintptr_t, message *C.char, data *C.uint8_t, size C
 	if handle == 0 || message == nil {
 		return
 	}
-	s, ok := cgo.Handle(handle).Value().(*NativeSession)
+	s, ok := nativeSessionFromHandle(uintptr(handle))
 	if !ok {
 		return
 	}
@@ -429,7 +498,11 @@ func goFridaMessage(handle C.uintptr_t, message *C.char, data *C.uint8_t, size C
 	if size > 0 && data != nil {
 		m.Data = C.GoBytes(unsafe.Pointer(data), C.int(size))
 	}
-	s.device.dispatch(m)
+	if isControlMessage(m) {
+		s.device.dispatchControl(m)
+	} else if !s.terminal.Load() {
+		s.device.dispatch(m)
+	}
 }
 
 func invokeFridaMessageForTest(handle uintptr, message string, data []byte) {
@@ -448,9 +521,23 @@ func goFridaDetached(handle C.uintptr_t, reason C.int) {
 	if handle == 0 {
 		return
 	}
-	if s, ok := cgo.Handle(handle).Value().(*NativeSession); ok {
-		s.device.dispatch(Message{Type: fmt.Sprintf("detached:%d", int(reason))})
+	if s, ok := nativeSessionFromHandle(uintptr(handle)); ok {
+		s.terminal.Store(true)
+		s.device.dispatchControl(Message{Type: fmt.Sprintf("detached:%d", int(reason))})
 	}
+}
+
+func nativeSessionFromHandle(handle uintptr) (session *NativeSession, ok bool) {
+	if handle == 0 {
+		return nil, false
+	}
+	defer func() {
+		if recover() != nil {
+			session, ok = nil, false
+		}
+	}()
+	session, ok = cgo.Handle(handle).Value().(*NativeSession)
+	return session, ok
 }
 
 func invokeFridaDetachedForTest(handle uintptr, reason int) {
@@ -458,26 +545,109 @@ func invokeFridaDetachedForTest(handle uintptr, reason int) {
 }
 
 func (d *NativeDevice) dispatch(m Message) {
+	size := nativeMessageBytes(m)
 	d.mu.Lock()
 	if d.closed {
 		d.mu.Unlock()
 		return
 	}
 	queue := d.messageQueue
-	d.mu.Unlock()
+	if queue != nil && (size > maxNativeMessageQueueBytes || d.messageQueueBytes > maxNativeMessageQueueBytes-size) {
+		d.droppedMessages++
+		d.mu.Unlock()
+		return
+	}
 	if queue != nil {
 		select {
 		case queue <- m:
+			d.messageQueueBytes += size
+			d.mu.Unlock()
+			return
 		default:
+			d.droppedMessages++
+			d.mu.Unlock()
+			return
 		}
+	}
+	d.mu.Unlock()
+	d.deliverMessage(m)
+}
+
+func isControlMessage(message Message) bool {
+	return strings.HasPrefix(message.Type, "detached:") || message.Type == "fatal" || message.Type == "error"
+}
+
+func (d *NativeDevice) dispatchControl(m Message) {
+	d.mu.Lock()
+	if d.closed {
+		d.mu.Unlock()
 		return
 	}
-	d.deliverMessage(m)
+	if d.controlWake == nil {
+		d.mu.Unlock()
+		d.deliverMessage(m)
+		return
+	}
+	size := nativeMessageBytes(m)
+	if len(d.controlQueue) >= maxNativeControlQueue ||
+		size > maxNativeControlQueueBytes ||
+		d.controlQueueBytes > maxNativeControlQueueBytes-size {
+		/* Keep control delivery reliable without allowing an unbounded slice. */
+		d.droppedControlMessages++
+		d.mu.Unlock()
+		d.deliverMessage(m)
+		return
+	}
+	d.controlQueue = append(d.controlQueue, m)
+	d.controlQueueBytes += size
+	wake := d.controlWake
+	d.mu.Unlock()
+	select {
+	case wake <- struct{}{}:
+	default:
+	}
+}
+
+func (d *NativeDevice) nextControl() (Message, bool) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if len(d.controlQueue) == 0 {
+		return Message{}, false
+	}
+	message := d.controlQueue[0]
+	d.controlQueue[0] = Message{}
+	d.controlQueue = d.controlQueue[1:]
+	size := nativeMessageBytes(message)
+	if size >= d.controlQueueBytes {
+		d.controlQueueBytes = 0
+	} else {
+		d.controlQueueBytes -= size
+	}
+	return message, true
+}
+
+func nativeMessageBytes(message Message) uint64 {
+	return uint64(len(message.Type)) + uint64(len(message.Payload)) + uint64(len(message.Data))
+}
+
+func (d *NativeDevice) accountNormalDequeue(message Message) {
+	size := nativeMessageBytes(message)
+	d.mu.Lock()
+	if size >= d.messageQueueBytes {
+		d.messageQueueBytes = 0
+	} else {
+		d.messageQueueBytes -= size
+	}
+	d.mu.Unlock()
 }
 
 func (d *NativeDevice) runMessageQueue() {
 	defer close(d.messageDone)
 	for {
+		if message, ok := d.nextControl(); ok {
+			d.deliverMessage(message)
+			continue
+		}
 		select {
 		case <-d.messageStop:
 			d.drainMessageQueue()
@@ -486,7 +656,10 @@ func (d *NativeDevice) runMessageQueue() {
 		}
 		select {
 		case message := <-d.messageQueue:
+			d.accountNormalDequeue(message)
 			d.deliverMessage(message)
+		case <-d.controlWake:
+			// Control messages are drained at the top of the loop.
 		case <-d.messageStop:
 			d.drainMessageQueue()
 			return
@@ -496,8 +669,13 @@ func (d *NativeDevice) runMessageQueue() {
 
 func (d *NativeDevice) drainMessageQueue() {
 	for {
+		if message, ok := d.nextControl(); ok {
+			d.deliverMessage(message)
+			continue
+		}
 		select {
 		case message := <-d.messageQueue:
+			d.accountNormalDequeue(message)
 			d.deliverMessage(message)
 		default:
 			return

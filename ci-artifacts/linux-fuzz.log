@@ -1,0 +1,82 @@
+
+=== fuzz ./internal/app FuzzWebSocketDebugFrameDecode ===
+fuzz: elapsed: 0s, gathering baseline coverage: 0/155 completed
+fuzz: elapsed: 1s, gathering baseline coverage: 155/155 completed, now fuzzing with 1 workers
+fuzz: elapsed: 2s, execs: 37735 (18804/sec), new interesting: 9 (total: 164)
+PASS
+ok  	github.com/Follen/miniapp-bridge/internal/app	2.536s
+=== fuzz ./internal/app FuzzCDPWebSocketFrameDecode ===
+fuzz: elapsed: 0s, gathering baseline coverage: 0/124 completed
+fuzz: elapsed: 0s, gathering baseline coverage: 124/124 completed, now fuzzing with 1 workers
+fuzz: elapsed: 2s, execs: 35171 (17512/sec), new interesting: 9 (total: 133)
+PASS
+ok  	github.com/Follen/miniapp-bridge/internal/app	2.102s
+=== fuzz ./internal/cdp FuzzCDPJSONNumberCanonicalization ===
+fuzz: elapsed: 0s, gathering baseline coverage: 0/175 completed
+fuzz: elapsed: 0s, gathering baseline coverage: 175/175 completed, now fuzzing with 1 workers
+fuzz: elapsed: 2s, execs: 76921 (38002/sec), new interesting: 2 (total: 177)
+PASS
+ok  	github.com/Follen/miniapp-bridge/internal/cdp	2.105s
+=== fuzz ./internal/cdp FuzzCDPIDKeyTypeBoundaries ===
+fuzz: elapsed: 0s, gathering baseline coverage: 0/183 completed
+fuzz: elapsed: 0s, gathering baseline coverage: 183/183 completed, now fuzzing with 1 workers
+fuzz: elapsed: 2s, execs: 74879 (37295/sec), new interesting: 1 (total: 184)
+PASS
+ok  	github.com/Follen/miniapp-bridge/internal/cdp	2.097s
+=== fuzz ./internal/capture FuzzCaptureDecode ===
+fuzz: elapsed: 0s, gathering baseline coverage: 0/27 completed
+fuzz: elapsed: 0s, gathering baseline coverage: 27/27 completed, now fuzzing with 1 workers
+fuzz: elapsed: 2s, execs: 114721 (55558/sec), new interesting: 2 (total: 29)
+PASS
+ok  	github.com/Follen/miniapp-bridge/internal/capture	7.540s
+=== fuzz ./internal/capture FuzzCaptureBoundaryArithmetic ===
+fuzz: elapsed: 0s, gathering baseline coverage: 0/24 completed
+fuzz: elapsed: 0s, gathering baseline coverage: 24/24 completed, now fuzzing with 1 workers
+fuzz: elapsed: 2s, execs: 114256 (55886/sec), new interesting: 1 (total: 25)
+PASS
+ok  	github.com/Follen/miniapp-bridge/internal/capture	2.087s
+=== fuzz ./internal/native FuzzNativeManifestDecode ===
+fuzz: elapsed: 0s, gathering baseline coverage: 0/80 completed
+fuzz: elapsed: 0s, gathering baseline coverage: 80/80 completed, now fuzzing with 1 workers
+fuzz: elapsed: 3s, execs: 132 (44/sec), new interesting: 0 (total: 80)
+fuzz: elapsed: 3s, execs: 132 (0/sec), new interesting: 0 (total: 80)
+PASS
+ok  	github.com/Follen/miniapp-bridge/internal/native	3.485s
+=== fuzz ./internal/native FuzzNativeManifestTrustBoundaries ===
+fuzz: elapsed: 0s, gathering baseline coverage: 0/24 completed
+fuzz: elapsed: 0s, gathering baseline coverage: 24/24 completed, now fuzzing with 1 workers
+fuzz: elapsed: 2s, execs: 42459 (20918/sec), new interesting: 0 (total: 24)
+PASS
+ok  	github.com/Follen/miniapp-bridge/internal/native	2.092s
+=== fuzz ./internal/wmpf FuzzWMPFDebugMessageDecode ===
+fuzz: elapsed: 0s, gathering baseline coverage: 0/130 completed
+fuzz: elapsed: 0s, gathering baseline coverage: 130/130 completed, now fuzzing with 1 workers
+fuzz: elapsed: 3s, execs: 14676 (4932/sec), new interesting: 4 (total: 134)
+PASS
+ok  	github.com/Follen/miniapp-bridge/internal/wmpf	3.049s
+=== fuzz ./internal/wmpf FuzzWMPFGenericDecode ===
+fuzz: elapsed: 0s, gathering baseline coverage: 0/132 completed
+fuzz: elapsed: 0s, gathering baseline coverage: 132/132 completed, now fuzzing with 1 workers
+fuzz: elapsed: 2s, execs: 32232 (16062/sec), new interesting: 4 (total: 136)
+PASS
+ok  	github.com/Follen/miniapp-bridge/internal/wmpf	2.074s
+=== fuzz ./internal/wmpf FuzzWMPFCommandDecode ===
+fuzz: elapsed: 0s, gathering baseline coverage: 0/110 completed
+fuzz: elapsed: 0s, gathering baseline coverage: 110/110 completed, now fuzzing with 1 workers
+fuzz: elapsed: 3s, execs: 5599 (1866/sec), new interesting: 0 (total: 110)
+fuzz: elapsed: 3s, execs: 5599 (0/sec), new interesting: 0 (total: 110)
+PASS
+ok  	github.com/Follen/miniapp-bridge/internal/wmpf	3.067s
+=== fuzz ./internal/wmpf FuzzWMPFZlibBoundedRoundTrip ===
+fuzz: elapsed: 0s, gathering baseline coverage: 0/71 completed
+fuzz: elapsed: 0s, gathering baseline coverage: 71/71 completed, now fuzzing with 1 workers
+fuzz: elapsed: 3s, execs: 219 (73/sec), new interesting: 0 (total: 71)
+fuzz: elapsed: 3s, execs: 219 (0/sec), new interesting: 0 (total: 71)
+PASS
+ok  	github.com/Follen/miniapp-bridge/internal/wmpf	3.062s
+=== fuzz ./internal/wmpf FuzzWMPFZlibDecode ===
+fuzz: elapsed: 0s, gathering baseline coverage: 0/145 completed
+fuzz: elapsed: 0s, gathering baseline coverage: 145/145 completed, now fuzzing with 1 workers
+fuzz: elapsed: 2s, execs: 93800 (45165/sec), new interesting: 1 (total: 146)
+PASS
+ok  	github.com/Follen/miniapp-bridge/internal/wmpf	2.150s

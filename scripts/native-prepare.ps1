@@ -8,21 +8,30 @@ param(
     [string]$CacheDirectory = '',
     [string]$DestinationDirectory = '',
     [string]$SourceURL = '',
-    [string]$ExpectedArchiveSHA256 = ''
+    [string]$ExpectedArchiveSHA256 = '',
+    [ValidateRange(2, 20)][int]$RetentionCount = 2,
+    [switch]$Rollback,
+    [string]$CanaryCommand = ''
 )
 
 $ErrorActionPreference = 'Stop'
 $expectedArchiveSHA = ([string]$ExpectedArchiveSHA256).Trim().ToUpperInvariant()
-if (-not $expectedArchiveSHA) {
+if (-not $Rollback -and -not $expectedArchiveSHA) {
     throw 'ExpectedArchiveSHA256 is required for native preparation in online and offline modes'
 }
-if ($expectedArchiveSHA -notmatch '^[0-9A-F]{64}$') {
+if ($expectedArchiveSHA -and $expectedArchiveSHA -notmatch '^[0-9A-F]{64}$') {
     throw 'ExpectedArchiveSHA256 must contain exactly 64 hexadecimal characters'
 }
 
 $asset = "miniapp-frida-native-$Version-windows-amd64.zip"
 $cache = if ($CacheDirectory) { [IO.Path]::GetFullPath($CacheDirectory) } else { Join-Path $env:LOCALAPPDATA "miniapp-bridge\native\$Version\windows-amd64" }
 $destination = if ($DestinationDirectory) { [IO.Path]::GetFullPath($DestinationDirectory) } else { (Get-Location).Path }
+$stateRoot = Join-Path $destination '.native-runtime'
+$versionsRoot = Join-Path $stateRoot 'versions'
+$destinationLockPath = Join-Path $stateRoot 'update.lock'
+$journalPath = Join-Path $stateRoot 'transaction.json'
+$currentPath = Join-Path $stateRoot 'current.json'
+$rollbackPath = Join-Path $stateRoot 'rollback.json'
 $url = if ($SourceURL) { $SourceURL } else { "https://github.com/Follen/miniapp-bridge/releases/download/native-v$Version/$asset" }
 $archive = Join-Path $cache $asset
 $lockPath = "$archive.lock"
@@ -36,8 +45,8 @@ $temporaryManifest = "$installedManifest.partial"
 $publishID = [guid]::NewGuid().ToString('N')
 $backupDLL = "$installed.backup-$publishID"
 $backupManifest = "$installedManifest.backup-$publishID"
-$cleanupPublishBackups = $false
 $lock = $null
+$destinationLock = $null
 $timer = [Diagnostics.Stopwatch]::StartNew()
 
 function Get-SHA256([string]$Path) {
@@ -112,7 +121,79 @@ function Invoke-TestPublishFailure([string]$Step) {
     }
 }
 
-New-Item -ItemType Directory -Force -Path $cache,$destination | Out-Null
+function Write-AtomicJSON {
+    param([string]$Path, [object]$Value)
+    $temporary = "$Path.$([guid]::NewGuid().ToString('N')).partial"
+    try {
+        [IO.File]::WriteAllText($temporary, ($Value | ConvertTo-Json -Compress), [Text.UTF8Encoding]::new($false))
+        Move-Item -LiteralPath $temporary -Destination $Path -Force
+    }
+    finally {
+        Remove-Item -LiteralPath $temporary -Force -ErrorAction SilentlyContinue
+    }
+}
+
+function Read-Pointer([string]$Path) {
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return $null }
+    try { return Get-Content -LiteralPath $Path -Raw -Encoding UTF8 | ConvertFrom-Json }
+    catch { throw "invalid native transaction metadata: $Path`: $($_.Exception.Message)" }
+}
+
+function Publish-Version {
+    param([string]$VersionDirectory)
+    $sourceDLL = Join-Path $VersionDirectory $dllName
+    $sourceManifest = Join-Path $VersionDirectory 'manifest.json'
+    if (-not (Test-Path -LiteralPath $sourceDLL -PathType Leaf) -or
+        -not (Test-Path -LiteralPath $sourceManifest -PathType Leaf)) {
+        throw "native version directory is incomplete: $VersionDirectory"
+    }
+    Copy-Item -LiteralPath $sourceManifest -Destination $temporaryManifest -Force
+    Copy-Item -LiteralPath $sourceDLL -Destination $temporaryDLL -Force
+    if (Test-Path -LiteralPath $installed) { Remove-Item -LiteralPath $installed -Force }
+    if (Test-Path -LiteralPath $installedManifest) { Remove-Item -LiteralPath $installedManifest -Force }
+    Move-Item -LiteralPath $temporaryManifest -Destination $installedManifest -Force
+    Move-Item -LiteralPath $temporaryDLL -Destination $installed -Force
+}
+
+function Recover-NativeTransaction {
+    $journal = Read-Pointer $journalPath
+    if ($null -eq $journal) { return }
+    if ($journal.phase -in @('prepare', 'verify')) {
+        if ($journal.stage -and (Test-Path -LiteralPath $journal.stage)) {
+            Remove-Item -LiteralPath $journal.stage -Recurse -Force
+        }
+    }
+    elseif ($journal.phase -eq 'publish') {
+        if ($journal.previousVersionDirectory -and (Test-Path -LiteralPath $journal.previousVersionDirectory -PathType Container)) {
+            Publish-Version $journal.previousVersionDirectory
+            Write-AtomicJSON -Path $currentPath -Value ([ordered]@{ versionDirectory = $journal.previousVersionDirectory })
+        }
+        else {
+            Remove-Item -LiteralPath $installed,$installedManifest,$currentPath -Force -ErrorAction SilentlyContinue
+        }
+    }
+    Remove-Item -LiteralPath $journalPath -Force
+}
+
+function Invoke-Rollback {
+    $record = Read-Pointer $rollbackPath
+    $current = Read-Pointer $currentPath
+    if ($record -and $current -and $record.to -ceq $current.versionDirectory) {
+        Write-Output "native_rollback=noop"
+        return
+    }
+    $candidates = @(Get-ChildItem -LiteralPath $versionsRoot -Directory -ErrorAction SilentlyContinue |
+        Where-Object { $null -eq $current -or $_.FullName -cne $current.versionDirectory } |
+        Sort-Object LastWriteTimeUtc -Descending)
+    if ($candidates.Count -eq 0) { throw 'native rollback has no retained previous version' }
+    $target = $candidates[0].FullName
+    Publish-Version $target
+    Write-AtomicJSON -Path $currentPath -Value ([ordered]@{ versionDirectory = $target })
+    Write-AtomicJSON -Path $rollbackPath -Value ([ordered]@{ from = if ($current) { $current.versionDirectory } else { '' }; to = $target })
+    Write-Output "native_rollback=$target"
+}
+
+New-Item -ItemType Directory -Force -Path $cache,$destination,$stateRoot,$versionsRoot | Out-Null
 try {
     while ($null -eq $lock) {
         try {
@@ -124,6 +205,37 @@ try {
             }
             Start-Sleep -Milliseconds 100
         }
+    }
+
+    $destinationTimer = [Diagnostics.Stopwatch]::StartNew()
+    while ($null -eq $destinationLock) {
+        try {
+            $destinationLock = [IO.File]::Open($destinationLockPath, [IO.FileMode]::OpenOrCreate, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
+        }
+        catch [IO.IOException] {
+            if ($destinationTimer.Elapsed.TotalSeconds -ge $LockTimeoutSeconds) {
+                throw "native destination lock timeout: $destinationLockPath"
+            }
+            Start-Sleep -Milliseconds 100
+        }
+    }
+    Recover-NativeTransaction
+    if ($Rollback) {
+        Invoke-Rollback
+        return
+    }
+
+    if (-not (Test-Path -LiteralPath $currentPath -PathType Leaf) -and
+        (Test-Path -LiteralPath $installed -PathType Leaf) -and
+        (Test-Path -LiteralPath $installedManifest -PathType Leaf)) {
+        $legacyHash = Get-SHA256 $installed
+        $legacyDirectory = Join-Path $versionsRoot "legacy-$($legacyHash.Substring(0, 16))"
+        if (-not (Test-Path -LiteralPath $legacyDirectory -PathType Container)) {
+            New-Item -ItemType Directory -Path $legacyDirectory | Out-Null
+            Copy-Item -LiteralPath $installed -Destination (Join-Path $legacyDirectory $dllName)
+            Copy-Item -LiteralPath $installedManifest -Destination (Join-Path $legacyDirectory 'manifest.json')
+        }
+        Write-AtomicJSON -Path $currentPath -Value ([ordered]@{ versionDirectory = $legacyDirectory; nativeVersion = 'legacy'; sha256 = $legacyHash })
     }
 
     if (-not (Test-Path -LiteralPath $archive -PathType Leaf)) {
@@ -244,16 +356,20 @@ try {
         throw 'native manifest required export set mismatch'
     }
 
-    Remove-Item -LiteralPath $temporaryDLL,$temporaryManifest -Force -ErrorAction SilentlyContinue
-    Copy-Item -LiteralPath $manifestPath -Destination $temporaryManifest -Force
-    Copy-Item -LiteralPath $dllPath -Destination $temporaryDLL -Force
-    if ((Get-SHA256 $temporaryDLL) -cne $dllHash) {
-        throw 'native destination partial DLL SHA-256 mismatch'
+    $versionDirectory = Join-Path $versionsRoot "$Version-$($dllHash.Substring(0, 16))"
+    $versionStage = "$versionDirectory.staging-$publishID"
+    Write-AtomicJSON -Path $journalPath -Value ([ordered]@{ phase = 'prepare'; stage = $versionStage; previousVersionDirectory = '' })
+    if (-not (Test-Path -LiteralPath $versionDirectory -PathType Container)) {
+        New-Item -ItemType Directory -Path $versionStage | Out-Null
+        Copy-Item -LiteralPath $manifestPath -Destination (Join-Path $versionStage 'manifest.json')
+        Copy-Item -LiteralPath $dllPath -Destination (Join-Path $versionStage $dllName)
+        Write-AtomicJSON -Path $journalPath -Value ([ordered]@{ phase = 'verify'; stage = $versionStage; previousVersionDirectory = '' })
+        if ((Get-SHA256 (Join-Path $versionStage $dllName)) -cne $dllHash) {
+            throw 'native version directory DLL SHA-256 mismatch'
+        }
+        Move-Item -LiteralPath $versionStage -Destination $versionDirectory
     }
 
-    # The DLL is the readiness marker. Back up the previous pair, publish the
-    # manifest, and publish the verified DLL last. Rollback follows the same
-    # readiness ordering, restoring the previous DLL only after its manifest.
     if (Test-Path -LiteralPath $installedManifest -PathType Container) {
         throw 'native destination manifest path is a directory'
     }
@@ -261,78 +377,49 @@ try {
         throw 'native destination DLL path is a directory'
     }
 
-    $hadInstalledDLL = Test-Path -LiteralPath $installed -PathType Leaf
-    $hadInstalledManifest = Test-Path -LiteralPath $installedManifest -PathType Leaf
-    $dllBackedUp = $false
-    $manifestBackedUp = $false
+    $previous = Read-Pointer $currentPath
+    $previousDirectory = if ($previous) { [string]$previous.versionDirectory } else { '' }
+    Write-AtomicJSON -Path $journalPath -Value ([ordered]@{ phase = 'publish'; stage = $versionStage; previousVersionDirectory = $previousDirectory })
     try {
-        if ($hadInstalledDLL) {
-            Move-Item -LiteralPath $installed -Destination $backupDLL -Force
-            $dllBackedUp = $true
-        }
         Invoke-TestPublishFailure 'after-dll-backup'
-
-        if ($hadInstalledManifest) {
-            Move-Item -LiteralPath $installedManifest -Destination $backupManifest -Force
-            $manifestBackedUp = $true
-        }
         Invoke-TestPublishFailure 'after-manifest-backup'
-
-        Move-Item -LiteralPath $temporaryManifest -Destination $installedManifest -Force
+        Publish-Version $versionDirectory
         Invoke-TestPublishFailure 'after-manifest-publish'
-        Move-Item -LiteralPath $temporaryDLL -Destination $installed -Force
         Invoke-TestPublishFailure 'after-dll-publish'
-        $cleanupPublishBackups = $true
+        Write-AtomicJSON -Path $currentPath -Value ([ordered]@{ versionDirectory = $versionDirectory; nativeVersion = $Version; sha256 = $dllHash })
+        Remove-Item -LiteralPath $rollbackPath -Force -ErrorAction SilentlyContinue
+        if ($CanaryCommand) {
+            $global:LASTEXITCODE = 0
+            & ([scriptblock]::Create($CanaryCommand))
+            if ($LASTEXITCODE -ne 0) { throw "native canary failed with exit code $LASTEXITCODE" }
+        }
     }
     catch {
         $publishFailure = $_
-        $rollbackErrors = @()
-
-        if ($dllBackedUp -or -not $hadInstalledDLL) {
-            try {
-                if (Test-Path -LiteralPath $installed) {
-                    Remove-Item -LiteralPath $installed -Force -ErrorAction Stop
-                }
-            }
-            catch {
-                $rollbackErrors += $_.Exception.Message
-            }
+        if ($previousDirectory -and (Test-Path -LiteralPath $previousDirectory -PathType Container)) {
+            Publish-Version $previousDirectory
+            Write-AtomicJSON -Path $currentPath -Value ([ordered]@{ versionDirectory = $previousDirectory })
+        } else {
+            Remove-Item -LiteralPath $installed,$installedManifest,$currentPath -Force -ErrorAction SilentlyContinue
         }
-        if ($manifestBackedUp -or -not $hadInstalledManifest) {
-            try {
-                if (Test-Path -LiteralPath $installedManifest) {
-                    Remove-Item -LiteralPath $installedManifest -Force -ErrorAction Stop
-                }
-            }
-            catch {
-                $rollbackErrors += $_.Exception.Message
-            }
-        }
-        if ($manifestBackedUp) {
-            try {
-                Move-Item -LiteralPath $backupManifest -Destination $installedManifest -Force
-                $manifestBackedUp = $false
-            }
-            catch {
-                $rollbackErrors += $_.Exception.Message
-            }
-        }
-        if ($dllBackedUp) {
-            try {
-                Move-Item -LiteralPath $backupDLL -Destination $installed -Force
-                $dllBackedUp = $false
-            }
-            catch {
-                $rollbackErrors += $_.Exception.Message
-            }
-        }
-
-        if ($rollbackErrors.Count -gt 0) {
-            throw "native publish failed: $($publishFailure.Exception.Message); rollback failed: $($rollbackErrors -join '; ')"
-        }
-        $cleanupPublishBackups = $true
+        Remove-Item -LiteralPath $journalPath -Force -ErrorAction SilentlyContinue
         throw $publishFailure
     }
+
+    Write-AtomicJSON -Path $journalPath -Value ([ordered]@{ phase = 'cleanup'; stage = ''; previousVersionDirectory = $previousDirectory })
+    $orderedDirectories = @(
+        Get-Item -LiteralPath $versionDirectory
+        if ($previousDirectory -and $previousDirectory -cne $versionDirectory -and (Test-Path -LiteralPath $previousDirectory)) {
+            Get-Item -LiteralPath $previousDirectory
+        }
+        Get-ChildItem -LiteralPath $versionsRoot -Directory | Sort-Object LastWriteTimeUtc -Descending
+    )
+    $keep = @($orderedDirectories | Select-Object -ExpandProperty FullName -Unique | Select-Object -First $RetentionCount)
+    foreach ($directory in @(Get-ChildItem -LiteralPath $versionsRoot -Directory)) {
+        if ($keep -contains $directory.FullName) { continue }
+        Remove-Item -LiteralPath $directory.FullName -Recurse -Force
+    }
+    Remove-Item -LiteralPath $journalPath -Force
 
     Write-Output "native_version=$Version"
     Write-Output "native_dll=$installed"
@@ -340,13 +427,14 @@ try {
     Write-Output "native_dll_sha256=$dllHash"
 }
 finally {
+    if ($null -ne $destinationLock) {
+        $destinationLock.Dispose()
+        Remove-Item -LiteralPath $destinationLockPath -Force -ErrorAction SilentlyContinue
+    }
     if ($null -ne $lock) {
         Remove-Item -LiteralPath $partial,$temporaryDLL,$temporaryManifest -Force -ErrorAction SilentlyContinue
         if (Test-Path -LiteralPath $stage) {
             Remove-Item -LiteralPath $stage -Recurse -Force -ErrorAction SilentlyContinue
-        }
-        if ($cleanupPublishBackups) {
-            Remove-Item -LiteralPath $backupDLL,$backupManifest -Force -ErrorAction SilentlyContinue
         }
         $lock.Dispose()
         Remove-Item -LiteralPath $lockPath -Force -ErrorAction SilentlyContinue

@@ -1,0 +1,1 @@
+{"schema":"miniapp_bridge.coverage.v1","language":"C","source":"internal/frida/shim/miniapp_frida.c","tool":"gcov","tool_version":"16.1.0","line_percent":100.0,"line_total":233,"branch_site_percent":100.0,"branch_site_total":202,"function_percent":100.0,"function_total":70,"threshold_percent":100.0,"result":"passed"}

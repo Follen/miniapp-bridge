@@ -108,7 +108,7 @@ func buildNativeZlibFixture(t *testing.T, name, compress, decompress string) str
 	return filepath.Join(dir, name+".dll")
 }
 
-const fakeCompressCopy = `__declspec(dllexport) int mb_zlib_compress(const uint8_t*i,size_t n,uint8_t**o,size_t*s,char**e){(void)e;*o=(uint8_t*)malloc(n?n:1);if(!*o)return 0;if(n)memcpy(*o,i,n);*s=n;return 1;}`
+const fakeCompressCopy = `__declspec(dllexport) int mb_zlib_compress(const uint8_t*i,size_t n,uint8_t**o,size_t*s,char**e){(void)e;MB_ZLIB_DELAY();*o=(uint8_t*)malloc(n?n:1);if(!*o)return 0;if(n)memcpy(*o,i,n);*s=n;return 1;}`
 const fakeDecompressCopy = `__declspec(dllexport) int mb_zlib_decompress(const uint8_t*i,size_t n,size_t x,size_t m,uint8_t**o,size_t*s,char**e){(void)x;(void)m;return mb_zlib_compress(i,n,o,s,e);}`
 const fakeCompressFailure = `__declspec(dllexport) int mb_zlib_compress(const uint8_t*i,size_t n,uint8_t**o,size_t*s,char**e){(void)i;(void)n;(void)e;*o=NULL;*s=0;return 0;}`
 const fakeCompressOversize = `__declspec(dllexport) int mb_zlib_compress(const uint8_t*i,size_t n,uint8_t**o,size_t*s,char**e){(void)i;(void)n;(void)e;*o=(uint8_t*)malloc(1);if(!*o)return 0;*s=268435457;return 1;}`

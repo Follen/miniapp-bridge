@@ -1,7 +1,25 @@
+param([switch]$CoverageExportMismatchFixture)
+
 $ErrorActionPreference = 'Stop'
 $env:CGO_ENABLED = '1'
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 Set-Location $repo
+
+function Assert-NativeExports {
+    param(
+        [string[]]$Required,
+        [string[]]$Actual
+    )
+    $missing = @($Required | Where-Object { $_ -notin $Actual })
+    $unexpected = @($Actual | Where-Object { $_ -notin $Required })
+    if ($missing.Count -ne 0 -or $unexpected.Count -ne 0) {
+        throw "native DLL export mismatch; missing=$($missing -join ','); unexpected=$($unexpected -join ',')"
+    }
+}
+
+if ($CoverageExportMismatchFixture) {
+    Assert-NativeExports -Required @('mb_fixture_required') -Actual @()
+}
 New-Item -ItemType Directory -Force -Path dist | Out-Null
 & $PSScriptRoot\build-frida-shim.ps1
 $runtime = Resolve-Path third_party/frida/runtime-17.3.2
@@ -25,9 +43,7 @@ $actualExports = @($exports | ForEach-Object {
 } | Sort-Object -Unique)
 $missingExports = @($manifest.requiredExports | Where-Object { $_ -notin $actualExports })
 $unexpectedExports = @($actualExports | Where-Object { $_ -notin $manifest.requiredExports })
-if ($missingExports.Count -ne 0 -or $unexpectedExports.Count -ne 0) {
-    throw "native DLL export mismatch; missing=$($missingExports -join ','); unexpected=$($unexpectedExports -join ',')"
-}
+Assert-NativeExports -Required @($manifest.requiredExports) -Actual $actualExports
 $dependentCommand = 'call "{0}" -arch=x64 -host_arch=x64 >nul && dumpbin /dependents "{1}"' -f $vsdev, $dll
 $dependents = cmd.exe /d /s /c $dependentCommand
 if ($LASTEXITCODE -ne 0) { throw "dumpbin dependents failed with exit $LASTEXITCODE" }
