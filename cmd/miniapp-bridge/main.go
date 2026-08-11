@@ -3,61 +3,72 @@ package main
 import (
 	"context"
 	"fmt"
-	"miniapp-bridge/internal/app"
-	"miniapp-bridge/internal/capture"
-	"miniapp-bridge/internal/config"
-	"miniapp-bridge/internal/logging"
+	"io"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/Follen/miniapp-bridge/internal/config"
+	"github.com/Follen/miniapp-bridge/sdk"
 )
 
-func main() {
-	o, e := config.Parse(os.Args[1:])
-	if e == config.ErrHelp {
-		fmt.Println(config.HelpText)
-		return
-	}
-	if e != nil {
-		fmt.Fprintln(os.Stderr, e)
-		os.Exit(2)
-	}
-	a := app.New(o.DebugPort, o.CDPPort, logging.New(o.DebugMain, o.DebugFrida))
-	if o.RecordPath != "" {
-		r, e := capture.Start(o.RecordPath)
-		if e != nil {
-			fmt.Fprintln(os.Stderr, e)
-			os.Exit(1)
+type bridgeService interface {
+	Start(context.Context) error
+	Close(context.Context) error
+}
+
+type bridgeServiceFactory func(sdk.Options) (bridgeService, error)
+type signalContextFactory func(context.Context, ...os.Signal) (context.Context, context.CancelFunc)
+
+var (
+	exitProcess                           = os.Exit
+	newBridgeService bridgeServiceFactory = func(options sdk.Options) (bridgeService, error) {
+		service, err := sdk.New(options)
+		if err != nil {
+			return nil, err
 		}
-		a.SetRecorder(r)
+		return service, nil
 	}
-	if e := a.Start(); e != nil {
-		fmt.Fprintln(os.Stderr, e)
-		os.Exit(1)
+	notifyBridgeSignals signalContextFactory = signal.NotifyContext
+)
+
+func main() { exitProcess(run()) }
+
+func run() int {
+	return runCLI(os.Args[1:], os.Stdout, os.Stderr, newBridgeService, notifyBridgeSignals)
+}
+
+func runCLI(args []string, stdout, stderr io.Writer, newService bridgeServiceFactory, notify signalContextFactory) int {
+	o, err := config.Parse(args)
+	if err == config.ErrHelp {
+		fmt.Fprintln(stdout, config.HelpText)
+		return 0
 	}
-	closeNative, e := startNative(context.Background(), a.Log)
-	if e != nil {
-		_ = a.Close(context.Background())
-		fmt.Fprintln(os.Stderr, e)
-		os.Exit(1)
+	if err != nil {
+		fmt.Fprintln(stderr, err)
+		return 2
 	}
-	if o.ReplayPath != "" {
-		if e := a.Replay(o.ReplayPath); e != nil {
-			fmt.Fprintln(os.Stderr, e)
-			os.Exit(1)
-		}
+	service, err := newService(sdk.Options{
+		DebugPort: o.DebugPort, CDPPort: o.CDPPort,
+		RecordPath: o.RecordPath, ReplayPath: o.ReplayPath,
+		DebugMain: o.DebugMain, DebugFrida: o.DebugFrida,
+		Stdout: stdout, Stderr: stderr,
+	})
+	if err != nil {
+		fmt.Fprintln(stderr, err)
+		return 1
 	}
-	sig := make(chan os.Signal, 1)
-	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
-	<-sig
-	// Close network clients and listeners before detaching Frida. The reference
-	// process drops its WebSocket clients as part of process shutdown; keeping
-	// the target connection open while unloading the Agent introduces a detach
-	// race in the target's debug session.
-	if e := a.Close(context.Background()); e != nil {
-		fmt.Fprintln(os.Stderr, e)
+	lifetime, cancel := notify(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer cancel()
+	if err := service.Start(lifetime); err != nil {
+		fmt.Fprintln(stderr, err)
+		_ = service.Close(context.Background())
+		return 1
 	}
-	if e := closeNative(); e != nil {
-		fmt.Fprintln(os.Stderr, e)
+	<-lifetime.Done()
+	if err := service.Close(context.Background()); err != nil {
+		fmt.Fprintln(stderr, err)
+		return 1
 	}
+	return 0
 }

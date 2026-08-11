@@ -3,9 +3,9 @@ package frida
 import (
 	"context"
 	"fmt"
-	"miniapp-bridge/frida"
-	"miniapp-bridge/internal/process"
-	"miniapp-bridge/internal/version"
+	"github.com/Follen/miniapp-bridge/frida"
+	"github.com/Follen/miniapp-bridge/internal/process"
+	"github.com/Follen/miniapp-bridge/internal/version"
 	"path/filepath"
 )
 
@@ -17,6 +17,7 @@ type MetadataDevice interface {
 type Bootstrap struct {
 	Device    MetadataDevice
 	ConfigDir string
+	Configs   map[int]version.AddressConfig
 	Agent     func(version.AddressConfig) string
 	OnMessage func(Message)
 }
@@ -43,7 +44,12 @@ func (b Bootstrap) Attach(ctx context.Context) (Session, Script, process.Process
 	if target.Version == 0 {
 		return nil, nil, target, fmt.Errorf("[frida] error in find wmpf version")
 	}
-	cfg, err := version.LoadFile(filepath.Join(b.ConfigDir, fmt.Sprintf("addresses.%d.json", target.Version)))
+	var cfg version.AddressConfig
+	if b.ConfigDir != "" {
+		cfg, err = version.LoadFile(filepath.Join(b.ConfigDir, fmt.Sprintf("addresses.%d.json", target.Version)))
+	} else {
+		cfg, err = version.Select(b.Configs, target.Version)
+	}
 	if err != nil {
 		return nil, nil, target, fmt.Errorf("[frida] version config not found: %d", target.Version)
 	}

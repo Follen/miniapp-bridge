@@ -20,6 +20,19 @@ type auditBlockingClient struct {
 	got     chan struct{}
 }
 
+type auditFailingCloseClient struct {
+	closeStarted chan struct{}
+	closeRelease chan struct{}
+	startOnce    sync.Once
+}
+
+func (*auditFailingCloseClient) Send([]byte) error { return errors.New("send failed") }
+func (c *auditFailingCloseClient) Close() error {
+	c.startOnce.Do(func() { close(c.closeStarted) })
+	<-c.closeRelease
+	return nil
+}
+
 func (c *auditBlockingClient) Send([]byte) error {
 	select {
 	case <-c.entered:
@@ -86,8 +99,16 @@ func TestAuditHubBroadcastOrderAndFailedClientRemoval(t *testing.T) {
 			t.Fatalf("%s unexpectedly closed %d times", name, closed)
 		}
 	}
-	if _, closed := failed.snapshot(); closed != 1 {
-		t.Fatalf("failed client closed=%d want 1", closed)
+	deadline := time.Now().Add(time.Second)
+	for {
+		_, closed := failed.snapshot()
+		if closed == 1 {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("failed client closed=%d want 1", closed)
+		}
+		time.Sleep(time.Millisecond)
 	}
 	if h.Count() != 2 {
 		t.Fatalf("clients=%d want 2", h.Count())
@@ -164,5 +185,34 @@ func TestAuditHubCloseAllClearsAndClosesClients(t *testing.T) {
 	_, firstClosed = first.snapshot()
 	if firstClosed != 1 {
 		t.Fatalf("second CloseAll reclosed client=%d", firstClosed)
+	}
+}
+
+func TestAuditHubCloseAllWaitsForFailedClientClose(t *testing.T) {
+	h := NewHub()
+	client := &auditFailingCloseClient{closeStarted: make(chan struct{}), closeRelease: make(chan struct{})}
+	h.Add(client)
+	h.Broadcast([]byte("overflow"))
+	select {
+	case <-client.closeStarted:
+	case <-time.After(time.Second):
+		t.Fatal("failed client close did not start")
+	}
+
+	done := make(chan struct{})
+	go func() {
+		h.CloseAll()
+		close(done)
+	}()
+	select {
+	case <-done:
+		t.Fatal("CloseAll returned before failed client Close completed")
+	case <-time.After(20 * time.Millisecond):
+	}
+	close(client.closeRelease)
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("CloseAll did not return after failed client Close completed")
 	}
 }

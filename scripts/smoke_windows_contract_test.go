@@ -25,10 +25,13 @@ func TestWindowsSmokeUsesGracefulProcessGroupShutdown(t *testing.T) {
 		"New-Item -ItemType File -Path $stopFile",
 		"action-required=open-or-reload-miniapp",
 		"$attachLogOffset",
+		"$attachDeadline = [DateTime]::UtcNow.AddSeconds(30)",
+		"Frida attach was not confirmed within 30s",
 		"$postAttachOutput",
 		"$attachedTargetPid",
 		"AppletIndexContainer::OnLoadStart onEnter",
 		"agent-on-load-start=true",
+		"agent-on-load-start=false diagnostic=post-attach-upstream-without-onloadstart continuing-to-cdp=true",
 		"observed-new-target-pids=",
 		"Get-CimInstance Win32_Process",
 		"ParentProcessId",
@@ -55,6 +58,11 @@ func TestWindowsSmokeUsesGracefulProcessGroupShutdown(t *testing.T) {
 		"live CDP matrix failed with exit $LASTEXITCODE",
 		"go run scripts/smoke-client.go --url ws://127.0.0.1:62000 --mode link",
 		"CDP link smoke failed with exit $LASTEXITCODE",
+		"go run scripts/smoke-client.go --url ws://127.0.0.1:62000 --mode interaction",
+		"CDP interaction smoke failed with exit $LASTEXITCODE",
+		"[ValidateSet('all', 'link', 'matrix', 'interaction')]",
+		"[string]$CDPMode = 'all'",
+		"cdp-coverage=full mode=all acceptance=true",
 		"$trackedTargetRoles",
 		"Start-Sleep -Seconds 5",
 		"tracked target process exited during bridge shutdown",
@@ -64,6 +72,13 @@ func TestWindowsSmokeUsesGracefulProcessGroupShutdown(t *testing.T) {
 		"target-process-delta: new=",
 		"transient-exited=",
 		"ports-released=true",
+		"TcpListener]::new",
+		"port-rebind: port=$port success=true address=127.0.0.1",
+		"teardown-markers=agent-unload,session-detach,device-close,native-runtime-release",
+		"source=bridge-log",
+		"source=runner-child-exit-proxy",
+		"dependency=sdk-native-close-order",
+		"smoke-success=true",
 		"force termination fallback was used",
 		"[switch]$KeepBridgeRunning",
 		"bridge-kept-running=true",
@@ -165,6 +180,12 @@ func TestWindowsSmokeUsesGracefulProcessGroupShutdown(t *testing.T) {
 	if !strings.Contains(script, "$peerProcess[0].Identity -ne $peerIdentity") {
 		t.Fatal("peer start-time validation diagnostic is missing its identity comparison")
 	}
+	if strings.Contains(script, "WMPF upstream connected without a post-attach AppletIndexContainer::OnLoadStart onEnter event") {
+		t.Fatal("smoke must not fail before CDP checks when a cached/preload route establishes upstream without OnLoadStart")
+	}
+	if !strings.Contains(script, "$routeEvidence = if ($onLoadStartHit) { 'onload-start,upstream,cdp-matrix,cdp-link' } else { 'upstream,cdp-matrix,cdp-link' }") {
+		t.Fatal("reused renderer evidence must distinguish an observed OnLoadStart from an upstream-only route")
+	}
 	if !strings.Contains(script, "if ($upstreamPeerConnections.Count -gt 0) { break }") ||
 		!strings.Contains(script, "could not be identified within ${UpstreamWaitSeconds}s; server=") ||
 		!strings.Contains(script, "reverse-port-candidates=") {
@@ -175,7 +196,15 @@ func TestWindowsSmokeUsesGracefulProcessGroupShutdown(t *testing.T) {
 	upstreamCheck := strings.Index(script, "if (-not $upstream)")
 	firstCDPCheck := strings.Index(script, "go run scripts/smoke-client.go --url ws://127.0.0.1:62000 --mode matrix")
 	if attachLogOffset < 0 || onLoadStartCheck < attachLogOffset || upstreamCheck < attachLogOffset || firstCDPCheck < onLoadStartCheck || firstCDPCheck < upstreamCheck {
-		t.Fatal("post-attach OnLoadStart, upstream identification, and CDP matrix are not enforced in order")
+		t.Fatal("post-attach OnLoadStart check, upstream identification, and CDP matrix are not sequenced in order")
+	}
+	linkCheck := strings.Index(script, "go run scripts/smoke-client.go --url ws://127.0.0.1:62000 --mode link")
+	interactionCheck := strings.Index(script, "go run scripts/smoke-client.go --url ws://127.0.0.1:62000 --mode interaction")
+	if firstCDPCheck < 0 || linkCheck < firstCDPCheck || interactionCheck < linkCheck {
+		t.Fatal("full smoke must run matrix, link, and interaction checks in order")
+	}
+	if !strings.Contains(script, "$CDPMode -eq 'all' -or $CDPMode -eq 'interaction'") {
+		t.Fatal("interaction check is not part of the default all-mode dispatch")
 	}
 	newSelection := strings.Index(script, "renderer-selection=new")
 	reusedSelection := strings.Index(script, "renderer-selection=reused")
@@ -222,5 +251,46 @@ func TestWindowsSmokeUsesGracefulProcessGroupShutdown(t *testing.T) {
 	keepOutput := strings.Index(script, "bridge-kept-running=true")
 	if keepMode < 0 || keepOutput < keepMode {
 		t.Fatal("interactive keep-running mode is missing or emitted outside its branch")
+	}
+	success := strings.Index(script, "Write-Output 'smoke-success=true'")
+	if success < 0 || success <= keepOutput {
+		t.Fatal("smoke-success must be emitted only after graceful shutdown, never by keep-running mode")
+	}
+	if strings.Count(script, "Write-Output 'smoke-success=true'") != 1 {
+		t.Fatal("smoke-success must have exactly one emission site")
+	}
+	shutdownThrow := strings.Index(script, "if ($shutdownFailure -and $null -eq $smokeFailure) { throw $shutdownFailure }")
+	if shutdownThrow < 0 || success < shutdownThrow {
+		t.Fatal("smoke-success must be emitted only after the final shutdown failure gate")
+	}
+	if !strings.Contains(script, "foreach ($port in @(9421, 62000))") ||
+		!strings.Contains(script, "$probe.Start()") ||
+		!strings.Contains(script, "$probe.Stop()") {
+		t.Fatal("shutdown must rebind and release both fixed TCP ports")
+	}
+	for _, token := range []string{
+		"$teardownNames = @('agent-unload', 'session-detach', 'device-close', 'native-runtime-release')",
+		"$finalOutput -match '(?m)^stop-requested=true\\s*$'",
+		"$finalOutput -match '(?m)^child-exit-code=0\\s*$'",
+		"$liveRunner = Get-Process -Id $runner.Id -ErrorAction SilentlyContinue",
+		"$runnerExited = $true",
+		"runner-exited=$runnerExited",
+		"$smokeChecksPassed = $false",
+		"$smokeChecksPassed = $true",
+		"$smokeFailure = $_",
+		"source=runner-child-exit-proxy dependency=sdk-native-close-order",
+		"native teardown markers were not observed and graceful runner exit was not proven",
+	} {
+		if !strings.Contains(script, token) {
+			t.Errorf("smoke-windows.ps1 is missing teardown contract token %q", token)
+		}
+	}
+	if strings.Contains(script, "stop-requested=true\\\\s") || strings.Contains(script, "child-exit-code=0\\\\s") {
+		t.Fatal("teardown proxy regex must use one regex escape, not a literal double backslash")
+	}
+	successGate := strings.Index(script, "if ($null -eq $smokeFailure -and $smokeChecksPassed) { Write-Output 'smoke-success=true' }")
+	checksSet := strings.Index(script, "$smokeChecksPassed = $true")
+	if successGate < 0 || checksSet < 0 || successGate <= checksSet {
+		t.Fatal("smoke-success must require completed protocol checks")
 	}
 }

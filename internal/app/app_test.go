@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/Follen/miniapp-bridge/internal/logging"
+	"github.com/Follen/miniapp-bridge/internal/wmpf"
 	"github.com/gorilla/websocket"
-	"miniapp-bridge/internal/logging"
-	"miniapp-bridge/internal/wmpf"
 	"net"
 	"strings"
 	"sync"
@@ -31,13 +31,31 @@ func (b *synchronizedBuffer) String() string {
 	return b.b.String()
 }
 
+var appTestPorts = struct {
+	sync.Mutex
+	used map[int]struct{}
+}{used: make(map[int]struct{})}
+
 func freePort(t *testing.T) int {
-	l, e := net.Listen("tcp", "127.0.0.1:0")
-	if e != nil {
-		t.Fatal(e)
+	for {
+		l, e := net.Listen("tcp", "127.0.0.1:0")
+		if e != nil {
+			t.Fatal(e)
+		}
+		port := l.Addr().(*net.TCPAddr).Port
+		if e := l.Close(); e != nil {
+			t.Fatal(e)
+		}
+		appTestPorts.Lock()
+		_, reused := appTestPorts.used[port]
+		if !reused {
+			appTestPorts.used[port] = struct{}{}
+		}
+		appTestPorts.Unlock()
+		if !reused {
+			return port
+		}
 	}
-	defer l.Close()
-	return l.Addr().(*net.TCPAddr).Port
 }
 func TestBridgeAndRebind(t *testing.T) {
 	dp, cp := freePort(t), freePort(t)

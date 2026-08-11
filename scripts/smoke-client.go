@@ -173,11 +173,15 @@ func (c *client) callExpectError(method string, params any, timeout time.Duratio
 }
 
 func (c *client) event(method string, after int, timeout time.Duration) (envelope, int, error) {
+	return c.eventMatching(method, after, timeout, func(envelope) bool { return true })
+}
+
+func (c *client) eventMatching(method string, after int, timeout time.Duration, matches func(envelope) bool) (envelope, int, error) {
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
 		c.mu.Lock()
 		for i := after; i < len(c.events); i++ {
-			if c.events[i].Method == method {
+			if c.events[i].Method == method && matches(c.events[i]) {
 				msg := c.events[i]
 				count := len(c.events)
 				c.mu.Unlock()
@@ -188,11 +192,11 @@ func (c *client) event(method string, after int, timeout time.Duration) (envelop
 		count := len(c.events)
 		c.mu.Unlock()
 		if readErr != nil {
-			return envelope{}, count, readErr
+			return envelope{}, count, fmt.Errorf("matching event %s before connection closed: %w", method, readErr)
 		}
 		time.Sleep(20 * time.Millisecond)
 	}
-	return envelope{}, after, fmt.Errorf("event %s timed out", method)
+	return envelope{}, after, fmt.Errorf("matching event %s timed out", method)
 }
 
 func (c *client) eventCount() int {
@@ -233,6 +237,17 @@ func (c *client) expectReceiveOrder(after int, expected ...receiveExpectation) (
 		}
 	}
 	return sequences, nil
+}
+
+func (c *client) expectResponse(after int, response envelope, method string) (int, error) {
+	if response.ID == nil {
+		return 0, fmt.Errorf("%s response missing id", method)
+	}
+	sequences, err := c.expectReceiveOrder(after, receiveExpectation{Kind: "response", ID: *response.ID, Method: method})
+	if err != nil {
+		return 0, err
+	}
+	return sequences[0], nil
 }
 
 func (c *client) close() { _ = c.conn.Close() }
@@ -287,7 +302,7 @@ func runMatrix(url string) error {
 		{"Performance.enable", map[string]any{}},
 	}
 	methods := make([]string, 0, len(initializers))
-	orderAssertions := 0
+	correlationAssertions := 0
 	initializerCheckpoint := c.receiveCount()
 	initializerOrder := make([]receiveExpectation, 0, len(initializers))
 	for _, init := range initializers {
@@ -301,7 +316,7 @@ func runMatrix(url string) error {
 	if _, err := c.expectReceiveOrder(initializerCheckpoint, initializerOrder...); err != nil {
 		return fmt.Errorf("initializer %w", err)
 	}
-	orderAssertions += len(initializerOrder)
+	correlationAssertions += len(initializerOrder)
 
 	objectCheckpoint := c.receiveCount()
 	object, err := c.call("Runtime.evaluate", map[string]any{
@@ -324,13 +339,43 @@ func runMatrix(url string) error {
 	if err != nil {
 		return err
 	}
+	var propertiesResult struct {
+		Result []struct {
+			Name  string `json:"name"`
+			Value struct {
+				Type        string `json:"type"`
+				ObjectID    string `json:"objectId"`
+				Value       any    `json:"value"`
+				Description string `json:"description"`
+			} `json:"value"`
+		} `json:"result"`
+	}
+	if err := json.Unmarshal(properties.Result, &propertiesResult); err != nil || len(propertiesResult.Result) == 0 {
+		return fmt.Errorf("Runtime.getProperties missing descriptors: %s: %v", properties.Result, err)
+	}
+	seenProperties := map[string]bool{}
+	for _, property := range propertiesResult.Result {
+		seenProperties[property.Name] = true
+		if property.Name == "alpha" {
+			value, ok := property.Value.Value.(float64)
+			if !ok || value != 1 {
+				return fmt.Errorf("Runtime.getProperties alpha=%v want=1: %s", property.Value.Value, properties.Result)
+			}
+		}
+		if property.Name == "nested" && (property.Value.Type != "object" || property.Value.ObjectID == "") {
+			return fmt.Errorf("Runtime.getProperties nested is not object: %s", properties.Result)
+		}
+	}
+	if !seenProperties["alpha"] || !seenProperties["nested"] {
+		return fmt.Errorf("Runtime.getProperties missing alpha/nested: %s", properties.Result)
+	}
 	if _, err := c.expectReceiveOrder(objectCheckpoint,
 		receiveExpectation{Kind: "response", ID: *object.ID, Method: "Runtime.evaluate"},
 		receiveExpectation{Kind: "response", ID: *properties.ID, Method: "Runtime.getProperties"},
 	); err != nil {
 		return fmt.Errorf("object %w", err)
 	}
-	orderAssertions += 2
+	correlationAssertions += 2
 
 	exceptionCheckpoint := c.receiveCount()
 	exception, err := c.call("Runtime.evaluate", map[string]any{
@@ -340,9 +385,24 @@ func runMatrix(url string) error {
 		return err
 	}
 	var exceptionResult struct {
-		ExceptionDetails json.RawMessage `json:"exceptionDetails"`
+		ExceptionDetails struct {
+			Text       string `json:"text"`
+			StackTrace struct {
+				CallFrames []struct {
+					ScriptID string `json:"scriptId"`
+				} `json:"callFrames"`
+			} `json:"stackTrace"`
+			Exception struct {
+				Description string `json:"description"`
+				ClassName   string `json:"className"`
+			} `json:"exception"`
+		} `json:"exceptionDetails"`
 	}
-	if err := json.Unmarshal(exception.Result, &exceptionResult); err != nil || len(exceptionResult.ExceptionDetails) == 0 {
+	if err := json.Unmarshal(exception.Result, &exceptionResult); err != nil ||
+		exceptionResult.ExceptionDetails.Text == "" ||
+		len(exceptionResult.ExceptionDetails.StackTrace.CallFrames) == 0 ||
+		exceptionResult.ExceptionDetails.StackTrace.CallFrames[0].ScriptID == "" ||
+		(exceptionResult.ExceptionDetails.Exception.Description == "" && exceptionResult.ExceptionDetails.Exception.ClassName == "") {
 		return fmt.Errorf("Runtime exception details missing: %s: %v", exception.Result, err)
 	}
 	if _, err := c.expectReceiveOrder(exceptionCheckpoint,
@@ -350,7 +410,7 @@ func runMatrix(url string) error {
 	); err != nil {
 		return fmt.Errorf("exception %w", err)
 	}
-	orderAssertions++
+	correlationAssertions++
 
 	consoleAfter := c.eventCount()
 	consoleCheckpoint := c.receiveCount()
@@ -360,17 +420,37 @@ func runMatrix(url string) error {
 	if err != nil {
 		return err
 	}
-	if _, _, err := c.event("Runtime.consoleAPICalled", consoleAfter, 10*time.Second); err != nil {
-		return err
-	}
-	consoleOrder, err := c.expectReceiveOrder(consoleCheckpoint,
-		receiveExpectation{Kind: "event", Method: "Runtime.consoleAPICalled"},
-		receiveExpectation{Kind: "response", ID: *consoleResponse.ID, Method: "Runtime.evaluate"},
-	)
+	const consoleMarker = "miniapp-bridge-matrix-console"
+	consoleEvent, _, err := c.eventMatching("Runtime.consoleAPICalled", consoleAfter, 10*time.Second, func(event envelope) bool {
+		var params struct {
+			Args []struct {
+				Value string `json:"value"`
+			} `json:"args"`
+		}
+		if json.Unmarshal(event.Params, &params) != nil {
+			return false
+		}
+		for _, arg := range params.Args {
+			if arg.Value == consoleMarker {
+				return true
+			}
+		}
+		return false
+	})
 	if err != nil {
-		return fmt.Errorf("console %w", err)
+		return fmt.Errorf("Runtime.consoleAPICalled marker %q not observed: %w", consoleMarker, err)
 	}
-	orderAssertions += len(consoleOrder)
+	var consoleParams struct {
+		Type string            `json:"type"`
+		Args []json.RawMessage `json:"args"`
+	}
+	if err := json.Unmarshal(consoleEvent.Params, &consoleParams); err != nil || consoleParams.Type == "" || len(consoleParams.Args) == 0 {
+		return fmt.Errorf("Runtime.consoleAPICalled malformed: %s: %v", consoleEvent.Params, err)
+	}
+	if _, err := c.expectResponse(consoleCheckpoint, consoleResponse, "Runtime.evaluate"); err != nil {
+		return fmt.Errorf("console response correlation: %w", err)
+	}
+	correlationAssertions += 2
 
 	scriptAfter := c.eventCount()
 	scriptCheckpoint := c.receiveCount()
@@ -380,36 +460,137 @@ func runMatrix(url string) error {
 	if err != nil {
 		return err
 	}
-	if _, _, err := c.event("Debugger.scriptParsed", scriptAfter, 10*time.Second); err != nil {
+	scriptEvent, _, err := c.eventMatching("Debugger.scriptParsed", scriptAfter, 10*time.Second, func(event envelope) bool {
+		var params struct {
+			URL string `json:"url"`
+		}
+		return json.Unmarshal(event.Params, &params) == nil && params.URL == "miniapp-bridge-matrix.js"
+	})
+	if err != nil {
+		return fmt.Errorf("Debugger.scriptParsed URL miniapp-bridge-matrix.js not observed: %w", err)
+	}
+	var scriptParams struct {
+		URL string `json:"url"`
+	}
+	if err := json.Unmarshal(scriptEvent.Params, &scriptParams); err != nil || scriptParams.URL != "miniapp-bridge-matrix.js" {
+		return fmt.Errorf("Debugger.scriptParsed sourceURL mismatch: %s: %v", scriptEvent.Params, err)
+	}
+	if _, err := c.expectResponse(scriptCheckpoint, scriptResponse, "Runtime.evaluate"); err != nil {
+		return fmt.Errorf("script response correlation: %w", err)
+	}
+	correlationAssertions += 2
+
+	breakpointAfter := c.eventCount()
+	breakpoint, err := c.call("Debugger.setBreakpointByUrl", map[string]any{
+		"url": "miniapp-bridge-matrix.js", "lineNumber": 0,
+	}, 15*time.Second)
+	if err != nil {
 		return err
 	}
-	scriptOrder, err := c.expectReceiveOrder(scriptCheckpoint,
-		receiveExpectation{Kind: "event", Method: "Debugger.scriptParsed"},
-		receiveExpectation{Kind: "response", ID: *scriptResponse.ID, Method: "Runtime.evaluate"},
-	)
-	if err != nil {
-		return fmt.Errorf("script %w", err)
+	type cdpLocation struct {
+		ScriptID   string `json:"scriptId"`
+		LineNumber int    `json:"lineNumber"`
 	}
-	orderAssertions += len(scriptOrder)
-
+	var breakpointResult struct {
+		BreakpointID string        `json:"breakpointId"`
+		Locations    []cdpLocation `json:"locations"`
+	}
+	if err := json.Unmarshal(breakpoint.Result, &breakpointResult); err != nil || breakpointResult.BreakpointID == "" {
+		return fmt.Errorf("Debugger.setBreakpointByUrl missing breakpointId: %s: %v", breakpoint.Result, err)
+	}
+	resolvedLocations := append([]cdpLocation(nil), breakpointResult.Locations...)
+	if len(resolvedLocations) == 0 {
+		resolved, _, err := c.eventMatching("Debugger.breakpointResolved", breakpointAfter, 10*time.Second, func(event envelope) bool {
+			var params struct {
+				BreakpointID string      `json:"breakpointId"`
+				Location     cdpLocation `json:"location"`
+			}
+			return json.Unmarshal(event.Params, &params) == nil &&
+				params.BreakpointID == breakpointResult.BreakpointID && params.Location.ScriptID != ""
+		})
+		if err != nil {
+			return fmt.Errorf("Debugger.breakpointResolved for %s not observed: %w", breakpointResult.BreakpointID, err)
+		}
+		var params struct {
+			Location cdpLocation `json:"location"`
+		}
+		if err := json.Unmarshal(resolved.Params, &params); err != nil {
+			return fmt.Errorf("Debugger.breakpointResolved malformed: %s: %v", resolved.Params, err)
+		}
+		resolvedLocations = append(resolvedLocations, params.Location)
+		correlationAssertions++
+	}
 	pausedAfter := c.eventCount()
 	pauseCheckpoint := c.receiveCount()
-	_, pausedResponse, err := c.send("Runtime.evaluate", map[string]any{
-		"expression": "debugger; miniappBridgeMatrix()", "returnByValue": true,
+	pausedEvaluationID, pausedResponse, err := c.send("Runtime.evaluate", map[string]any{
+		"expression": "miniappBridgeMatrix()", "returnByValue": true,
 	})
 	if err != nil {
 		return err
 	}
-	paused, _, err := c.event("Debugger.paused", pausedAfter, 10*time.Second)
-	if err != nil {
-		return err
-	}
 	var pausedParams struct {
-		CallFrames []json.RawMessage `json:"callFrames"`
+		Reason         string   `json:"reason"`
+		HitBreakpoints []string `json:"hitBreakpoints"`
+		CallFrames     []struct {
+			CallFrameID string      `json:"callFrameId"`
+			Location    cdpLocation `json:"location"`
+		} `json:"callFrames"`
 	}
-	if err := json.Unmarshal(paused.Params, &pausedParams); err != nil || len(pausedParams.CallFrames) == 0 {
+	paused, _, err := c.eventMatching("Debugger.paused", pausedAfter, 10*time.Second, func(event envelope) bool {
+		var candidate struct {
+			HitBreakpoints []string `json:"hitBreakpoints"`
+			CallFrames     []struct {
+				CallFrameID string      `json:"callFrameId"`
+				Location    cdpLocation `json:"location"`
+			} `json:"callFrames"`
+		}
+		if json.Unmarshal(event.Params, &candidate) != nil || len(candidate.CallFrames) == 0 || candidate.CallFrames[0].CallFrameID == "" {
+			return false
+		}
+		if len(candidate.HitBreakpoints) > 0 {
+			for _, id := range candidate.HitBreakpoints {
+				if id == breakpointResult.BreakpointID {
+					return true
+				}
+			}
+			return false
+		}
+		for _, frame := range candidate.CallFrames {
+			for _, location := range resolvedLocations {
+				if frame.Location.ScriptID != "" && frame.Location.ScriptID == location.ScriptID && frame.Location.LineNumber == location.LineNumber {
+					return true
+				}
+			}
+		}
+		return false
+	})
+	if err != nil {
+		return fmt.Errorf("Debugger.paused could not correlate breakpoint=%s: %w", breakpointResult.BreakpointID, err)
+	}
+	if err := json.Unmarshal(paused.Params, &pausedParams); err != nil || pausedParams.Reason == "" || len(pausedParams.CallFrames) == 0 || pausedParams.CallFrames[0].CallFrameID == "" {
 		return fmt.Errorf("Debugger.paused callFrames missing: %s: %v", paused.Params, err)
 	}
+	correlatedBreakpoint := false
+	if len(pausedParams.HitBreakpoints) > 0 {
+		for _, id := range pausedParams.HitBreakpoints {
+			if id == breakpointResult.BreakpointID {
+				correlatedBreakpoint = true
+			}
+		}
+	} else {
+		frameLocation := pausedParams.CallFrames[0].Location
+		for _, location := range resolvedLocations {
+			if frameLocation.ScriptID != "" &&
+				frameLocation.ScriptID == location.ScriptID &&
+				frameLocation.LineNumber == location.LineNumber {
+				correlatedBreakpoint = true
+			}
+		}
+	}
+	if !correlatedBreakpoint {
+		return fmt.Errorf("Debugger.paused could not correlate breakpoint=%s hits=%v frame-location=%+v resolved-locations=%+v", breakpointResult.BreakpointID, pausedParams.HitBreakpoints, pausedParams.CallFrames[0].Location, resolvedLocations)
+	}
+	resumedAfter := c.eventCount()
 	resumeResponse, err := c.call("Debugger.resume", map[string]any{}, 15*time.Second)
 	if err != nil {
 		return err
@@ -420,19 +601,26 @@ func runMatrix(url string) error {
 		if response.Error != nil {
 			return fmt.Errorf("paused Runtime.evaluate: %s", response.Error.Message)
 		}
+		if response.ID == nil || *response.ID != pausedEvaluationID {
+			return fmt.Errorf("paused Runtime.evaluate response id=%v want=%d", response.ID, pausedEvaluationID)
+		}
 		pausedEvaluation = response
 	case <-time.After(15 * time.Second):
 		return errors.New("paused Runtime.evaluate did not complete after resume")
 	}
-	pauseOrder, err := c.expectReceiveOrder(pauseCheckpoint,
-		receiveExpectation{Kind: "event", Method: "Debugger.paused"},
-		receiveExpectation{Kind: "response", ID: *resumeResponse.ID, Method: "Debugger.resume"},
-		receiveExpectation{Kind: "response", ID: *pausedEvaluation.ID, Method: "Runtime.evaluate"},
-	)
-	if err != nil {
-		return fmt.Errorf("pause-resume %w", err)
+	if _, _, err := c.event("Debugger.resumed", resumedAfter, 10*time.Second); err != nil {
+		return err
 	}
-	orderAssertions += len(pauseOrder)
+	if _, err := c.call("Debugger.removeBreakpoint", map[string]any{"breakpointId": breakpointResult.BreakpointID}, 15*time.Second); err != nil {
+		return err
+	}
+	if _, err := c.expectResponse(pauseCheckpoint, resumeResponse, "Debugger.resume"); err != nil {
+		return fmt.Errorf("resume response correlation: %w", err)
+	}
+	if _, err := c.expectResponse(pauseCheckpoint, pausedEvaluation, "Runtime.evaluate"); err != nil {
+		return fmt.Errorf("paused evaluation response correlation: %w", err)
+	}
+	correlationAssertions += 4
 
 	checks := []struct {
 		method string
@@ -454,8 +642,56 @@ func runMatrix(url string) error {
 		); err != nil {
 			return fmt.Errorf("%s %w", check.method, err)
 		}
-		orderAssertions++
+		correlationAssertions++
 		methods = append(methods, check.method)
+		switch check.method {
+		case "Page.getFrameTree":
+			var value struct {
+				FrameTree struct {
+					Frame struct {
+						ID  string `json:"id"`
+						URL string `json:"url"`
+					} `json:"frame"`
+				} `json:"frameTree"`
+			}
+			if err := json.Unmarshal(response.Result, &value); err != nil || value.FrameTree.Frame.ID == "" {
+				return fmt.Errorf("Page.getFrameTree missing frame: %s: %v", response.Result, err)
+			}
+		case "DOM.getDocument":
+			var value struct {
+				Root struct {
+					NodeID int `json:"nodeId"`
+				} `json:"root"`
+			}
+			if err := json.Unmarshal(response.Result, &value); err != nil || value.Root.NodeID == 0 {
+				return fmt.Errorf("DOM.getDocument missing root nodeId: %s: %v", response.Result, err)
+			}
+		case "Network.getCookies":
+			var value struct {
+				Cookies []struct {
+					Name  string `json:"name"`
+					Value string `json:"value"`
+				} `json:"cookies"`
+			}
+			if err := json.Unmarshal(response.Result, &value); err != nil || value.Cookies == nil {
+				return fmt.Errorf("Network.getCookies cookies must be array: %s: %v", response.Result, err)
+			}
+		case "Performance.getMetrics":
+			var value struct {
+				Metrics []struct {
+					Name  string  `json:"name"`
+					Value float64 `json:"value"`
+				} `json:"metrics"`
+			}
+			if err := json.Unmarshal(response.Result, &value); err != nil || value.Metrics == nil {
+				return fmt.Errorf("Performance.getMetrics metrics must be array: %s: %v", response.Result, err)
+			}
+			for _, metric := range value.Metrics {
+				if metric.Name == "" {
+					return fmt.Errorf("Performance.getMetrics metric name empty: %s", response.Result)
+				}
+			}
+		}
 	}
 
 	longCheckpoint := c.receiveCount()
@@ -480,7 +716,7 @@ func runMatrix(url string) error {
 	); err != nil {
 		return fmt.Errorf("long-message %w", err)
 	}
-	orderAssertions++
+	correlationAssertions++
 
 	const concurrent = 16
 	concurrentCheckpoint := c.receiveCount()
@@ -493,8 +729,15 @@ func runMatrix(url string) error {
 			response, err := c.call("Runtime.evaluate", map[string]any{
 				"expression": fmt.Sprintf("%d * %d", i, i), "returnByValue": true,
 			}, 15*time.Second)
-			if err == nil && len(response.Result) == 0 {
-				err = fmt.Errorf("concurrent Runtime.evaluate %d has empty result", i)
+			if err == nil {
+				var result struct {
+					Result struct {
+						Value float64 `json:"value"`
+					} `json:"result"`
+				}
+				if decodeErr := json.Unmarshal(response.Result, &result); decodeErr != nil || result.Result.Value != float64(i*i) {
+					err = fmt.Errorf("concurrent Runtime.evaluate %d result=%s want=%d: %v", i, response.Result, i*i, decodeErr)
+				}
 			}
 			if err != nil {
 				errCh <- err
@@ -519,7 +762,7 @@ func runMatrix(url string) error {
 	if concurrentResponses != concurrent || len(concurrentIDs) != concurrent {
 		return fmt.Errorf("concurrent receive order responses=%d unique-ids=%d want=%d", concurrentResponses, len(concurrentIDs), concurrent)
 	}
-	orderAssertions += concurrent
+	correlationAssertions += concurrent
 
 	errorCheckpoint := c.receiveCount()
 	if err := c.callExpectError("MiniAppBridge.invalidMethod", map[string]any{}, 15*time.Second); err != nil {
@@ -530,7 +773,7 @@ func runMatrix(url string) error {
 	); err != nil {
 		return fmt.Errorf("error-response %w", err)
 	}
-	orderAssertions++
+	correlationAssertions++
 
 	if _, _, err := c.event("Runtime.executionContextCreated", 0, 10*time.Second); err != nil {
 		return err
@@ -560,17 +803,24 @@ func runMatrix(url string) error {
 	if err != nil {
 		return fmt.Errorf("CDP reconnect Runtime.evaluate: %w", err)
 	}
+	var reconnectResult struct {
+		Result struct {
+			Value float64 `json:"value"`
+		} `json:"result"`
+	}
+	if err := json.Unmarshal(reconnectEvaluate.Result, &reconnectResult); err != nil || reconnectResult.Result.Value != 42 {
+		return fmt.Errorf("CDP reconnect Runtime.evaluate result=%s want=42: %v", reconnectEvaluate.Result, err)
+	}
 	if _, err := reconnected.expectReceiveOrder(reconnectCheckpoint,
 		receiveExpectation{Kind: "response", ID: *reconnectEnable.ID, Method: "Runtime.enable"},
 		receiveExpectation{Kind: "response", ID: *reconnectEvaluate.ID, Method: "Runtime.evaluate"},
 	); err != nil {
 		return fmt.Errorf("reconnect %w", err)
 	}
-	orderAssertions += 2
+	correlationAssertions += 2
 
-	fmt.Printf("live-cdp-matrix: domains=Runtime,Debugger,Page,DOM,Network,Console,Performance init=%d objects=true exceptions=true console=true scripts=true pause-resume=true callframes=true long-bytes=%d concurrent=%d error-response=true contexts=true reconnect=true events=%d receive-order=true order-assertions=%d console-seq=%d<%d script-seq=%d<%d pause-seq=%d<%d<%d received=%d reconnect-received=%d\n",
-		len(initializers), len(longValue), concurrent, firstEventCount, orderAssertions,
-		consoleOrder[0], consoleOrder[1], scriptOrder[0], scriptOrder[1], pauseOrder[0], pauseOrder[1], pauseOrder[2],
+	fmt.Printf("live-cdp-matrix: domains=Runtime,Debugger,Page,DOM,Network,Console,Performance init=%d objects=true exceptions=true console=Runtime.consoleAPICalled scripts=true pause-resume=true callframes=true long-bytes=%d concurrent=%d error-response=true contexts=true reconnect=true events=%d correlation=true correlation-assertions=%d received=%d reconnect-received=%d\n",
+		len(initializers), len(longValue), concurrent, firstEventCount, correlationAssertions,
 		c.receiveCount(), reconnected.receiveCount())
 	return nil
 }

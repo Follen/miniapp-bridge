@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"miniapp-bridge/internal/process"
+	"github.com/Follen/miniapp-bridge/internal/process"
 )
 
 func TestMockLifecycleBranches(t *testing.T) {

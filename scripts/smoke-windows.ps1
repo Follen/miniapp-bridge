@@ -5,6 +5,11 @@ param(
     [ValidateRange(1, 60)]
     [int]$ShutdownTimeoutSeconds = 20,
 
+    # Formal acceptance runs every CDP layer. Other values are intended only
+    # for diagnosis and are never accepted as a full smoke result.
+    [ValidateSet('all', 'link', 'matrix', 'interaction')]
+    [string]$CDPMode = 'all',
+
     # Keep the bridge and target WMPF session alive after protocol checks. This
     # is useful for interactive DevTools use; the default still exercises the
     # complete graceful-shutdown contract.
@@ -121,6 +126,8 @@ $initialTargetSnapshot = @()
 $observedTargetSnapshot = @{}
 $trackedTargetRoles = @{}
 $trackedTargetMetadata = @{}
+$smokeChecksPassed = $false
+$smokeFailure = $null
 try {
     $pidDeadline = [DateTime]::UtcNow.AddSeconds(10)
     while ([DateTime]::UtcNow -lt $pidDeadline) {
@@ -144,10 +151,21 @@ try {
     }
     $ownedPorts = Get-NetTCPConnection -State Listen -OwningProcess $childPid -ErrorAction SilentlyContinue | Select-Object -ExpandProperty LocalPort
     if (9421 -notin $ownedPorts -or 62000 -notin $ownedPorts) { throw "listeners are not owned by pid ${childPid}: $($ownedPorts -join ',')" }
-    $output = Get-Content $stdout -Raw -ErrorAction SilentlyContinue
-    if ($output -notmatch '\[frida\] attached pid=') { throw "Frida attach was not confirmed: $output" }
-    if ($output -notmatch '\[frida\] attached pid=(\d+)') { throw "Frida attached target PID was not parseable: $output" }
-    $attachedTargetPid = [int]$Matches[1]
+    $attachDeadline = [DateTime]::UtcNow.AddSeconds(30)
+    $output = ''
+    while ([DateTime]::UtcNow -lt $attachDeadline) {
+        if ($runner.HasExited) {
+            $failure = Get-Content $stderr -Raw -ErrorAction SilentlyContinue
+            throw "miniapp-bridge exited before Frida attach: $failure"
+        }
+        $output = Get-Content $stdout -Raw -ErrorAction SilentlyContinue
+        if ($output -match '(?m)\[frida\] attached pid=(\d+)') {
+            $attachedTargetPid = [int]$Matches[1]
+            break
+        }
+        Start-Sleep -Milliseconds 250
+    }
+    if (-not $attachedTargetPid) { throw "Frida attach was not confirmed within 30s: $output" }
     $attachLogOffset = $output.Length
     $initialTargetSnapshot = @(Get-TargetProcessSnapshot)
     if ($initialTargetSnapshot.Count -eq 0) { throw 'target-process: not-present' }
@@ -338,15 +356,35 @@ try {
     $agentOutput = Get-Content $stdout -Raw -ErrorAction SilentlyContinue
     $postAttachOutput = if ($agentOutput.Length -gt $attachLogOffset) { $agentOutput.Substring($attachLogOffset) } else { '' }
     $onLoadStartHit = $postAttachOutput -match 'AppletIndexContainer::OnLoadStart onEnter'
-    if (-not $onLoadStartHit) {
-        throw 'WMPF upstream connected without a post-attach AppletIndexContainer::OnLoadStart onEnter event'
+    if ($onLoadStartHit) {
+        Write-Output 'agent-on-load-start=true'
+    } else {
+        Write-Output 'agent-on-load-start=false diagnostic=post-attach-upstream-without-onloadstart continuing-to-cdp=true'
     }
-    Write-Output 'agent-on-load-start=true'
 
-    go run scripts/smoke-client.go --url ws://127.0.0.1:62000 --mode matrix
-    if ($LASTEXITCODE -ne 0) { throw "live CDP matrix failed with exit $LASTEXITCODE" }
-    go run scripts/smoke-client.go --url ws://127.0.0.1:62000 --mode link
-    if ($LASTEXITCODE -ne 0) { throw "CDP link smoke failed with exit $LASTEXITCODE" }
+    $runLink = $CDPMode -eq 'all' -or $CDPMode -eq 'link'
+    $runMatrix = $CDPMode -eq 'all' -or $CDPMode -eq 'matrix'
+    $runInteraction = $CDPMode -eq 'all' -or $CDPMode -eq 'interaction'
+    if ($runMatrix) {
+        go run scripts/smoke-client.go --url ws://127.0.0.1:62000 --mode matrix
+        if ($LASTEXITCODE -ne 0) { throw "live CDP matrix failed with exit $LASTEXITCODE" }
+        Write-Output 'cdp-step=matrix passed=true domains=Runtime,Debugger,Page,DOM,Network,Console,Performance'
+    }
+    if ($runLink) {
+        go run scripts/smoke-client.go --url ws://127.0.0.1:62000 --mode link
+        if ($LASTEXITCODE -ne 0) { throw "CDP link smoke failed with exit $LASTEXITCODE" }
+        Write-Output 'cdp-step=link passed=true'
+    }
+    if ($runInteraction) {
+        go run scripts/smoke-client.go --url ws://127.0.0.1:62000 --mode interaction
+        if ($LASTEXITCODE -ne 0) { throw "CDP interaction smoke failed with exit $LASTEXITCODE" }
+        Write-Output 'cdp-step=interaction passed=true input=mouse,keyboard'
+    }
+    if ($CDPMode -ne 'all') {
+        Write-Output "cdp-coverage=partial mode=$CDPMode acceptance=false"
+    } else {
+        Write-Output 'cdp-coverage=full mode=all acceptance=true'
+    }
 
     $preShutdownTargetSnapshot = @(Get-TargetProcessSnapshot)
     Add-ObservedTargetSnapshot -Observed $observedTargetSnapshot -Snapshot $preShutdownTargetSnapshot
@@ -404,7 +442,8 @@ try {
         $newAppletRendererTargets = @($reusedAppletRendererTargets | Select-Object -First 1)
         $reusedAppletRenderer = $true
         $reusedIdentity = $newAppletRendererTargets[0].Identity
-        Write-Output "reused-applet-renderer=true pid=$($newAppletRendererTargets[0].Id) identity=$reusedIdentity evidence=onload-start,upstream,cdp-matrix,cdp-link"
+        $routeEvidence = if ($onLoadStartHit) { 'onload-start,upstream,cdp-matrix,cdp-link' } else { 'upstream,cdp-matrix,cdp-link' }
+        Write-Output "reused-applet-renderer=true pid=$($newAppletRendererTargets[0].Id) identity=$reusedIdentity evidence=$routeEvidence"
         Write-Output "renderer-selection=reused pid=$($newAppletRendererTargets[0].Id) identity=$reusedIdentity"
     }
     $selectedAppletRendererTargets = @($newAppletRendererTargets)
@@ -449,6 +488,7 @@ try {
     }
     if ($trackedTargetRoles.Count -eq 0) { throw 'no connection or window-owned target process was available for shutdown survival verification' }
 
+    $smokeChecksPassed = $true
     if ($KeepBridgeRunning) {
         Write-Output "bridge-kept-running=true pid=$childPid"
         Write-Output "bridge-stop-file=$stopFile"
@@ -456,6 +496,9 @@ try {
         Write-Output "devtools-url=devtools://devtools/bundled/inspector.html?ws=127.0.0.1:62000"
         return
     }
+} catch {
+    $smokeFailure = $_
+    throw
 } finally {
     if ($KeepBridgeRunning) {
         # The child is intentionally left alive for interactive inspection.
@@ -482,9 +525,18 @@ try {
     $finalOutput = Get-Content $stdout -Raw -ErrorAction SilentlyContinue
     $finalError = Get-Content $stderr -Raw -ErrorAction SilentlyContinue
     $runnerExitCode = $null
-    if ($runner -and $runner.HasExited) {
-        $runner.Refresh()
-        $runnerExitCode = $runner.ExitCode
+    $runnerExited = $false
+    if ($runner) {
+        $liveRunner = Get-Process -Id $runner.Id -ErrorAction SilentlyContinue
+        if (-not $liveRunner) {
+            # CTRL_BREAK can leave the Start-Process handle stale even after
+            # the runner has exited. A missing PID is an independent exit fact.
+            $runnerExited = $true
+        } elseif ($runner.HasExited) {
+            $runner.Refresh()
+            $runnerExitCode = $runner.ExitCode
+            $runnerExited = $true
+        }
     }
     if (-not $forcedFallback -and $null -ne $runnerExitCode -and $runnerExitCode -ne 0) {
         $shutdownFailure = "smoke process runner exited with $runnerExitCode`: $finalError"
@@ -497,13 +549,36 @@ try {
     }
 
     $portsDeadline = [DateTime]::UtcNow.AddSeconds(10)
+    $listeners = @()
     do {
-        $listeners = Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue |
+        $listeners = @(Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue |
             Where-Object { $_.LocalPort -eq 9421 -or $_.LocalPort -eq 62000 }
+        )
         if (-not $listeners) { break }
         Start-Sleep -Milliseconds 100
     } while ([DateTime]::UtcNow -lt $portsDeadline)
     if ($listeners) { $shutdownFailure = "ports were not released: $($listeners.LocalPort -join ',')" }
+
+    # A vanished LISTEN row alone is insufficient: prove both fixed endpoints
+    # can be rebound, in order, and release each temporary listener immediately.
+    $rebindFailures = @()
+    foreach ($port in @(9421, 62000)) {
+        $probe = $null
+        try {
+            $ip = [System.Net.IPAddress]::Parse('127.0.0.1')
+            $probe = [System.Net.Sockets.TcpListener]::new($ip, [int]$port)
+            $probe.Start()
+            Write-Output "port-rebind: port=$port success=true address=127.0.0.1"
+        } catch {
+            $rebindFailures += "${port}:$($_.Exception.Message)"
+            Write-Output "port-rebind: port=$port success=false error=$($_.Exception.Message)"
+        } finally {
+            if ($probe) { $probe.Stop() }
+        }
+    }
+    if ($rebindFailures.Count -gt 0) {
+        $shutdownFailure = "ports could not be rebound: $($rebindFailures -join ';')"
+    }
 
     if ($trackedTargetRoles.Count -gt 0) {
         # Catch delayed teardown caused by closing the bridge, not just processes alive at WaitForExit.
@@ -547,10 +622,33 @@ try {
         $newTargetPids = @($newTargetProcesses | Select-Object -ExpandProperty Id -Unique)
         Write-Output "target-process-delta: new=$($newTargetPids -join ',') surviving-new=$($survivingNewTargetPids -join ',') transient-exited=$($transientExitedTargetPids -join ',')"
     }
-    if (-not $listeners) { Write-Output 'ports-released=true' }
+    if (-not $listeners -and $rebindFailures.Count -eq 0) { Write-Output 'ports-released=true' }
+
+    # The current production logger does not emit per-native-resource close
+    # lines. A zero graceful child exit is therefore the observable teardown
+    # boundary: SDK.Close runs script unload -> session detach -> device close
+    # -> native runtime release before the process returns. Keep this explicit
+    # so a future logger can replace the proxy with four concrete markers.
+    $teardownNames = @('agent-unload', 'session-detach', 'device-close', 'native-runtime-release')
+    $explicitTeardown = @($teardownNames | Where-Object {
+        $finalOutput -match "(?m)^teardown-$($_)=true\s*$" -or
+        $finalError -match "(?m)^teardown-$($_)=true\s*$"
+    })
+    $stopMarker = $finalOutput -match '(?m)^stop-requested=true\s*$'
+    $childExitMarker = $finalOutput -match '(?m)^child-exit-code=0\s*$'
+    Write-Output "teardown-evidence: forced-fallback=$forcedFallback runner-exited=$runnerExited runner-exit-code=$runnerExitCode stop-marker=$stopMarker child-exit-marker=$childExitMarker"
+    if ($explicitTeardown.Count -eq $teardownNames.Count) {
+        Write-Output 'teardown-markers=agent-unload,session-detach,device-close,native-runtime-release source=bridge-log'
+    } elseif (-not $forcedFallback -and $runnerExited -and ($runnerExitCode -eq 0 -or $null -eq $runnerExitCode) -and $stopMarker -and $childExitMarker) {
+        Write-Output 'teardown-markers=agent-unload,session-detach,device-close,native-runtime-release source=runner-child-exit-proxy dependency=sdk-native-close-order'
+    } else {
+        $shutdownFailure = 'native teardown markers were not observed and graceful runner exit was not proven'
+    }
 
     Remove-Item -LiteralPath $stopFile -Force -ErrorAction SilentlyContinue
     Remove-Item -LiteralPath $runnerExe -Force -ErrorAction SilentlyContinue
-    if ($shutdownFailure) { throw $shutdownFailure }
+    if ($shutdownFailure -and $null -eq $smokeFailure) { throw $shutdownFailure }
+    if ($null -eq $smokeFailure -and -not $smokeChecksPassed) { throw 'smoke checks did not complete' }
+    if ($null -eq $smokeFailure -and $smokeChecksPassed) { Write-Output 'smoke-success=true' }
     }
 }

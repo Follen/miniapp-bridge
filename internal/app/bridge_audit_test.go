@@ -3,8 +3,8 @@ package app
 import (
 	"context"
 	"fmt"
-	"miniapp-bridge/internal/logging"
-	"miniapp-bridge/internal/wmpf"
+	"github.com/Follen/miniapp-bridge/internal/logging"
+	"github.com/Follen/miniapp-bridge/internal/wmpf"
 	"testing"
 	"time"
 
@@ -35,6 +35,17 @@ func auditRead(t *testing.T, conn *websocket.Conn, messageType int) []byte {
 	return body
 }
 
+func auditWaitForCDPClients(t *testing.T, app *App, want int) {
+	t.Helper()
+	deadline := time.Now().Add(5 * time.Second)
+	for app.CDPClientCount() != want {
+		if time.Now().After(deadline) {
+			t.Fatalf("CDP client count=%d want %d", app.CDPClientCount(), want)
+		}
+		time.Sleep(time.Millisecond)
+	}
+}
+
 func TestAuditBridgeBroadcastOrderContextRoutingReconnectAndCorruptRecovery(t *testing.T) {
 	dp, cp := freePort(t), freePort(t)
 	a := New(dp, cp, logging.New(false, false))
@@ -55,6 +66,7 @@ func TestAuditBridgeBroadcastOrderContextRoutingReconnectAndCorruptRecovery(t *t
 	defer cdp1.Close()
 	cdp2 := auditDial(t, cp)
 	defer cdp2.Close()
+	auditWaitForCDPClients(t, a, 2)
 
 	contextData, err := wmpf.EncodeCategory(wmpf.CategoryConnectJsContext, wmpf.JsContext{ID: "ctx-audit"})
 	if err != nil {
@@ -132,15 +144,10 @@ func TestAuditBridgeBroadcastOrderContextRoutingReconnectAndCorruptRecovery(t *t
 	if err := cdp1.Close(); err != nil {
 		t.Fatal(err)
 	}
-	deadline = time.Now().Add(time.Second)
-	for a.CDPHub.Count() != 1 {
-		if time.Now().After(deadline) {
-			t.Fatalf("disconnected client remained in hub: %d", a.CDPHub.Count())
-		}
-		time.Sleep(time.Millisecond)
-	}
+	auditWaitForCDPClients(t, a, 1)
 	cdp1 = auditDial(t, cp)
 	defer cdp1.Close()
+	auditWaitForCDPClients(t, a, 2)
 	payload := `{"method":"Debugger.paused","params":{}}`
 	frame := wmpf.EncodeDebugMessage(wmpf.DebugMessage{
 		Category: wmpf.CategoryChromeDevtoolsResult,

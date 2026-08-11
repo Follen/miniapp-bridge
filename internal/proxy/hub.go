@@ -7,14 +7,18 @@ import (
 	"sync"
 )
 
+var ErrClientBackpressure = errors.New("client outbound queue is full")
+
 type Client interface {
 	Send([]byte) error
 	Close() error
 }
 
 type Hub struct {
-	mu      sync.RWMutex
-	clients map[Client]struct{}
+	mu          sync.RWMutex
+	broadcastMu sync.Mutex
+	closeWG     sync.WaitGroup
+	clients     map[Client]struct{}
 }
 
 func NewHub() *Hub             { return &Hub{clients: make(map[Client]struct{})} }
@@ -22,6 +26,7 @@ func (h *Hub) Add(c Client)    { h.mu.Lock(); h.clients[c] = struct{}{}; h.mu.Un
 func (h *Hub) Remove(c Client) { h.mu.Lock(); delete(h.clients, c); h.mu.Unlock() }
 func (h *Hub) Count() int      { h.mu.RLock(); defer h.mu.RUnlock(); return len(h.clients) }
 func (h *Hub) CloseAll() {
+	h.broadcastMu.Lock()
 	h.mu.Lock()
 	cs := make([]Client, 0, len(h.clients))
 	for c := range h.clients {
@@ -32,8 +37,14 @@ func (h *Hub) CloseAll() {
 	for _, c := range cs {
 		_ = c.Close()
 	}
+	h.closeWG.Wait()
+	h.broadcastMu.Unlock()
 }
 func (h *Hub) Broadcast(msg []byte) {
+	// Serialize enqueue operations so every client observes the same event order.
+	// Real WebSocket clients implement Send as a bounded, non-blocking enqueue.
+	h.broadcastMu.Lock()
+	defer h.broadcastMu.Unlock()
 	h.mu.RLock()
 	cs := make([]Client, 0, len(h.clients))
 	for c := range h.clients {
@@ -42,8 +53,18 @@ func (h *Hub) Broadcast(msg []byte) {
 	h.mu.RUnlock()
 	for _, c := range cs {
 		if err := c.Send(msg); err != nil {
-			h.Remove(c)
-			_ = c.Close()
+			h.mu.Lock()
+			_, present := h.clients[c]
+			delete(h.clients, c)
+			h.mu.Unlock()
+			if present {
+				// Closing a transport must never delay delivery to healthy clients.
+				h.closeWG.Add(1)
+				go func() {
+					defer h.closeWG.Done()
+					_ = c.Close()
+				}()
+			}
 		}
 	}
 }

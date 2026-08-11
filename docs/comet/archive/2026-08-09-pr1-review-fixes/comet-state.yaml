@@ -1,0 +1,23 @@
+schema: comet.native.v3
+minimum_runtime_version: 3
+revision: 5
+verification_protocol: legacy-v1
+name: pr1-review-fixes
+language: zh-CN
+phase: archive
+brief: brief.md
+approval: confirmed
+approved_contract_hash: f3feeeb5246bbe2bbbb04a33af6b983635a6a8561c449968484a125635819158
+spec_changes:
+  - capability: public-go-sdk
+    operation: replace
+    source: specs/public-go-sdk/spec.md
+    base_hash: fb760278bc3ea033f9bd98fba8b2036a09b2d6d7ccb4b257985a18964d22b048
+verification_result: pass
+verification_report: verification.md
+implementation_scope: runtime/evidence/scopes/70313391adfe5194d3d878845a6096df1ca2b82018536c3b6c00ff0cf7fcd0fb.json
+verification_evidence: runtime/evidence/verifications/cdf399cde513ab703b37b76847ee53b3bfa0974a8960224181f89f78d2dd3138.json
+partial_allowance: null
+archived: true
+created_at: 2026-08-09
+run_id: 05338a16-80d3-4aa2-8401-de8931e16512

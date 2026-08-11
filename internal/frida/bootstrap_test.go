@@ -2,7 +2,8 @@ package frida
 
 import (
 	"context"
-	"miniapp-bridge/internal/process"
+	"github.com/Follen/miniapp-bridge/internal/process"
+	"github.com/Follen/miniapp-bridge/internal/version"
 	"testing"
 )
 
@@ -39,5 +40,17 @@ func TestBootstrapRequiresExactConfig(t *testing.T) {
 	}
 	if d.attached != 99 || d.source == "" {
 		t.Fatalf("attach pid=%d source=%d", d.attached, len(d.source))
+	}
+}
+
+func TestBootstrapUsesEmbeddedConfigWithoutDirectory(t *testing.T) {
+	d := &fakeDevice{processes: []process.Process{{PID: 10, ParentPID: 99, Name: "WeChatAppEx.exe", Version: 25297}, {PID: 11, ParentPID: 99, Name: "WeChatAppEx.exe", Version: 25297}, {PID: 99, Name: "host", Version: 25297}}}
+	b := Bootstrap{Device: d, Configs: version.EmbeddedConfigs()}
+	_, script, target, err := b.Attach(context.Background())
+	if err != nil || script == nil || target.Version != 25297 {
+		t.Fatalf("embedded attach target=%+v err=%v", target, err)
+	}
+	if d.source == "" {
+		t.Fatal("embedded config did not produce Agent source")
 	}
 }

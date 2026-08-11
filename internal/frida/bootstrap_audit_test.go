@@ -8,8 +8,8 @@ import (
 	"reflect"
 	"testing"
 
-	"miniapp-bridge/internal/process"
-	"miniapp-bridge/internal/version"
+	"github.com/Follen/miniapp-bridge/internal/process"
+	"github.com/Follen/miniapp-bridge/internal/version"
 )
 
 type auditDevice struct {

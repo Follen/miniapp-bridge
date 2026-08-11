@@ -1,6 +1,7 @@
 package version
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"os"
@@ -60,6 +61,7 @@ func TestAuditAddressConfigBytesMatchPinnedReferenceManifest(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		data = bytes.ReplaceAll(data, []byte("\r\n"), []byte("\n"))
 		sum := sha256.Sum256(data)
 		manifest.WriteString(filepath.Base(path))
 		manifest.WriteByte(':')
@@ -67,7 +69,7 @@ func TestAuditAddressConfigBytesMatchPinnedReferenceManifest(t *testing.T) {
 		manifest.WriteByte('\n')
 	}
 	sum := sha256.Sum256([]byte(manifest.String()))
-	const want = "0FF90920BDC3E679E76B176A805E4F9A735A43703D97A9AA040E7923373E2672"
+	const want = "3C67F88B93561B31D56122173AEEF556D652B9875A41E8117E03BA618EDA3831"
 	if got := strings.ToUpper(hex.EncodeToString(sum[:])); got != want {
 		t.Fatalf("address config aggregate SHA-256=%s, want %s", got, want)
 	}

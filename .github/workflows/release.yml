@@ -1,0 +1,573 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing SemVer tag to publish (initial release v0.0.1)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  GO_VERSION: 1.23.x
+  FRIDA_CORE_VERSION: 17.3.2
+  ZLIB_VERSION: 1.3.1
+  ZLIB_ARCHIVE_SHA256: 17E88863F3600672AB49182F217281B6FC4D3C762BDE361935E436A95214D05C
+  NATIVE_ARCHIVE_SHA256: DC08BCDBF5B0CE5C15640BF3A12907BD1EDF01A10A59F0FE1FD66E43939F7187
+
+concurrency:
+  group: release-native-17.3.2-abi1
+  queue: max
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Verify and package Windows amd64
+    runs-on: windows-2022
+    timeout-minutes: 90
+    permissions:
+      contents: read
+    outputs:
+      release_tag: ${{ steps.version.outputs.release_tag }}
+      release_version: ${{ steps.version.outputs.release_version }}
+      source_commit: ${{ steps.version.outputs.source_commit }}
+      native_tag: ${{ steps.version.outputs.native_tag }}
+    steps:
+      - name: Check out the requested tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.sha }}
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: go.sum
+
+      - name: Restore pinned native source caches
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            third_party/downloads
+            third_party/frida/devkit-17.3.2
+          key: native-${{ runner.os }}-${{ runner.arch }}-frida-${{ env.FRIDA_CORE_VERSION }}-zlib-${{ env.ZLIB_VERSION }}-${{ env.ZLIB_ARCHIVE_SHA256 }}-${{ hashFiles('go.sum') }}
+
+      - name: Populate Frida devkit archive cache
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $archive = 'third_party\downloads\frida-core-devkit-17.3.2-windows-x86_64.tar.xz'
+          $expected = '8AF15423D6E534626F91A67FAA0582E42C67A07A95A190F4C622695105549C72'
+          $header = 'third_party\frida\devkit-17.3.2\frida-core.h'
+          $library = 'third_party\frida\devkit-17.3.2\frida-core.lib'
+          $archiveValid = (Test-Path -LiteralPath $archive) -and ((Get-FileHash -Algorithm SHA256 -LiteralPath $archive).Hash -eq $expected)
+          $devkitValid = (Test-Path -LiteralPath $header) -and (Test-Path -LiteralPath $library)
+          if ($archiveValid -or $devkitValid) { exit 0 }
+          New-Item -ItemType Directory -Force -Path (Split-Path -Parent $archive) | Out-Null
+          $asset = Split-Path -Leaf $archive
+          gh release download $env:FRIDA_CORE_VERSION --repo frida/frida --pattern $asset --output $archive --clobber
+          if ($LASTEXITCODE -ne 0) { throw "gh release download failed with exit $LASTEXITCODE" }
+          $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $archive).Hash.ToUpperInvariant()
+          if ($actual -ne $expected) { throw "Frida devkit archive SHA-256 mismatch: expected $expected, got $actual" }
+
+      - name: Configure Windows build tools
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $mingw = @(
+            'C:\mingw64\bin',
+            'C:\msys64\mingw64\bin',
+            'C:\ProgramData\mingw64\mingw64\bin'
+          ) | Where-Object {
+            (Test-Path (Join-Path $_ 'gcc.exe')) -and
+            (Test-Path (Join-Path $_ 'ar.exe'))
+          } | Select-Object -First 1
+          if (-not $mingw) { throw 'GitHub Windows runner does not provide gcc.exe and ar.exe' }
+          $mingw | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+          $expected = 'C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools'
+          if (-not (Test-Path (Join-Path $expected 'Common7\Tools\VsDevCmd.bat'))) {
+            $vswhere = 'C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe'
+            $installation = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+            if (-not $installation -or -not (Test-Path (Join-Path $installation 'Common7\Tools\VsDevCmd.bat'))) {
+              throw 'Visual Studio 2022 C++ build tools were not found'
+            }
+            New-Item -ItemType Directory -Force -Path (Split-Path $expected) | Out-Null
+            New-Item -ItemType Junction -Path $expected -Target $installation | Out-Null
+          }
+
+      - name: Validate release tag and source commit
+        id: version
+        shell: pwsh
+        env:
+          REQUESTED_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+          EVENT_NAME: ${{ github.event_name }}
+          TRIGGER_SHA: ${{ github.sha }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $semver = '^v(0|1)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-(?:0|[1-9][0-9]*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9][0-9]*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*))*)?$'
+          if ($env:REQUESTED_TAG -cnotmatch $semver) {
+            throw "release tag must be a complete SemVer tag beginning with v: $env:REQUESTED_TAG"
+          }
+          git fetch --force --tags origin
+          if ($LASTEXITCODE -ne 0) { throw "git fetch failed with exit $LASTEXITCODE" }
+          git show-ref --verify --quiet "refs/tags/$env:REQUESTED_TAG"
+          if ($LASTEXITCODE -ne 0) { throw "release tag does not exist: $env:REQUESTED_TAG" }
+          $tagCommit = (git rev-list -n 1 "refs/tags/$env:REQUESTED_TAG").Trim()
+          if ($LASTEXITCODE -ne 0 -or -not $tagCommit) {
+            throw "release tag does not exist: $env:REQUESTED_TAG"
+          }
+          $sourceCommit = (git rev-parse HEAD).Trim()
+          if ($env:EVENT_NAME -eq 'push' -and $sourceCommit -cne $env:TRIGGER_SHA) {
+            throw "checked out commit $sourceCommit does not match trigger commit $env:TRIGGER_SHA"
+          }
+          if ($LASTEXITCODE -ne 0 -or $sourceCommit -cne $tagCommit) {
+            throw "checked out commit $sourceCommit does not match tag $env:REQUESTED_TAG at $tagCommit"
+          }
+          "release_tag=$env:REQUESTED_TAG" >> $env:GITHUB_OUTPUT
+          "release_version=$($env:REQUESTED_TAG.Substring(1))" >> $env:GITHUB_OUTPUT
+          "source_commit=$sourceCommit" >> $env:GITHUB_OUTPUT
+          'native_tag=native-v17.3.2-abi1' >> $env:GITHUB_OUTPUT
+
+      - name: Verify module graph
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          go mod download
+          if ($LASTEXITCODE -ne 0) { throw "go mod download failed with exit $LASTEXITCODE" }
+          go mod verify
+          if ($LASTEXITCODE -ne 0) { throw "go mod verify failed with exit $LASTEXITCODE" }
+
+      - name: Run deterministic tests
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          go test ./... -count=1
+          if ($LASTEXITCODE -ne 0) { throw "go test failed with exit $LASTEXITCODE" }
+
+      - name: Enforce coverage race and vet gates
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & .\scripts\coverage-gate.ps1
+          if ($LASTEXITCODE -ne 0) { throw "coverage gate failed with exit $LASTEXITCODE" }
+
+      - name: Build and validate Windows native artifacts
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & .\scripts\build-windows.ps1
+          if ($LASTEXITCODE -ne 0) { throw "Windows build failed with exit $LASTEXITCODE" }
+
+      - name: Package release assets
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ steps.version.outputs.release_tag }}
+          NATIVE_TAG: ${{ steps.version.outputs.native_tag }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & .\scripts\package-windows-release.ps1 -Version $env:RELEASE_TAG
+          if ($LASTEXITCODE -ne 0) { throw "release packaging failed with exit $LASTEXITCODE" }
+
+          $manifest = Get-Content -LiteralPath .\dist\release\manifest.json -Raw | ConvertFrom-Json
+          if ($manifest.nativeVersion -ne $env:NATIVE_TAG.Substring('native-v'.Length)) {
+            throw "native compatibility tag $env:NATIVE_TAG does not match manifest version $($manifest.nativeVersion)"
+          }
+
+          $nativeAsset = "miniapp-frida-native-$($manifest.nativeVersion)-windows-amd64.zip"
+          $nativeSource = Join-Path .\dist\release $nativeAsset
+          if (-not (Test-Path -LiteralPath $nativeSource -PathType Leaf)) {
+            throw "packaged native asset is missing: $nativeSource"
+          }
+          $nativeHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $nativeSource).Hash
+          if ($nativeHash -cne $env:NATIVE_ARCHIVE_SHA256) {
+            throw "native archive hash $nativeHash does not match SDK pin $env:NATIVE_ARCHIVE_SHA256"
+          }
+          $compat = '.\dist\release\native-compat'
+          New-Item -ItemType Directory -Force -Path $compat | Out-Null
+          Copy-Item -LiteralPath $nativeSource -Destination (Join-Path $compat $nativeAsset) -Force
+          Copy-Item -LiteralPath .\dist\native\SHA256SUMS -Destination (Join-Path $compat 'SHA256SUMS') -Force
+
+          foreach ($sumFile in @('.\dist\release\SHA256SUMS', (Join-Path $compat 'SHA256SUMS'))) {
+            $sumDirectory = Split-Path -Parent $sumFile
+            foreach ($line in Get-Content -LiteralPath $sumFile) {
+              if ($line -notmatch '^([0-9A-Fa-f]{64})  ([^\\/]+)$') { throw "invalid checksum line in ${sumFile}: $line" }
+              $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $sumDirectory $Matches[2])).Hash
+              if ($actual -cne $Matches[1].ToUpperInvariant()) { throw "checksum mismatch for $($Matches[2])" }
+            }
+          }
+
+      - name: Upload verified release bundle
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-${{ steps.version.outputs.release_tag }}-windows-amd64
+          path: dist/release
+          if-no-files-found: error
+          retention-days: 3
+
+  release:
+    name: Publish GitHub Releases
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ${{ needs.verify.outputs.release_tag }}
+      RELEASE_VERSION: ${{ needs.verify.outputs.release_version }}
+      SOURCE_COMMIT: ${{ needs.verify.outputs.source_commit }}
+      NATIVE_TAG: ${{ needs.verify.outputs.native_tag }}
+      NATIVE_ASSET: miniapp-frida-native-17.3.2-abi1-windows-amd64.zip
+    steps:
+      - name: Download verified release bundle
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: release-${{ needs.verify.outputs.release_tag }}-windows-amd64
+          path: release-bundle
+
+      - name: Verify downloaded checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          (cd release-bundle && sha256sum --check SHA256SUMS)
+          (cd release-bundle/native-compat && sha256sum --check SHA256SUMS)
+
+      - name: Reconcile and publish GitHub Releases
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          work="$(mktemp -d)"
+          trap 'rm -rf "$work"' EXIT
+
+          releases_for_tag() {
+            local tag="$1"
+            gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/releases?per_page=100" |
+              jq -c --arg tag "$tag" '[.[][] | select(.tag_name == $tag)]'
+          }
+
+          single_release_for_tag() {
+            local tag="$1" matches count
+            matches="$(releases_for_tag "$tag")"
+            count="$(jq 'length' <<<"$matches")"
+            if [[ "$count" -gt 1 ]]; then
+              echo "multiple releases exist for tag $tag" >&2
+              return 1
+            fi
+            jq -c '.[0] // empty' <<<"$matches"
+          }
+
+          resolve_tag_commit() {
+            local tag="$1" object_type object_sha payload depth
+            payload="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$tag")"
+            object_type="$(jq -r '.object.type' <<<"$payload")"
+            object_sha="$(jq -r '.object.sha' <<<"$payload")"
+            for ((depth = 1; depth <= 16; depth++)); do
+              case "$object_type" in
+                commit)
+                  printf '%s\n' "$object_sha"
+                  return 0
+                  ;;
+                tag)
+                  payload="$(gh api "repos/$GITHUB_REPOSITORY/git/tags/$object_sha")"
+                  object_type="$(jq -r '.object.type' <<<"$payload")"
+                  object_sha="$(jq -r '.object.sha' <<<"$payload")"
+                  ;;
+                *)
+                  echo "tag $tag resolves to unexpected object type $object_type" >&2
+                  return 1
+                  ;;
+              esac
+            done
+            echo "tag $tag exceeds the annotated-tag peel limit" >&2
+            return 1
+          }
+
+          assert_release_metadata() {
+            local release_json="$1" tag="$2" target="$3" title="$4" prerelease="$5"
+            local actual_tag actual_target actual_title actual_prerelease
+            actual_tag="$(jq -r '.tag_name' <<<"$release_json")"
+            actual_target="$(jq -r '.target_commitish' <<<"$release_json")"
+            actual_title="$(jq -r '.name' <<<"$release_json")"
+            actual_prerelease="$(jq -r '.prerelease' <<<"$release_json")"
+            if [[ "$actual_tag" != "$tag" || "$actual_target" != "$target" ||
+                  "$actual_title" != "$title" || "$actual_prerelease" != "$prerelease" ]]; then
+              echo "release metadata mismatch for $tag: tag=$actual_tag target=$actual_target title=$actual_title prerelease=$actual_prerelease" >&2
+              return 1
+            fi
+          }
+
+          reconcile_assets() {
+            local release_json="$1" allow_upload="$2"
+            shift 2
+            local files=("$@") expected_names=() name existing_name found count asset_id asset_state downloaded encoded upload_url
+            local release_id asset_tag attempt converged
+            release_id="$(jq -r '.id' <<<"$release_json")"
+            asset_tag="$(jq -r '.tag_name' <<<"$release_json")"
+
+            for file in "${files[@]}"; do
+              expected_names+=("$(basename "$file")")
+            done
+            while IFS= read -r existing_name; do
+              found=false
+              for name in "${expected_names[@]}"; do
+                if [[ "$existing_name" == "$name" ]]; then found=true; break; fi
+              done
+              if [[ "$found" != true ]]; then
+                echo "unexpected release asset for id $release_id: $existing_name" >&2
+                return 1
+              fi
+            done < <(jq -r '.assets[].name' <<<"$release_json")
+
+            for file in "${files[@]}"; do
+              name="$(basename "$file")"
+              converged=false
+              for attempt in 1 2 3; do
+                release_json="$(single_release_for_tag "$asset_tag")"
+                count="$(jq --arg name "$name" '[.assets[] | select(.name == $name)] | length' <<<"$release_json")"
+                if [[ "$count" -gt 1 ]]; then
+                  echo "duplicate release asset for id $release_id: $name" >&2
+                  return 1
+                fi
+                if [[ "$count" -eq 1 ]]; then
+                  asset_id="$(jq -r --arg name "$name" '.assets[] | select(.name == $name) | .id' <<<"$release_json")"
+                  asset_state="$(jq -r --arg name "$name" '.assets[] | select(.name == $name) | .state // "unknown"' <<<"$release_json")"
+                  downloaded="$work/$release_id-$asset_id-$attempt-$name"
+                  if [[ "$asset_state" != starter ]] &&
+                      gh api -H 'Accept: application/octet-stream' \
+                        "repos/$GITHUB_REPOSITORY/releases/assets/$asset_id" >"$downloaded" &&
+                      cmp "$file" "$downloaded"; then
+                    converged=true
+                    break
+                  fi
+                  if [[ "$allow_upload" != true || "$(jq -r '.draft' <<<"$release_json")" != true ]]; then
+                    echo "release asset differs byte-for-byte for id $release_id: $name state=$asset_state" >&2
+                    return 1
+                  fi
+                  echo "removing incomplete draft asset before retry $attempt: $name state=$asset_state" >&2
+                  if ! gh api --method DELETE \
+                      "repos/$GITHUB_REPOSITORY/releases/assets/$asset_id" >/dev/null; then
+                    echo "asset delete raced or failed, verifying remote state: $name" >&2
+                  fi
+                  release_json="$(single_release_for_tag "$asset_tag")"
+                  count="$(jq --arg name "$name" '[.assets[] | select(.name == $name)] | length' <<<"$release_json")"
+                  if [[ "$count" -gt 0 ]]; then
+                    continue
+                  fi
+                fi
+
+                if [[ "$allow_upload" != true ]]; then
+                  echo "published release asset is missing for id $release_id: $name" >&2
+                  return 1
+                fi
+                if [[ "$(jq -r '.draft' <<<"$release_json")" != true ]]; then
+                  echo "release became published before asset upload for id $release_id: $name" >&2
+                  return 1
+                fi
+                encoded="$(jq -rn --arg value "$name" '$value | @uri')"
+                upload_url="https://uploads.github.com/repos/$GITHUB_REPOSITORY/releases/$release_id/assets?name=$encoded"
+                if ! gh api --method POST \
+                    -H 'Content-Type: application/octet-stream' \
+                    --input "$file" "$upload_url" >/dev/null; then
+                  echo "asset upload raced or failed, verifying remote state: $name" >&2
+                fi
+              done
+              if [[ "$converged" != true ]]; then
+                release_json="$(single_release_for_tag "$asset_tag")"
+                count="$(jq --arg name "$name" '[.assets[] | select(.name == $name)] | length' <<<"$release_json")"
+                if [[ "$count" -eq 1 ]]; then
+                  asset_id="$(jq -r --arg name "$name" '.assets[] | select(.name == $name) | .id' <<<"$release_json")"
+                  asset_state="$(jq -r --arg name "$name" '.assets[] | select(.name == $name) | .state // "unknown"' <<<"$release_json")"
+                  downloaded="$work/$release_id-$asset_id-final-$name"
+                  if [[ "$asset_state" != starter ]] &&
+                      gh api -H 'Accept: application/octet-stream' \
+                        "repos/$GITHUB_REPOSITORY/releases/assets/$asset_id" >"$downloaded" &&
+                      cmp "$file" "$downloaded"; then
+                    converged=true
+                  fi
+                fi
+              fi
+              if [[ "$converged" != true ]]; then
+                echo "release asset upload did not converge after 3 attempts and a final read-only probe for id $release_id: $name" >&2
+                return 1
+              fi
+            done
+
+            release_json="$(single_release_for_tag "$asset_tag")"
+            for name in "${expected_names[@]}"; do
+              count="$(jq --arg name "$name" '[.assets[] | select(.name == $name)] | length' <<<"$release_json")"
+              if [[ "$count" -ne 1 ]]; then
+                echo "final release asset set mismatch for id $release_id: $name count=$count" >&2
+                return 1
+              fi
+            done
+            count="$(jq '.assets | length' <<<"$release_json")"
+            if [[ "$count" -ne "${#files[@]}" ]]; then
+              echo "release asset count mismatch for id $release_id: got $count want ${#files[@]}" >&2
+              return 1
+            fi
+          }
+
+          create_or_resume_draft() {
+            local tag="$1" target="$2" title="$3" prerelease="$4" latest="$5" generate_notes="$6"
+            local release_json create_args
+            release_json="$(single_release_for_tag "$tag")"
+            if [[ -n "$release_json" ]]; then
+              printf '%s\n' "$release_json"
+              return 0
+            fi
+
+            create_args=(
+              --method POST "repos/$GITHUB_REPOSITORY/releases"
+              -f "tag_name=$tag"
+              -f "target_commitish=$target"
+              -f "name=$title"
+              -F draft=true
+              -F "prerelease=$prerelease"
+              -f "make_latest=$latest"
+            )
+            if [[ "$generate_notes" == true ]]; then
+              create_args+=( -F generate_release_notes=true )
+            else
+              create_args+=( -f 'body=Pinned Windows amd64 native runtime for miniapp-bridge.' )
+            fi
+            if ! release_json="$(gh api "${create_args[@]}")"; then
+              release_json="$(single_release_for_tag "$tag")"
+              if [[ -z "$release_json" ]]; then
+                echo "draft creation failed without a recoverable release for $tag" >&2
+                return 1
+              fi
+            fi
+            printf '%s\n' "$release_json"
+          }
+
+          publish_reconciled_draft() {
+            local release_json="$1" tag="$2" target="$3" title="$4" prerelease="$5" latest="$6"
+            shift 6
+            local files=("$@") release_id refreshed remote_commit
+            assert_release_metadata "$release_json" "$tag" "$target" "$title" "$prerelease"
+            if [[ "$(jq -r '.draft' <<<"$release_json")" != true ]]; then
+              echo "release $tag is already published" >&2
+              return 1
+            fi
+            reconcile_assets "$release_json" true "${files[@]}"
+
+            refreshed="$(single_release_for_tag "$tag")"
+            assert_release_metadata "$refreshed" "$tag" "$target" "$title" "$prerelease"
+            reconcile_assets "$refreshed" false "${files[@]}"
+            if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$tag" >/dev/null 2>&1; then
+              remote_commit="$(resolve_tag_commit "$tag")"
+              if [[ "$remote_commit" != "$target" ]]; then
+                echo "remote tag $tag moved: expected $target, got $remote_commit" >&2
+                return 1
+              fi
+            elif [[ "$tag" == "$RELEASE_TAG" ]]; then
+              echo "product tag disappeared before publication: $tag" >&2
+              return 1
+            fi
+            release_id="$(jq -r '.id' <<<"$refreshed")"
+            if ! gh api --method PATCH "repos/$GITHUB_REPOSITORY/releases/$release_id" \
+                -F draft=false \
+                -F "prerelease=$prerelease" \
+                -f "make_latest=$latest" >/dev/null; then
+              echo "release publish request failed, verifying remote state: $tag" >&2
+            fi
+            refreshed="$(single_release_for_tag "$tag")"
+            if [[ "$(jq -r '.draft' <<<"$refreshed")" != false ]]; then
+              echo "release $tag did not publish" >&2
+              return 1
+            fi
+            assert_release_metadata "$refreshed" "$tag" "$target" "$title" "$prerelease"
+            reconcile_assets "$refreshed" false "${files[@]}"
+            remote_commit="$(resolve_tag_commit "$tag")"
+            if [[ "$remote_commit" != "$target" ]]; then
+              echo "published tag $tag moved: expected $target, got $remote_commit" >&2
+              return 1
+            fi
+          }
+
+          if [[ "$NATIVE_TAG" != "native-v17.3.2-abi1" ]]; then
+            echo "unexpected native compatibility tag: $NATIVE_TAG" >&2
+            exit 1
+          fi
+
+          product_title="miniapp-bridge $RELEASE_TAG"
+          product_prerelease=false
+          release_core="${RELEASE_VERSION%%+*}"
+          if [[ "$release_core" == *-* ]]; then product_prerelease=true; fi
+          product_files=(
+            "release-bundle/miniapp-bridge-$RELEASE_TAG-windows-amd64.zip"
+            "release-bundle/$NATIVE_ASSET"
+            "release-bundle/manifest.json"
+            "release-bundle/SHA256SUMS"
+          )
+          product_release="$(single_release_for_tag "$RELEASE_TAG")"
+          product_already_published=false
+          if [[ -n "$product_release" ]]; then
+            assert_release_metadata "$product_release" "$RELEASE_TAG" "$SOURCE_COMMIT" "$product_title" "$product_prerelease"
+            if [[ "$(jq -r '.draft' <<<"$product_release")" == false ]]; then
+              reconcile_assets "$product_release" false "${product_files[@]}"
+              product_already_published=true
+            fi
+          fi
+
+          remote_product_commit="$(resolve_tag_commit "$RELEASE_TAG")"
+          if [[ "$remote_product_commit" != "$SOURCE_COMMIT" ]]; then
+            echo "remote tag $RELEASE_TAG moved: expected $SOURCE_COMMIT, got $remote_product_commit" >&2
+            exit 1
+          fi
+
+          native_title='miniapp-bridge native 17.3.2-abi1'
+          native_files=(
+            "release-bundle/native-compat/$NATIVE_ASSET"
+            "release-bundle/native-compat/SHA256SUMS"
+          )
+          if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$NATIVE_TAG" >/dev/null 2>&1; then
+            native_target="$(resolve_tag_commit "$NATIVE_TAG")"
+          else
+            native_target="$SOURCE_COMMIT"
+          fi
+          native_release="$(single_release_for_tag "$NATIVE_TAG")"
+          if [[ -n "$native_release" && "$(jq -r '.draft' <<<"$native_release")" == false ]]; then
+            assert_release_metadata "$native_release" "$NATIVE_TAG" "$native_target" "$native_title" false
+            reconcile_assets "$native_release" false "${native_files[@]}"
+          else
+            native_release="$(create_or_resume_draft "$NATIVE_TAG" "$native_target" "$native_title" false false false)"
+            publish_reconciled_draft "$native_release" "$NATIVE_TAG" "$native_target" "$native_title" false false "${native_files[@]}"
+          fi
+          remote_native_commit="$(resolve_tag_commit "$NATIVE_TAG")"
+          if [[ "$remote_native_commit" != "$native_target" ]]; then
+            echo "published native tag $NATIVE_TAG moved: expected $native_target, got $remote_native_commit" >&2
+            exit 1
+          fi
+
+          if [[ "$product_already_published" == true ]]; then
+            product_release="$(single_release_for_tag "$RELEASE_TAG")"
+            assert_release_metadata "$product_release" "$RELEASE_TAG" "$SOURCE_COMMIT" "$product_title" "$product_prerelease"
+            reconcile_assets "$product_release" false "${product_files[@]}"
+            remote_product_commit="$(resolve_tag_commit "$RELEASE_TAG")"
+            if [[ "$remote_product_commit" != "$SOURCE_COMMIT" ]]; then
+              echo "remote tag $RELEASE_TAG moved: expected $SOURCE_COMMIT, got $remote_product_commit" >&2
+              exit 1
+            fi
+            echo "published product release is exact; no assets were overwritten: $RELEASE_TAG"
+          else
+            product_release="$(create_or_resume_draft "$RELEASE_TAG" "$SOURCE_COMMIT" "$product_title" "$product_prerelease" legacy true)"
+            publish_reconciled_draft "$product_release" "$RELEASE_TAG" "$SOURCE_COMMIT" "$product_title" "$product_prerelease" legacy "${product_files[@]}"
+          fi
+          remote_product_commit="$(resolve_tag_commit "$RELEASE_TAG")"
+          if [[ "$remote_product_commit" != "$SOURCE_COMMIT" ]]; then
+            echo "published product tag $RELEASE_TAG moved: expected $SOURCE_COMMIT, got $remote_product_commit" >&2
+            exit 1
+          fi
