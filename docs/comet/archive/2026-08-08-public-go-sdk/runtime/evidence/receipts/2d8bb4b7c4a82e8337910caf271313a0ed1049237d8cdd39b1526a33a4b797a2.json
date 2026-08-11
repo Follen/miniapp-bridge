@@ -1,0 +1,49 @@
+{
+  "schema": "comet.native.verification-receipt.v3",
+  "kind": "automated-check",
+  "role": "acceptance-evidence",
+  "status": "failed",
+  "bindings": {
+    "change": "public-go-sdk",
+    "sourceRevision": 3,
+    "contractHash": "b3b377703fbf2aa5437fc8e10f566ada9f8eef75dd92925f649521830d77c2a0",
+    "scopeHash": "7dab4df951f2af6b6edffde9390e3aa9e86887cb49ea4b4e02964ef4e90dface",
+    "snapshotHash": "f9cd9c32394701b91b613a48e5518b01e6a8447a87d1e2f566e82dbaaa2600c2",
+    "artifactHash": "ebcd90ea834cea6cc6bc4399a9ba965b610596d0c6c024f390123465e2d4fbd2"
+  },
+  "acceptanceIds": [
+    "acceptance-4b1003b406bfc181d9b2eb62aa57dd53a4ffaee1b752a4133919b3b4f064788f"
+  ],
+  "actor": "native-runtime:command:powershell",
+  "issuedAt": "2026-08-08T21:08:52.611Z",
+  "evidence": {
+    "executable": "powershell",
+    "args": [
+      "-NoProfile",
+      "-Command",
+      "$r = Get-Content -Raw docs/comet/changes/public-go-sdk/runtime/evidence/receipts/976a588363ad0dcc1387baacf2d0047c6595a8a773b2d0da74604b413fab162c.json | ConvertFrom-Json; if ($r.role -ne \"required-check\" -or $r.status -ne \"passed\" -or $r.evidence.resultSummary -notmatch \"passed\") { Write-Error \"required-check receipt is not passed\"; exit 1 }; $brief = Get-Content -Raw docs/comet/changes/public-go-sdk/brief.md; if ($brief -notmatch \"no-code\" -or $brief -notmatch \"正式实现将在新 worktree\") { Write-Error \"migration brief does not document no-code transfer\"; exit 1 }; Write-Output (\"required_check_status=\" + $r.status); Write-Output \"brief_transfer=present\""
+    ],
+    "cwd": ".",
+    "exitCode": 1,
+    "signal": null,
+    "timedOut": false,
+    "timeoutMs": 120000,
+    "startedAt": "2026-08-08T21:08:52.404Z",
+    "endedAt": "2026-08-08T21:08:52.611Z",
+    "worktree": {
+      "provider": "git",
+      "root": ".",
+      "beforeCommit": "d9e7c19817ff5f253b25236b72088b0ef7366c54",
+      "afterCommit": "d9e7c19817ff5f253b25236b72088b0ef7366c54"
+    },
+    "afterFence": {
+      "snapshotHash": "f9cd9c32394701b91b613a48e5518b01e6a8447a87d1e2f566e82dbaaa2600c2",
+      "scopeHash": "7dab4df951f2af6b6edffde9390e3aa9e86887cb49ea4b4e02964ef4e90dface",
+      "matched": true
+    },
+    "outputHash": "b603bbd317412fbe2ce2c5b4368f00bd06bb2d7659a01f16faabfa5b54e96c7b",
+    "outputSummary": "$r = Get-Content -Raw docs/comet/changes/public-go-sdk/runtime/evidence/receipts/976a588363ad0dcc1387baacf2d0047c6595a8\r\na773b2d0da74604b413fab162c.json | ConvertFrom-Json; if ($r.role -ne \"required-check\" -or $r.status -ne \"passed\" -or $r.\r\nevidence.resultSummary -notmatch \"passed\") { Write-Error \"required-check receipt is not passed\"; exit 1 }; $brief = Get\r\n-Content -Raw docs/comet/changes/public-go-sdk/brief.md; if ($brief -notmatch \"no-code\" -or $brief -notmatch \"��ʽʵ��\r\n������ worktree\") { Write-Error \"migration brief does not document no-code transfer\"; exit 1 }; Write-Output (\"required\r\n_check_status=\" + $r.status); Write-Output \"brief_transfer=present\" : migration brief does not document no-code transfe\r\nr\r\n    + CategoryInfo          : NotSpecified: (:) [Write-Error], WriteErrorException\r\n    + FullyQualifiedErrorId : Microsoft.PowerShell.Commands.WriteErrorException",
+    "outputTruncated": false
+  },
+  "receiptHash": "2d8bb4b7c4a82e8337910caf271313a0ed1049237d8cdd39b1526a33a4b797a2"
+}

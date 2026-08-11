@@ -1,0 +1,15 @@
+{
+  "schema": "comet.native.implementation-scope.v2",
+  "contractHash": "b3b377703fbf2aa5437fc8e10f566ada9f8eef75dd92925f649521830d77c2a0",
+  "baselineProjectionRef": "runtime/evidence/snapshots/66c3b450b04ac9caf174e075f7731657928dff3da6d7cfa4a36e44d76c599021.json",
+  "baselineProjectionHash": "66c3b450b04ac9caf174e075f7731657928dff3da6d7cfa4a36e44d76c599021",
+  "currentProjectionRef": "runtime/evidence/snapshots/f9cd9c32394701b91b613a48e5518b01e6a8447a87d1e2f566e82dbaaa2600c2.json",
+  "currentProjectionHash": "f9cd9c32394701b91b613a48e5518b01e6a8447a87d1e2f566e82dbaaa2600c2",
+  "complete": true,
+  "declaredArtifacts": [],
+  "changes": [],
+  "unattributed": [],
+  "unresolvedScopes": [],
+  "noCodeReason": "用户在 Build 前要求改用 .worktree/public-go-sdk，正式实现将在新 Native change 中完成",
+  "scopeHash": "7dab4df951f2af6b6edffde9390e3aa9e86887cb49ea4b4e02964ef4e90dface"
+}

@@ -1,0 +1,49 @@
+{
+  "schema": "comet.native.verification-receipt.v3",
+  "kind": "automated-check",
+  "role": "acceptance-evidence",
+  "status": "failed",
+  "bindings": {
+    "change": "public-go-sdk",
+    "sourceRevision": 3,
+    "contractHash": "b3b377703fbf2aa5437fc8e10f566ada9f8eef75dd92925f649521830d77c2a0",
+    "scopeHash": "7dab4df951f2af6b6edffde9390e3aa9e86887cb49ea4b4e02964ef4e90dface",
+    "snapshotHash": "f9cd9c32394701b91b613a48e5518b01e6a8447a87d1e2f566e82dbaaa2600c2",
+    "artifactHash": "ebcd90ea834cea6cc6bc4399a9ba965b610596d0c6c024f390123465e2d4fbd2"
+  },
+  "acceptanceIds": [
+    "acceptance-aaef760d82f10a0bfc3c581de5588488194680aa33c5ced19cfc98b78f577e2d"
+  ],
+  "actor": "native-runtime:command:powershell",
+  "issuedAt": "2026-08-08T21:02:54.576Z",
+  "evidence": {
+    "executable": "powershell",
+    "args": [
+      "-NoProfile",
+      "-Command",
+      "$s = @(git status --short); if ($s.Count -ne 2 -or -not ($s -match \"docs/comet/changes/public-go-sdk/brief.md\") -or -not ($s -match \".comet/current-change.json\")) { Write-Error (\"unexpected status: \" + ($s -join \"; \")); exit 1 }; $p = @(git diff --name-only); if ($p.Count -ne 0) { Write-Error (\"product diff: \" + ($p -join \", \")); exit 1 }; Write-Output (\"status=\" + ($s -join \"|\")); Write-Output \"tracked_diff=clean\""
+    ],
+    "cwd": ".",
+    "exitCode": 1,
+    "signal": null,
+    "timedOut": false,
+    "timeoutMs": 120000,
+    "startedAt": "2026-08-08T21:02:54.363Z",
+    "endedAt": "2026-08-08T21:02:54.576Z",
+    "worktree": {
+      "provider": "git",
+      "root": ".",
+      "beforeCommit": "d9e7c19817ff5f253b25236b72088b0ef7366c54",
+      "afterCommit": "d9e7c19817ff5f253b25236b72088b0ef7366c54"
+    },
+    "afterFence": {
+      "snapshotHash": "f9cd9c32394701b91b613a48e5518b01e6a8447a87d1e2f566e82dbaaa2600c2",
+      "scopeHash": "7dab4df951f2af6b6edffde9390e3aa9e86887cb49ea4b4e02964ef4e90dface",
+      "matched": true
+    },
+    "outputHash": "9f31c0a771671be30bedf667bc3028c7d592ca292e4ae9d20af6a3971cedb708",
+    "outputSummary": "$s = @(git status --short); if ($s.Count -ne 2 -or -not ($s -match \"docs/comet/changes/public-go-sdk/brief.md\") -or -no\r\nt ($s -match \".comet/current-change.json\")) { Write-Error (\"unexpected status: \" + ($s -join \"; \")); exit 1 }; $p = @(g\r\nit diff --name-only); if ($p.Count -ne 0) { Write-Error (\"product diff: \" + ($p -join \", \")); exit 1 }; Write-Output (\"\r\nstatus=\" + ($s -join \"|\")); Write-Output \"tracked_diff=clean\" : unexpected status: ?? .comet/current-change.json; ?? do\r\ncs/comet/changes/; ?? docs/comet/runtime/locks/\r\n    + CategoryInfo          : NotSpecified: (:) [Write-Error], WriteErrorException\r\n    + FullyQualifiedErrorId : Microsoft.PowerShell.Commands.WriteErrorException",
+    "outputTruncated": false
+  },
+  "receiptHash": "b8339245b87ff71ead3dd1faedc8af3b2b64befe1934c72db8d28daaf2b76fb6"
+}

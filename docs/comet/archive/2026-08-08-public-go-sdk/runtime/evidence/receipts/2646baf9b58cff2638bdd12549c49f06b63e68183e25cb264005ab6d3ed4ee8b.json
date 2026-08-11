@@ -1,0 +1,49 @@
+{
+  "schema": "comet.native.verification-receipt.v3",
+  "kind": "automated-check",
+  "role": "acceptance-evidence",
+  "status": "passed",
+  "bindings": {
+    "change": "public-go-sdk",
+    "sourceRevision": 3,
+    "contractHash": "b3b377703fbf2aa5437fc8e10f566ada9f8eef75dd92925f649521830d77c2a0",
+    "scopeHash": "7dab4df951f2af6b6edffde9390e3aa9e86887cb49ea4b4e02964ef4e90dface",
+    "snapshotHash": "f9cd9c32394701b91b613a48e5518b01e6a8447a87d1e2f566e82dbaaa2600c2",
+    "artifactHash": "ebcd90ea834cea6cc6bc4399a9ba965b610596d0c6c024f390123465e2d4fbd2"
+  },
+  "acceptanceIds": [
+    "acceptance-4b1003b406bfc181d9b2eb62aa57dd53a4ffaee1b752a4133919b3b4f064788f"
+  ],
+  "actor": "native-runtime:command:powershell",
+  "issuedAt": "2026-08-08T21:09:16.889Z",
+  "evidence": {
+    "executable": "powershell",
+    "args": [
+      "-NoProfile",
+      "-Command",
+      "$r = Get-Content -Raw docs/comet/changes/public-go-sdk/runtime/evidence/receipts/976a588363ad0dcc1387baacf2d0047c6595a8a773b2d0da74604b413fab162c.json | ConvertFrom-Json; if ($r.role -ne \"required-check\" -or $r.status -ne \"passed\" -or $r.evidence.resultSummary -notmatch \"passed\") { Write-Error \"required-check receipt is not passed\"; exit 1 }; $brief = Get-Content -Raw docs/comet/changes/public-go-sdk/brief.md; if ($brief -notmatch \"no-code\" -or $brief -notmatch \".worktree/public-go-sdk\") { Write-Error \"migration brief markers missing\"; exit 1 }; Write-Output (\"required_check_status=\" + $r.status); Write-Output \"brief_transfer=present\""
+    ],
+    "cwd": ".",
+    "exitCode": 0,
+    "signal": null,
+    "timedOut": false,
+    "timeoutMs": 120000,
+    "startedAt": "2026-08-08T21:09:16.731Z",
+    "endedAt": "2026-08-08T21:09:16.889Z",
+    "worktree": {
+      "provider": "git",
+      "root": ".",
+      "beforeCommit": "d9e7c19817ff5f253b25236b72088b0ef7366c54",
+      "afterCommit": "d9e7c19817ff5f253b25236b72088b0ef7366c54"
+    },
+    "afterFence": {
+      "snapshotHash": "f9cd9c32394701b91b613a48e5518b01e6a8447a87d1e2f566e82dbaaa2600c2",
+      "scopeHash": "7dab4df951f2af6b6edffde9390e3aa9e86887cb49ea4b4e02964ef4e90dface",
+      "matched": true
+    },
+    "outputHash": "ad242ed0fff7e0e2f9443bfca855193182e85777e01c3713cac92fd4b08715d0",
+    "outputSummary": "required_check_status=passed\r\nbrief_transfer=present",
+    "outputTruncated": false
+  },
+  "receiptHash": "2646baf9b58cff2638bdd12549c49f06b63e68183e25cb264005ab6d3ed4ee8b"
+}

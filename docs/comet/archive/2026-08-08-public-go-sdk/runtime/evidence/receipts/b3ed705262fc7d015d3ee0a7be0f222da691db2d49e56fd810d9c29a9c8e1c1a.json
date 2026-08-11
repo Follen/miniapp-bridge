@@ -1,0 +1,49 @@
+{
+  "schema": "comet.native.verification-receipt.v3",
+  "kind": "automated-check",
+  "role": "acceptance-evidence",
+  "status": "passed",
+  "bindings": {
+    "change": "public-go-sdk",
+    "sourceRevision": 3,
+    "contractHash": "b3b377703fbf2aa5437fc8e10f566ada9f8eef75dd92925f649521830d77c2a0",
+    "scopeHash": "7dab4df951f2af6b6edffde9390e3aa9e86887cb49ea4b4e02964ef4e90dface",
+    "snapshotHash": "f9cd9c32394701b91b613a48e5518b01e6a8447a87d1e2f566e82dbaaa2600c2",
+    "artifactHash": "ebcd90ea834cea6cc6bc4399a9ba965b610596d0c6c024f390123465e2d4fbd2"
+  },
+  "acceptanceIds": [
+    "acceptance-aaef760d82f10a0bfc3c581de5588488194680aa33c5ced19cfc98b78f577e2d"
+  ],
+  "actor": "native-runtime:command:powershell",
+  "issuedAt": "2026-08-08T21:02:37.751Z",
+  "evidence": {
+    "executable": "powershell",
+    "args": [
+      "-NoProfile",
+      "-Command",
+      "Write-Output ok"
+    ],
+    "cwd": ".",
+    "exitCode": 0,
+    "signal": null,
+    "timedOut": false,
+    "timeoutMs": 120000,
+    "startedAt": "2026-08-08T21:02:37.618Z",
+    "endedAt": "2026-08-08T21:02:37.751Z",
+    "worktree": {
+      "provider": "git",
+      "root": ".",
+      "beforeCommit": "d9e7c19817ff5f253b25236b72088b0ef7366c54",
+      "afterCommit": "d9e7c19817ff5f253b25236b72088b0ef7366c54"
+    },
+    "afterFence": {
+      "snapshotHash": "f9cd9c32394701b91b613a48e5518b01e6a8447a87d1e2f566e82dbaaa2600c2",
+      "scopeHash": "7dab4df951f2af6b6edffde9390e3aa9e86887cb49ea4b4e02964ef4e90dface",
+      "matched": true
+    },
+    "outputHash": "9f2a59a60e65fbcd5a3e1b7248adf92890ce3a32b19e43fb4751c2657196de13",
+    "outputSummary": "ok",
+    "outputTruncated": false
+  },
+  "receiptHash": "b3ed705262fc7d015d3ee0a7be0f222da691db2d49e56fd810d9c29a9c8e1c1a"
+}

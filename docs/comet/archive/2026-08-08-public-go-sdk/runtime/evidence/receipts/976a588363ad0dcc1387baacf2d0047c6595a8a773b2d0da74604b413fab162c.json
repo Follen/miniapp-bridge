@@ -1,0 +1,25 @@
+{
+  "schema": "comet.native.verification-receipt.v3",
+  "kind": "static-inspection",
+  "role": "required-check",
+  "status": "passed",
+  "bindings": {
+    "change": "public-go-sdk",
+    "sourceRevision": 3,
+    "contractHash": "b3b377703fbf2aa5437fc8e10f566ada9f8eef75dd92925f649521830d77c2a0",
+    "scopeHash": "7dab4df951f2af6b6edffde9390e3aa9e86887cb49ea4b4e02964ef4e90dface",
+    "snapshotHash": "f9cd9c32394701b91b613a48e5518b01e6a8447a87d1e2f566e82dbaaa2600c2",
+    "artifactHash": "ebcd90ea834cea6cc6bc4399a9ba965b610596d0c6c024f390123465e2d4fbd2"
+  },
+  "acceptanceIds": [],
+  "actor": "native-runtime:scoped-text-safety",
+  "issuedAt": "2026-08-08T21:03:48.637Z",
+  "evidence": {
+    "subjects": [],
+    "rule": "scoped-text-safety",
+    "resultSummary": "The built-in scoped inspection passed without skipped or blocking input.",
+    "checkReceiptRef": "runtime/evidence/check-receipts/30d1e4b42e6314a063dde8f4a5a6bbc3d363bb64b86543eddc3894dc8c1dc055.json",
+    "checkReceiptHash": "30d1e4b42e6314a063dde8f4a5a6bbc3d363bb64b86543eddc3894dc8c1dc055"
+  },
+  "receiptHash": "976a588363ad0dcc1387baacf2d0047c6595a8a773b2d0da74604b413fab162c"
+}

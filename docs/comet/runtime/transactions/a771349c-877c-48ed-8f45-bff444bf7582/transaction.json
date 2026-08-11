@@ -1,0 +1,19 @@
+{
+  "schema": "comet.native.transaction.v2",
+  "id": "a771349c-877c-48ed-8f45-bff444bf7582",
+  "kind": "archive",
+  "status": "committed",
+  "change": "public-go-sdk",
+  "createdAt": "2026-08-08T21:10:14.371Z",
+  "preflightHash": "092ef04f08470402b16b53a5beb744c0618d04cc7051f83d186f009df6d892da",
+  "operations": [
+    {
+      "id": "archive-change",
+      "type": "move",
+      "source": "changes/public-go-sdk",
+      "target": "archive/2026-08-08-public-go-sdk",
+      "expectedSourceHash": "369aa29fa6a82bbaf64da136f7a738d194ab3904abc9373082ada71ef35c06b3",
+      "expectedTargetHash": null
+    }
+  ]
+}

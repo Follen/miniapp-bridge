@@ -1,0 +1,28 @@
+{
+  "schema": "comet.native.verification-receipt.v3",
+  "kind": "manual-evidence",
+  "role": "acceptance-evidence",
+  "status": "passed",
+  "bindings": {
+    "change": "public-go-sdk",
+    "sourceRevision": 3,
+    "contractHash": "b3b377703fbf2aa5437fc8e10f566ada9f8eef75dd92925f649521830d77c2a0",
+    "scopeHash": "7dab4df951f2af6b6edffde9390e3aa9e86887cb49ea4b4e02964ef4e90dface",
+    "snapshotHash": "f9cd9c32394701b91b613a48e5518b01e6a8447a87d1e2f566e82dbaaa2600c2",
+    "artifactHash": "ebcd90ea834cea6cc6bc4399a9ba965b610596d0c6c024f390123465e2d4fbd2"
+  },
+  "acceptanceIds": [
+    "acceptance-51acf393f7d734a85f9bf0121b73e825b1553193ef1a7a19901692e07eff5cbd"
+  ],
+  "actor": "native-runtime:manual-evidence",
+  "issuedAt": "2026-08-08T21:06:16.562Z",
+  "evidence": {
+    "steps": [
+      "comet native archive public-go-sdk --dry-run --json"
+    ],
+    "observations": [
+      "exit 0; preflightHash=6c028f1b73a9ba5e3199066c8e0a05141e2019dd8fb53b294c4b1f95ba7cc1b6; isolation=current; targetRef=archive/2026-08-08-public-go-sdk; operations=0; findings are only archive-phase-required, verification-evidence-missing, and verification-not-passed before this Verify transition."
+    ]
+  },
+  "receiptHash": "15647e65dbe17cb4d131504a036bc453829ebc60ae7539a740cf598bb8b3f671"
+}

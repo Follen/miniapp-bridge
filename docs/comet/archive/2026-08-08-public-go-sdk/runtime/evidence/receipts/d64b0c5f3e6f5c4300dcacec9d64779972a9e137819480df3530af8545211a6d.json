@@ -1,0 +1,50 @@
+{
+  "schema": "comet.native.verification-receipt.v3",
+  "kind": "automated-check",
+  "role": "acceptance-evidence",
+  "status": "failed",
+  "bindings": {
+    "change": "public-go-sdk",
+    "sourceRevision": 3,
+    "contractHash": "b3b377703fbf2aa5437fc8e10f566ada9f8eef75dd92925f649521830d77c2a0",
+    "scopeHash": "7dab4df951f2af6b6edffde9390e3aa9e86887cb49ea4b4e02964ef4e90dface",
+    "snapshotHash": "f9cd9c32394701b91b613a48e5518b01e6a8447a87d1e2f566e82dbaaa2600c2",
+    "artifactHash": "ebcd90ea834cea6cc6bc4399a9ba965b610596d0c6c024f390123465e2d4fbd2"
+  },
+  "acceptanceIds": [
+    "acceptance-4b1003b406bfc181d9b2eb62aa57dd53a4ffaee1b752a4133919b3b4f064788f"
+  ],
+  "actor": "native-runtime:command:C:\\Users\\follen\\AppData\\Roaming\\npm\\comet.cmd",
+  "issuedAt": "2026-08-08T21:04:31.736Z",
+  "evidence": {
+    "executable": "C:\\Users\\follen\\AppData\\Roaming\\npm\\comet.cmd",
+    "args": [
+      "native",
+      "check",
+      "public-go-sdk",
+      "--json"
+    ],
+    "cwd": ".",
+    "exitCode": 73,
+    "signal": null,
+    "timedOut": false,
+    "timeoutMs": 120000,
+    "startedAt": "2026-08-08T21:04:26.473Z",
+    "endedAt": "2026-08-08T21:04:31.736Z",
+    "worktree": {
+      "provider": "git",
+      "root": ".",
+      "beforeCommit": "d9e7c19817ff5f253b25236b72088b0ef7366c54",
+      "afterCommit": "d9e7c19817ff5f253b25236b72088b0ef7366c54"
+    },
+    "afterFence": {
+      "snapshotHash": "f9cd9c32394701b91b613a48e5518b01e6a8447a87d1e2f566e82dbaaa2600c2",
+      "scopeHash": "7dab4df951f2af6b6edffde9390e3aa9e86887cb49ea4b4e02964ef4e90dface",
+      "matched": true
+    },
+    "outputHash": "7b7313db1e43e8a6d9e8bcc7c7cf00645e544358a49f724295d610237d09f0df",
+    "outputSummary": "{\"command\":\"check\",\"exitCode\":73,\"error\":{\"code\":\"conflict\",\"message\":\"Native lock is already held: D:\\\\Code\\\\third-partry\\\\miniapp-bridge\\\\docs\\\\comet\\\\runtime\\\\locks\\\\root-move.lock by pid 7736 for issue automated receipt public-go-sdk\"}}",
+    "outputTruncated": false
+  },
+  "receiptHash": "d64b0c5f3e6f5c4300dcacec9d64779972a9e137819480df3530af8545211a6d"
+}

@@ -1,0 +1,66 @@
+{
+  "schema": "comet.native.verification-evidence.v2",
+  "change": "public-go-sdk",
+  "sourceRevision": 3,
+  "result": "pass",
+  "freshness": "complete",
+  "contractHash": "b3b377703fbf2aa5437fc8e10f566ada9f8eef75dd92925f649521830d77c2a0",
+  "acceptanceCriteriaHash": "9be472bf9d01275a1eb5ed609ec120524e08ba3cd5a1f2cf8bb0c7269215d768",
+  "implementationScopeRef": "runtime/evidence/scopes/7dab4df951f2af6b6edffde9390e3aa9e86887cb49ea4b4e02964ef4e90dface.json",
+  "implementationScopeHash": "7dab4df951f2af6b6edffde9390e3aa9e86887cb49ea4b4e02964ef4e90dface",
+  "reportRef": "verification.md",
+  "reportHash": "43f436b6e3321b505d8e3587e49c71667e07da1197b897d0e7276059d69196cb",
+  "acceptanceTrace": {
+    "schema": "comet.native.acceptance-trace.v2",
+    "nativeRootRef": "docs/comet",
+    "criteriaHash": "9be472bf9d01275a1eb5ed609ec120524e08ba3cd5a1f2cf8bb0c7269215d768",
+    "total": 3,
+    "evidenced": 3,
+    "skipped": 0,
+    "entries": [
+      {
+        "acceptanceId": "acceptance-4b1003b406bfc181d9b2eb62aa57dd53a4ffaee1b752a4133919b3b4f064788f",
+        "status": "passed",
+        "kind": "brief-example",
+        "source": "brief.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/2646baf9b58cff2638bdd12549c49f06b63e68183e25cb264005ab6d3ed4ee8b.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-51acf393f7d734a85f9bf0121b73e825b1553193ef1a7a19901692e07eff5cbd",
+        "status": "passed",
+        "kind": "brief-example",
+        "source": "brief.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/15647e65dbe17cb4d131504a036bc453829ebc60ae7539a740cf598bb8b3f671.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-aaef760d82f10a0bfc3c581de5588488194680aa33c5ced19cfc98b78f577e2d",
+        "status": "passed",
+        "kind": "brief-example",
+        "source": "brief.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/e46d3cbd233d560ea6abba3790c8828a2a70d428ec3a2866f73353b02dd6f3f1.json"
+        ],
+        "skippedReason": null
+      }
+    ],
+    "traceHash": "07e80dd40b51a77741135d9a57f3ed6c6137834c88f0465dcd544238a882c3f2"
+  },
+  "partialAllowanceRef": null,
+  "partialAllowanceHash": null,
+  "requiredReceiptRefs": [
+    "runtime/evidence/receipts/976a588363ad0dcc1387baacf2d0047c6595a8a773b2d0da74604b413fab162c.json"
+  ],
+  "receiptRefs": [
+    "runtime/evidence/receipts/15647e65dbe17cb4d131504a036bc453829ebc60ae7539a740cf598bb8b3f671.json",
+    "runtime/evidence/receipts/2646baf9b58cff2638bdd12549c49f06b63e68183e25cb264005ab6d3ed4ee8b.json",
+    "runtime/evidence/receipts/e46d3cbd233d560ea6abba3790c8828a2a70d428ec3a2866f73353b02dd6f3f1.json"
+  ],
+  "createdAt": "2026-08-08T21:09:45.699Z",
+  "envelopeHash": "5953b1423bc4290643342ec884f79254766fe306c4de3446f65672bd5cfa51da"
+}
