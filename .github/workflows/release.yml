@@ -178,7 +178,7 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           & .\scripts\package-windows-release.ps1 -Version $env:RELEASE_TAG
-          if ($LASTEXITCODE -ne 0) { throw "release packaging failed with exit $LASTEXITCODE" }
+          if ($null -ne $LASTEXITCODE -and $LASTEXITCODE -ne 0) { throw "release packaging failed with exit $LASTEXITCODE" }
 
           $manifest = Get-Content -LiteralPath .\dist\release\manifest.json -Raw | ConvertFrom-Json
           if ($manifest.nativeVersion -ne $env:NATIVE_TAG.Substring('native-v'.Length)) {

@@ -89,6 +89,7 @@ func TestGitHubReleaseWorkflowBuildAndVersionContract(t *testing.T) {
 		".\\scripts\\coverage-gate.ps1",
 		".\\scripts\\build-windows.ps1",
 		".\\scripts\\package-windows-release.ps1 -Version $env:RELEASE_TAG",
+		"if ($null -ne $LASTEXITCODE -and $LASTEXITCODE -ne 0) { throw \"release packaging failed with exit $LASTEXITCODE\" }",
 		"native_tag=native-v17.3.2-abi1",
 		"manifest.nativeVersion",
 		"native archive hash $nativeHash does not match SDK pin $env:NATIVE_ARCHIVE_SHA256",
