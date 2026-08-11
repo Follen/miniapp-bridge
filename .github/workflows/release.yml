@@ -268,6 +268,11 @@ jobs:
             jq -c '.[0] // empty' <<<"$matches"
           }
 
+          release_for_id() {
+            local release_id="$1"
+            gh api "repos/$GITHUB_REPOSITORY/releases/$release_id"
+          }
+
           resolve_tag_commit() {
             local tag="$1" object_type object_sha payload depth
             payload="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$tag")"
@@ -312,9 +317,8 @@ jobs:
             local release_json="$1" allow_upload="$2"
             shift 2
             local files=("$@") expected_names=() name existing_name found count asset_id asset_state downloaded encoded upload_url
-            local release_id asset_tag attempt converged
+            local release_id attempt converged
             release_id="$(jq -r '.id' <<<"$release_json")"
-            asset_tag="$(jq -r '.tag_name' <<<"$release_json")"
 
             for file in "${files[@]}"; do
               expected_names+=("$(basename "$file")")
@@ -334,7 +338,7 @@ jobs:
               name="$(basename "$file")"
               converged=false
               for attempt in 1 2 3; do
-                release_json="$(single_release_for_tag "$asset_tag")"
+                release_json="$(release_for_id "$release_id")"
                 count="$(jq --arg name "$name" '[.assets[] | select(.name == $name)] | length' <<<"$release_json")"
                 if [[ "$count" -gt 1 ]]; then
                   echo "duplicate release asset for id $release_id: $name" >&2
@@ -360,7 +364,7 @@ jobs:
                       "repos/$GITHUB_REPOSITORY/releases/assets/$asset_id" >/dev/null; then
                     echo "asset delete raced or failed, verifying remote state: $name" >&2
                   fi
-                  release_json="$(single_release_for_tag "$asset_tag")"
+                  release_json="$(release_for_id "$release_id")"
                   count="$(jq --arg name "$name" '[.assets[] | select(.name == $name)] | length' <<<"$release_json")"
                   if [[ "$count" -gt 0 ]]; then
                     continue
@@ -384,7 +388,7 @@ jobs:
                 fi
               done
               if [[ "$converged" != true ]]; then
-                release_json="$(single_release_for_tag "$asset_tag")"
+                release_json="$(release_for_id "$release_id")"
                 count="$(jq --arg name "$name" '[.assets[] | select(.name == $name)] | length' <<<"$release_json")"
                 if [[ "$count" -eq 1 ]]; then
                   asset_id="$(jq -r --arg name "$name" '.assets[] | select(.name == $name) | .id' <<<"$release_json")"
@@ -404,7 +408,7 @@ jobs:
               fi
             done
 
-            release_json="$(single_release_for_tag "$asset_tag")"
+            release_json="$(release_for_id "$release_id")"
             for name in "${expected_names[@]}"; do
               count="$(jq --arg name "$name" '[.assets[] | select(.name == $name)] | length' <<<"$release_json")"
               if [[ "$count" -ne 1 ]]; then
@@ -461,9 +465,10 @@ jobs:
               echo "release $tag is already published" >&2
               return 1
             fi
+            release_id="$(jq -r '.id' <<<"$release_json")"
             reconcile_assets "$release_json" true "${files[@]}"
 
-            refreshed="$(single_release_for_tag "$tag")"
+            refreshed="$(release_for_id "$release_id")"
             assert_release_metadata "$refreshed" "$tag" "$target" "$title" "$prerelease"
             reconcile_assets "$refreshed" false "${files[@]}"
             if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$tag" >/dev/null 2>&1; then
@@ -476,14 +481,13 @@ jobs:
               echo "product tag disappeared before publication: $tag" >&2
               return 1
             fi
-            release_id="$(jq -r '.id' <<<"$refreshed")"
             if ! gh api --method PATCH "repos/$GITHUB_REPOSITORY/releases/$release_id" \
                 -F draft=false \
                 -F "prerelease=$prerelease" \
                 -f "make_latest=$latest" >/dev/null; then
               echo "release publish request failed, verifying remote state: $tag" >&2
             fi
-            refreshed="$(single_release_for_tag "$tag")"
+            refreshed="$(release_for_id "$release_id")"
             if [[ "$(jq -r '.draft' <<<"$refreshed")" != false ]]; then
               echo "release $tag did not publish" >&2
               return 1

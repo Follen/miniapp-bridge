@@ -269,6 +269,33 @@ func TestGitHubReleaseWorkflowRecoverablePublishingContract(t *testing.T) {
 	}
 }
 
+func TestGitHubReleaseWorkflowReleaseIDConsistencyContract(t *testing.T) {
+	workflow := readReleaseWorkflow(t)
+
+	releaseForID := releaseShellFunction(t, workflow, "release_for_id")
+	if !strings.Contains(releaseForID, `gh api "repos/$GITHUB_REPOSITORY/releases/$release_id"`) {
+		t.Fatal("release_for_id must read the release directly from the GitHub API by release ID")
+	}
+	if strings.Contains(releaseForID, "single_release_for_tag") || strings.Contains(releaseForID, "releases_for_tag") {
+		t.Fatal("release_for_id must not depend on eventually consistent release-list queries")
+	}
+
+	for _, name := range []string{"reconcile_assets", "publish_reconciled_draft"} {
+		body := releaseShellFunction(t, workflow, name)
+		releaseID := strings.Index(body, `release_id="$(jq -r '.id' <<<"$release_json")"`)
+		if releaseID < 0 {
+			t.Fatalf("%s must preserve the release ID from its input JSON", name)
+		}
+		afterReleaseID := body[releaseID:]
+		if strings.Contains(afterReleaseID, "single_release_for_tag") || strings.Contains(afterReleaseID, "releases_for_tag") {
+			t.Fatalf("%s must not return to release-list queries after obtaining release_id", name)
+		}
+		if !strings.Contains(afterReleaseID, `release_for_id "$release_id"`) {
+			t.Fatalf("%s must refresh release state directly by release_id", name)
+		}
+	}
+}
+
 func readReleaseWorkflow(t *testing.T) string {
 	t.Helper()
 	data, err := os.ReadFile(filepath.Join("..", ".github", "workflows", "release.yml"))
@@ -308,4 +335,19 @@ func releaseJobBodies(t *testing.T, workflow string) map[string]string {
 		t.Fatalf("release workflow jobs=%v", jobs)
 	}
 	return jobs
+}
+
+func releaseShellFunction(t *testing.T, workflow, name string) string {
+	t.Helper()
+	startToken := "          " + name + "() {\n"
+	start := strings.Index(workflow, startToken)
+	if start < 0 {
+		t.Fatalf("release workflow lacks %s", name)
+	}
+	rest := workflow[start+len(startToken):]
+	end := strings.Index(rest, "\n          }")
+	if end < 0 {
+		t.Fatalf("release workflow has an unterminated %s", name)
+	}
+	return rest[:end]
 }
