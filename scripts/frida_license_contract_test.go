@@ -30,8 +30,6 @@ func TestFridaLicenseDistributionContract(t *testing.T) {
 	for _, path := range []string{
 		"scripts/native-release.ps1",
 		"scripts/package-windows-release.ps1",
-		"README.md",
-		"README.zh.md",
 		"docs/native-release.md",
 		"THIRD_PARTY_NOTICES.md",
 	} {

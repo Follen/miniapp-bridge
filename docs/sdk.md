@@ -22,7 +22,9 @@ Zero options preserve `127.0.0.1:9421` for WMPF upstream and
 `127.0.0.1:62000` for the CDP WebSocket. `Start` returns after listeners and
 the configured native starter are ready. On Windows builds with native support,
 zero options discover the target, attach Frida, and load the embedded Agent.
-All 47 supported address configurations are compiled into the Go binary;
+The binary bundles 47 historical address configurations. The current
+live-supported target is WMPF 25297 on Windows amd64; the other configurations
+are compatibility data, not a production support claim.
 `Options.AddressConfigDir` is an explicit per-Service override. Cancelling the
 lifetime context starts an orderly asynchronous close. `Close` is safe before
 Start, concurrently, repeatedly, and after a caller timeout.

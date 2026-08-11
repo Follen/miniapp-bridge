@@ -5,63 +5,59 @@
 [![CI](https://github.com/Follen/miniapp-bridge/actions/workflows/ci.yml/badge.svg)](https://github.com/Follen/miniapp-bridge/actions/workflows/ci.yml)
 [![Release](https://github.com/Follen/miniapp-bridge/actions/workflows/release.yml/badge.svg)](https://github.com/Follen/miniapp-bridge/actions/workflows/release.yml)
 
-`miniapp-bridge` is a Go and Frida port of
-[evi0s/WMPFDebugger](https://github.com/evi0s/WMPFDebugger). It discovers and
-attaches to a Windows WMPF process, converts the private WMPF debug protocol to
-standard Chrome DevTools Protocol (CDP), and exposes both a standalone CLI and
-a public Go SDK.
+`miniapp-bridge` exposes a local Chrome DevTools Protocol bridge for Windows
+WMPF mini programs. Connect Chromium DevTools over WebSocket, or embed the
+public Go SDK to send CDP commands, select JavaScript contexts, subscribe to
+events, and record or replay protocol traffic.
 
-The Go process owns process discovery, Frida lifecycle, Protobuf and zlib,
-request correlation, context routing, WebSocket serving, capture/replay,
-configuration, and logging. The embedded JavaScript Agent only patches the
-target runtime and forwards raw messages. The final program does not require
-Node.js.
+The Windows executable discovers WMPF, attaches the embedded Frida Agent, and
+owns the complete bridge lifecycle. Node.js is not required at runtime.
 
-## Endpoints
+## Supported environment
 
-The zero-configuration service preserves the reference endpoints and startup
-order:
+| Component | Supported version |
+| --- | --- |
+| Operating system | Windows amd64 |
+| WMPF | **25297** |
+| Frida Core | 17.3.2 |
+| Native ABI | 1 (`17.3.2-abi1`) |
+| Go SDK and source builds | Go 1.23 or newer |
 
-- WMPF debug WebSocket: `127.0.0.1:9421`
-- CDP WebSocket proxy: `127.0.0.1:62000`
-- DevTools URL:
-  `devtools://devtools/bundled/inspector.html?ws=127.0.0.1:62000`
+WMPF 25297 is the production and live-verified target for this release.
+Address data for other historical builds is compatibility data and is not a
+claim of live support.
 
-Both listeners start before target discovery, Frida attach, and Agent load.
-After the bridge reports a successful attach, open or reload the target
-miniapp, then open the DevTools URL. The `OnLoadStart` hook can only observe
-loads that occur after attachment.
+## Quick start
 
-## Platform status
+1. Download `miniapp-bridge-v0.0.1-windows-amd64.zip` from
+   [GitHub Releases](https://github.com/Follen/miniapp-bridge/releases/tag/v0.0.1).
+2. Extract the archive. Keep `miniapp-bridge.exe`, `miniapp-frida.dll`, and
+   `manifest.json` in the same directory.
+3. Start the bridge:
 
-Windows amd64 is the only native production target in the current release.
-The native package is pinned to:
+   ```powershell
+   .\miniapp-bridge.exe
+   ```
 
-- Frida core `17.3.2`
-- miniapp native ABI `1` (`17.3.2-abi1`)
-- zlib `1.3.1`
+4. Wait for the Frida attached log, then open or reload the target mini
+   program. Loading it before attachment will not trigger the required hook.
+5. Open Chromium DevTools with:
 
-The repository contains platform abstractions and portable protocol tests, but
-it does not claim native target discovery, attach, packaging, or live parity on
-macOS, Linux, Windows arm64, or other systems. Untagged builds retain the Go
-proxy and replay surface without automatic native attach.
+   ```text
+   devtools://devtools/bundled/inspector.html?ws=127.0.0.1:62000
+   ```
 
-## CLI quick start
+Stop the process with `Ctrl+C`. Shutdown closes clients and listeners, unloads
+the Agent, detaches the Frida session, and releases the native runtime.
 
-Requirements for a native source build are Go `1.23` or newer, Windows amd64,
-MinGW-w64 `gcc.exe` and `ar.exe` for cgo, Visual Studio 2022 C++ Build Tools
-with MSVC, and PowerShell. The first uncached build downloads the pinned Frida
-devkit and zlib source and verifies both archives.
+## Endpoints and CLI
 
-```powershell
-git clone https://github.com/Follen/miniapp-bridge.git
-cd miniapp-bridge
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\build-windows.ps1
-.\dist\miniapp-bridge.exe
-```
+The default listeners bind only to loopback:
 
-Then open or reload the miniapp after the attach message and connect DevTools
-with the URL above. Available CLI options are:
+| Address | Purpose |
+| --- | --- |
+| `127.0.0.1:9421` | WMPF upstream debug WebSocket |
+| `127.0.0.1:62000` | CDP WebSocket for DevTools and other clients |
 
 ```text
 Usage: miniapp-bridge [options]
@@ -76,23 +72,20 @@ Options:
   -h, --help           Show this help message
 ```
 
-`scripts\build-windows.ps1` builds the native shim, runs the tagged test suite,
-builds `miniapp-bridge.exe`, and places the DLL and manifest beside the EXE in
-`dist`.
+Use `--record` to save raw upstream frames. Use `--replay` to feed a capture
+back through the same protocol pipeline without attaching a live target.
 
-## Public Go SDK
+## Go SDK
 
-The module path is `github.com/Follen/miniapp-bridge`; the public package is
-`github.com/Follen/miniapp-bridge/sdk`. The CLI uses the same `sdk.Service`
-implementation. Consumers do not import `internal`, receive C pointers, or own
-Frida handles.
+The module path is `github.com/Follen/miniapp-bridge`; applications import the
+public package `github.com/Follen/miniapp-bridge/sdk`:
 
-```bash
+```powershell
 go get github.com/Follen/miniapp-bridge/sdk@v0.0.1
 ```
 
 ```go
-package main
+package bridge
 
 import (
     "context"
@@ -101,7 +94,7 @@ import (
     "github.com/Follen/miniapp-bridge/sdk"
 )
 
-func run(ctx context.Context) error {
+func Run(ctx context.Context) error {
     service, err := sdk.New(sdk.Options{})
     if err != nil {
         return err
@@ -110,200 +103,93 @@ func run(ctx context.Context) error {
         return err
     }
 
-    _, requestErr := service.Send(ctx, sdk.Request{
-        Method: "Runtime.enable",
-    })
+    <-ctx.Done()
 
     closeCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
     defer cancel()
-    closeErr := service.Close(closeCtx)
-    if requestErr != nil {
-        return requestErr
-    }
-    return closeErr
+    return service.Close(closeCtx)
 }
 ```
 
-The SDK also exposes status, logs, CDP and context subscriptions; structured and
-raw CDP requests; target discovery and attach/detach; `jscontextId` selection;
-capture/replay; native preparation; and structured errors compatible with
-`errors.Is` and `errors.As`. See [docs/sdk.md](docs/sdk.md) and
-[examples/sdk](examples/sdk).
+`Service` also provides structured and raw CDP requests, request correlation,
+log/status/CDP/context subscriptions, context selection, target attach and
+detach, recording, replay, and structured errors compatible with
+`errors.Is`/`errors.As`. Wait for an upstream connection and an execution
+context before sending context-bound CDP requests.
 
-The public SDK follows Go Module SemVer. This release requires Go `1.23` or
-newer. Compatible minor and patch releases keep the documented SDK API,
-structured error model, request/event ordering, default endpoints, and native
-version constants stable within the current major version.
+See [Public Go SDK](docs/sdk.md) and the [SDK example](examples/sdk) for the
+complete API and lifecycle contract.
 
-## Native runtime: prepare, build, and deploy
+## Native runtime
 
-The Go Module contains Go source and the minimal Windows loader source only.
-`miniapp-frida.dll` and generated archives are not committed to the source
-Module. The DLL is distributed separately as a GitHub Release asset and must be
-placed beside the final EXE together with `manifest.json`. The loader does not
-search the working directory, `PATH`, the registry, or a global installation.
+The Go module contains source and the Windows loader, but not
+`miniapp-frida.dll`. Release assets publish the native runtime separately as
+`miniapp-frida-native-17.3.2-abi1-windows-amd64.zip` under the compatibility
+tag `native-v17.3.2-abi1`.
 
-Prepare a published runtime into an executable directory:
+SDK applications that attach WMPF must:
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\native-prepare.ps1 `
-  -DestinationDirectory .\dist `
-  -ExpectedArchiveSHA256 DC08BCDBF5B0CE5C15640BF3A12907BD1EDF01A10A59F0FE1FD66E43939F7187
-```
+1. Build with `CGO_ENABLED=1` and `-tags frida`.
+2. Deploy `miniapp-frida.dll` and its matching `manifest.json` beside the final
+   executable.
+3. Use `sdk.CheckNativeRuntime` or `sdk.PrepareNativeRuntime` when runtime
+   validation or managed caching is required.
 
-The default download is:
+The loader does not search `PATH` or a global installation. Missing files,
+wrong architecture, ABI mismatch, bad manifests, missing exports, and hash
+errors are returned as structured SDK errors. See
+[Native release assets](docs/native-release.md) for offline preparation,
+cache, packaging, and release details.
 
-```text
-https://github.com/Follen/miniapp-bridge/releases/download/native-v17.3.2-abi1/miniapp-frida-native-17.3.2-abi1-windows-amd64.zip
-```
+## Build from source
 
-Preparation uses an exclusive lock, partial download, SHA-256 verification,
-manifest and PE amd64 validation, staging extraction, and atomic installation.
-The default cache is
-`%LOCALAPPDATA%\miniapp-bridge\native\17.3.2-abi1\windows-amd64`. Pass
-`-Offline` with the same expected archive hash to require an already verified
-cache and prohibit downloading.
+Native Windows builds require:
 
-An SDK consumer builds its executable with the native tag and deploys the
-prepared files beside it:
+- Go 1.23 or newer
+- Windows amd64 and PowerShell
+- MinGW-w64 `gcc.exe` and `ar.exe` for cgo
+- Visual Studio 2022 C++ Build Tools with MSVC
 
 ```powershell
-go build -tags frida -o .\dist\my-app.exe .\cmd\my-app
-# .\dist\my-app.exe
-# .\dist\miniapp-frida.dll
-# .\dist\manifest.json
+git clone https://github.com/Follen/miniapp-bridge.git
+cd miniapp-bridge
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\build-windows.ps1
 ```
 
-To build the DLL locally instead, run `scripts\build-windows.ps1`. It pins and
-verifies the official Frida devkit archive and zlib `1.3.1`, builds the opaque C
-ABI shim with MSVC, runs `go test -tags frida -race ./...`, and produces the
-tagged CLI package in `dist`.
+The script verifies pinned Frida and zlib inputs, builds the native shim, runs
+the native test suite, and writes the executable, DLL, and manifest to `dist`.
+Verified download caches can be reused for offline rebuilds.
 
-That tagged test command is self-contained and does not require WeChat or a
-WMPF process. Interactive target enumeration, attach, Agent lifecycle, and
-reattach tests use the separate `frida live` tags and are exercised by the
-Windows live smoke workflow.
+## Testing and troubleshooting
 
-## Versions and releases
-
-The initial source and SDK release is `v0.0.1`. Later releases must use
-canonical Go Module v0/v1 SemVer tags without build metadata; the fixed module
-path does not accept v2+ tags. Native runtime assets are versioned independently
-because a Go proxy must not carry large platform DLLs. The pinned native tag is
-`native-v17.3.2-abi1`, and its asset name is:
-
-```text
-miniapp-frida-native-17.3.2-abi1-windows-amd64.zip
-```
-
-The native ZIP contains `miniapp-frida.dll`, `manifest.json`, `LICENSE`,
-`FRIDA_COPYING`, `FRIDA_COPYING.LIB`, `ZLIB_LICENSE`,
-`THIRD_PARTY_NOTICES.md`, and its internal `SHA256SUMS`.
-
-GitHub Actions uses two workflows:
-
-- [CI](.github/workflows/ci.yml) runs on pushes, pull requests, and manual
-  dispatch. Linux runs the portable unit, vet, race, module, formatting, and
-  repository checks. Windows runs the pinned native build and the complete
-  `100.0%` coverage gate. Official Node 24 actions are pinned to full commit
-  hashes and workflow permissions are read-only.
-- [Release](.github/workflows/release.yml) runs for an existing canonical v0/v1
-  tag or manual dispatch of that tag. A read-only Windows job repeats module,
-  deterministic, coverage/race/vet, native build, export, dependency, and hash
-  checks. Only the final publish job receives `contents: write`, and it never
-  checks out or executes repository code. Runs sharing the pinned native tag
-  are serialized, and `queue: max` retains up to 100 pending releases.
-
-A product release publishes:
-
-```text
-miniapp-bridge-v0.0.1-windows-amd64.zip
-miniapp-frida-native-17.3.2-abi1-windows-amd64.zip
-manifest.json
-SHA256SUMS
-```
-
-The product ZIP contains the EXE, matching DLL and manifest, both READMEs, and
-the required license and notice files. The workflow also creates or verifies
-the immutable `native-v17.3.2-abi1` compatibility release used by the default
-SDK download URL. Its native ZIP must match the SDK-pinned SHA-256
-`DC08BCDBF5B0CE5C15640BF3A12907BD1EDF01A10A59F0FE1FD66E43939F7187`.
-The publisher creates or resumes a draft, reconciles every asset byte-for-byte,
-rechecks both product and native tag commits before and after publication, and
-only then publishes. An existing product
-release is never overwritten; an existing native release must have
-byte-identical assets and is never selected as Latest. SemVer prerelease tags
-are marked as GitHub prereleases.
-
-Create an annotated product tag and push it after CI passes:
-
-```bash
-git tag -a v0.0.1 -m "miniapp-bridge v0.0.1"
-git push origin v0.0.1
-```
-
-Hosted CI does not claim a live WMPF result because it has no target process.
-Run the live matrix described below on an interactive Windows machine before a
-release that claims a new target version.
-
-## WMPF versions
-
-All 47 address configurations recovered from the fixed reference repository are
-embedded and statically tested. At runtime the bridge selects the configuration
-matching the discovered target version; `sdk.Options.AddressConfigDir` can
-provide an explicit override.
-
-Embedding and unit tests do not constitute live verification of every
-historical WMPF binary. A production release should carry a fresh live receipt
-for each target version it claims to support.
-
-## Testing and verification
-
-Run the portable suite:
+Portable tests and the deterministic Windows gate are separate from the live
+WMPF matrix:
 
 ```powershell
-go test ./...
-```
-
-Run the deterministic release gate:
-
-```powershell
+go test ./... -count=1
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\coverage-gate.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\smoke-windows.ps1 -CDPMode all
 ```
 
-The gate requires exactly `100.0%` Go statement coverage for the declared
-CLI/Frida, `internal`, public SDK, tagged internal+SDK, and smoke-runner scopes.
-It also runs unit, race, tagged-race, vet, protobuf differential/golden,
-corrupt-frame, request-ordering, context, reconnect, capture/replay, native
-loader, and external-Module coverage. See [docs/verification.md](docs/verification.md)
-for the stable release contract and the current Comet verification report for
-scope-bound command receipts.
+Common checks:
 
-The live Windows matrix is separate from deterministic coverage:
+- **No target attached:** confirm the running WMPF build is 25297. Start the
+  bridge first, then open or reload the mini program after attachment.
+- **DevTools cannot connect:** check that port 62000 is listening and is not
+  occupied by another process.
+- **No upstream:** check that WMPF connected to port 9421 after the mini program
+  was loaded.
+- **Native load error:** keep the matching DLL and manifest beside the EXE;
+  inspect the returned structured error for architecture, version, ABI, export,
+  or hash details.
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\smoke-windows.ps1 `
-  -UpstreamWaitSeconds 300 -CDPMode all
-```
+See [verification](docs/verification.md), the
+[behavior matrix](docs/behavior-matrix.md), and
+[known differences](KNOWN-DIFFERENCES.md) for deeper validation details.
 
-Wait for `action-required=open-or-reload-miniapp`, then open or reload the
-target. A passing run checks WMPF upstream ownership, representative Runtime,
-Debugger, Page, DOM, Network, Console and Performance behavior, interaction
-input, reconnect, event/request semantics, graceful Agent/session/device/runtime
-teardown, target survival, and immediate port rebinding. A live run validates
-only the installed target version and environment; the project does not infer
-historical-version parity from one receipt.
+## License
 
-## Reference, license, and notices
+miniapp-bridge is licensed under [GPL-2.0-only](LICENSE).
 
-This port is based on
-[evi0s/WMPFDebugger](https://github.com/evi0s/WMPFDebugger) at fixed commit
-`2b90b77fc6f13dd18480cd07d7dd9c052cc26c9d`. Address configurations and Agent
-behavior retain their source attribution. Protocol definitions corresponding to
-the reference `src/third-party` files originated from WeChat DevTools and retain
-the Tencent Holdings Ltd. copyright.
-
-The project is licensed under [GPL-2.0-only](LICENSE). Distributed native assets
-must also retain [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), the zlib
-license, Frida's pinned [wxWindows license](licenses/frida-17.3.2/COPYING), and
-the referenced [GNU Library GPL 2.0 text](licenses/frida-17.3.2/COPYING.LIB).
+Third-party licenses and notices are collected in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

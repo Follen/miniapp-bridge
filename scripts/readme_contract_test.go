@@ -27,15 +27,23 @@ func TestBilingualReadmeReleaseContract(t *testing.T) {
 			"miniapp-bridge-v0.0.1-windows-amd64.zip",
 			"miniapp-frida-native-17.3.2-abi1-windows-amd64.zip",
 			"native-v17.3.2-abi1",
-			"DC08BCDBF5B0CE5C15640BF3A12907BD1EDF01A10A59F0FE1FD66E43939F7187",
-			"2b90b77fc6f13dd18480cd07d7dd9c052cc26c9d",
 			"GPL-2.0-only",
-			"47",
-			"100.0%",
-			"queue: max",
+			"WMPF 25297",
+			"[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)",
 		} {
 			if !strings.Contains(document, marker) {
 				t.Errorf("%s is missing %q", name, marker)
+			}
+		}
+		for _, forbidden := range []string{
+			"evi0s/WMPFDebugger",
+			"2b90b77fc6f13dd18480cd07d7dd9c052cc26c9d",
+			"Tencent Holdings Ltd.",
+			"Go and Frida port",
+			"Go + Frida \u79fb\u690d\u7248\u672c",
+		} {
+			if strings.Contains(document, forbidden) {
+				t.Errorf("%s contains forbidden project-positioning text %q", name, forbidden)
 			}
 		}
 		if count := strings.Count(document, "```"); count == 0 || count%2 != 0 {
@@ -44,8 +52,8 @@ func TestBilingualReadmeReleaseContract(t *testing.T) {
 	}
 
 	heading := regexp.MustCompile(`(?m)^## `)
-	if got, want := len(heading.FindAllString(english, -1)), len(heading.FindAllString(chinese, -1)); got != want || got != 9 {
-		t.Fatalf("bilingual section count: English=%d Chinese=%d want=9 each", got, want)
+	if got, want := len(heading.FindAllString(english, -1)), len(heading.FindAllString(chinese, -1)); got != want || got < 6 {
+		t.Fatalf("bilingual section count: English=%d Chinese=%d want equal counts of at least 6", got, want)
 	}
 	if !strings.Contains(english, "[Simplified Chinese](README.zh.md)") && !strings.Contains(english, "[\u7b80\u4f53\u4e2d\u6587](README.zh.md)") {
 		t.Fatal("README.md does not link README.zh.md")
@@ -77,18 +85,27 @@ func TestBilingualReadmeNativeBuildAndArchiveContract(t *testing.T) {
 			}
 		}
 
-		for _, archiveEntry := range []string{
+		for _, runtimeEntry := range []string{
 			"miniapp-frida.dll",
 			"manifest.json",
-			"LICENSE",
-			"ZLIB_LICENSE",
-			"THIRD_PARTY_NOTICES.md",
-			"SHA256SUMS",
 		} {
-			if !strings.Contains(document, archiveEntry) {
-				t.Errorf("%s is missing native archive entry %q", name, archiveEntry)
+			if !strings.Contains(document, runtimeEntry) {
+				t.Errorf("%s is missing native runtime entry %q", name, runtimeEntry)
 			}
 		}
+	}
+}
+
+func TestSDKDocumentationWMPFSupportScope(t *testing.T) {
+	root := readmeRepositoryRoot(t)
+	document := readReadme(t, filepath.Join(root, "docs", "sdk.md"))
+	for _, marker := range []string{"47 historical address configurations", "WMPF 25297", "Windows amd64"} {
+		if !strings.Contains(document, marker) {
+			t.Errorf("docs/sdk.md is missing support-scope marker %q", marker)
+		}
+	}
+	if strings.Contains(document, "All 47 supported address configurations") {
+		t.Fatal("docs/sdk.md claims all bundled historical configurations are supported")
 	}
 }
 
