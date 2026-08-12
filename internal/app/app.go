@@ -971,6 +971,9 @@ func (a *App) CancelCDPRequest(id any) bool {
 func (a *App) ClearRequests() int { return a.Requests.Clear() }
 
 func (a *App) Close(ctx context.Context) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	a.closeOnce.Do(func() {
 		var out error
 		addCloseError := func(err error) {

@@ -162,6 +162,24 @@ func TestStartRejectsRepeatedAndPostCloseCalls(t *testing.T) {
 	}
 }
 
+func TestCloseAcceptsNilContext(t *testing.T) {
+	debugPort, cdpPort := freePort(t), freePort(t)
+	bridge := New(debugPort, cdpPort, logging.New(false, false))
+	if err := bridge.Start(); err != nil {
+		t.Fatal(err)
+	}
+	if err := bridge.Close(nil); err != nil {
+		t.Fatalf("Close(nil) error=%v", err)
+	}
+	for _, port := range []int{debugPort, cdpPort} {
+		listener, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port))
+		if err != nil {
+			t.Fatalf("port %d was not released: %v", port, err)
+		}
+		_ = listener.Close()
+	}
+}
+
 func TestCloseWinsAgainstStartWaitingForServerLock(t *testing.T) {
 	debugPort, cdpPort := freePort(t), freePort(t)
 	bridge := New(debugPort, cdpPort, logging.New(false, false))

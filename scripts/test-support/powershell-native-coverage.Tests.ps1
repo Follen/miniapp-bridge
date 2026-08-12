@@ -1,18 +1,20 @@
-$repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
-$scripts = Join-Path $repo 'scripts'
+$script:repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
+$script:scripts = Join-Path $script:repo 'scripts'
 
-function Get-TestSHA256([string]$Path) {
+function script:Get-TestSHA256([string]$Path) {
     return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToUpperInvariant()
 }
 
-function Invoke-ExpectedFailure([scriptblock]$Action, [string]$Pattern) {
+function script:Invoke-ExpectedFailure([scriptblock]$Action, [string]$Pattern) {
     $message = ''
     try { & $Action }
     catch { $message = $_.Exception.Message }
-    $message | Should Match $Pattern
+    if ($message -notmatch $Pattern) {
+        throw "expected failure matching '$Pattern', got '$message'"
+    }
 }
 
-function New-NativeReleaseFixture([string]$Root, [string]$DumpbinMode = 'success') {
+function script:New-NativeReleaseFixture([string]$Root, [string]$DumpbinMode = 'success') {
     $runtime = Join-Path $Root 'runtime'
     $out = Join-Path $Root 'out'
     New-Item -ItemType Directory -Force -Path $runtime,$out | Out-Null
@@ -64,7 +66,7 @@ function New-NativeReleaseFixture([string]$Root, [string]$DumpbinMode = 'success
     return [pscustomobject]@{ Runtime = $runtime; Out = $out; Files = $files; Dumpbin = $dumpbin }
 }
 
-function Invoke-NativeReleaseFixture($Fixture, [hashtable]$Extra = @{}) {
+function script:Invoke-NativeReleaseFixture($Fixture, [hashtable]$Extra = @{}) {
     $parameters = @{
         RuntimeDirectory = $Fixture.Runtime; OutputDirectory = $Fixture.Out
         LicenseFile = $Fixture.Files.license; FridaCopyingFile = $Fixture.Files.copying
@@ -75,7 +77,7 @@ function Invoke-NativeReleaseFixture($Fixture, [hashtable]$Extra = @{}) {
     & (Join-Path $scripts 'native-release.ps1') @parameters
 }
 
-function New-PackageFixture([string]$Root) {
+function script:New-PackageFixture([string]$Root) {
     $input = Join-Path $Root 'dist'
     $native = Join-Path $input 'native'
     $out = Join-Path $input 'release'
@@ -99,13 +101,13 @@ function New-PackageFixture([string]$Root) {
     return [pscustomobject]@{ Root=$Root; Input=$input; Native=$native; Out=$out; Manifest=(Join-Path $input 'manifest.json'); Asset=$asset }
 }
 
-function Invoke-PackageFixture($Fixture, [hashtable]$Extra = @{}) {
+function script:Invoke-PackageFixture($Fixture, [hashtable]$Extra = @{}) {
     $parameters = @{ Version='v0.0.1'; RepositoryRoot=$Fixture.Root; InputDirectory=$Fixture.Input; NativeDirectory=$Fixture.Native; OutputDirectory=$Fixture.Out }
     foreach ($key in $Extra.Keys) { $parameters[$key] = $Extra[$key] }
     & (Join-Path $scripts 'package-windows-release.ps1') @parameters
 }
 
-function New-NativePrepareFixture([string]$Root, [object]$ManifestOverride = $null) {
+function script:New-NativePrepareFixture([string]$Root, [object]$ManifestOverride = $null) {
     $cache = Join-Path $Root 'cache'
     $destination = Join-Path $Root 'destination'
     $payload = Join-Path $Root 'payload'
@@ -129,7 +131,7 @@ function New-NativePrepareFixture([string]$Root, [object]$ManifestOverride = $nu
     return [pscustomobject]@{ Cache=$cache; Destination=$destination; Archive=$archive; Hash=(Get-TestSHA256 $archive); Payload=$payload }
 }
 
-function Invoke-NativePrepareFixture($Fixture, [hashtable]$Extra = @{}) {
+function script:Invoke-NativePrepareFixture($Fixture, [hashtable]$Extra = @{}) {
     $parameters = @{ Offline=$true; CacheDirectory=$Fixture.Cache; DestinationDirectory=$Fixture.Destination; ExpectedArchiveSHA256=$Fixture.Hash }
     foreach ($key in $Extra.Keys) { $parameters[$key] = $Extra[$key] }
     & (Join-Path $scripts 'native-prepare.ps1') @parameters
@@ -393,7 +395,9 @@ Describe 'Native release PowerShell command coverage' {
             Invoke-ExpectedFailure {
                 & (Join-Path $scripts 'native-prepare.ps1') -CacheDirectory $fixture.Cache -DestinationDirectory $fixture.Destination -SourceURL 'https://fixture.invalid/native.zip' -ExpectedArchiveSHA256 ('A' * 64) -DownloadAttempts 2 -DownloadRetrySeconds 1 -DownloadTimeoutSeconds 1
             } 'native archive download failed after 2 attempts'
-            $global:nativeDownloadAttempts | Should Be 2
+            if ($global:nativeDownloadAttempts -ne 2) {
+                throw "expected 2 native download attempts, got $global:nativeDownloadAttempts"
+            }
         }
         finally {
             $global:nativeDownloadAttempts = 0
