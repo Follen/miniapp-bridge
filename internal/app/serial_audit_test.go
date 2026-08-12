@@ -26,6 +26,13 @@ func TestAuditConcurrentCDPDispatchHasStrictGlobalSequence(t *testing.T) {
 
 	debug := auditDial(t, dp)
 	defer debug.Close()
+	deadline := time.Now().Add(time.Second)
+	for a.DebugClientCount() != 1 && time.Now().Before(deadline) {
+		time.Sleep(time.Millisecond)
+	}
+	if count := a.DebugClientCount(); count != 1 {
+		t.Fatalf("debug client count=%d want 1", count)
+	}
 	const clientCount = 4
 	const perClient = 32
 	var group sync.WaitGroup
