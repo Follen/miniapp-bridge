@@ -1,49 +1,85 @@
 Set-StrictMode -Version Latest
 
+$pesterModule = Get-Module Pester | Sort-Object Version -Descending | Select-Object -First 1
+if ($null -ne $pesterModule -and $pesterModule.Version.Major -lt 4) {
+    function Should {
+        [CmdletBinding()]
+        param(
+            [Parameter(ValueFromPipeline = $true)]
+            [AllowNull()]
+            [object]$Actual,
+            [AllowNull()]
+            [object]$Be,
+            [object]$BeGreaterThan,
+            [string]$Match,
+            [switch]$Not
+        )
+        process {
+            if ($PSBoundParameters.ContainsKey('Be')) {
+                $passed = $Actual -eq $Be
+                $expected = "equal to '$Be'"
+            } elseif ($PSBoundParameters.ContainsKey('BeGreaterThan')) {
+                $passed = $Actual -gt $BeGreaterThan
+                $expected = "greater than '$BeGreaterThan'"
+            } elseif ($PSBoundParameters.ContainsKey('Match')) {
+                $passed = [string]$Actual -match $Match
+                $expected = "match '$Match'"
+            } else {
+                throw 'Pester 3 compatibility assertion requires -Be, -BeGreaterThan, or -Match'
+            }
+            if ($Not) { $passed = -not $passed }
+            if (-not $passed) {
+                $negation = if ($Not) { 'not ' } else { '' }
+                throw "Expected '$Actual' to ${negation}${expected}"
+            }
+        }
+    }
+}
+
 Describe 'PowerShell coverage contract' {
     It 'executes the coverage runner with an explicit test path' {
         $runner = Join-Path $PSScriptRoot 'powershell-coverage.ps1'
-        Test-Path -LiteralPath $runner -PathType Leaf | Should Be $true
+        Test-Path -LiteralPath $runner -PathType Leaf | Should -Be $true
     }
 
     It 'keeps all production scripts in the default scope' {
         $scripts = @(Get-ChildItem -LiteralPath $PSScriptRoot -Filter '*.ps1' -File |
             Where-Object { $_.Name -notlike '*.Tests.ps1' -and $_.Name -ne 'powershell-coverage.ps1' } |
             Select-Object -ExpandProperty Name)
-        $scripts.Count | Should BeGreaterThan 5
-        ($scripts -contains 'coverage-gate.ps1') | Should Be $true
-        ($scripts -contains 'cshim-coverage.ps1') | Should Be $true
+        $scripts.Count | Should -BeGreaterThan 5
+        ($scripts -contains 'coverage-gate.ps1') | Should -Be $true
+        ($scripts -contains 'cshim-coverage.ps1') | Should -Be $true
     }
 
     It 'keeps the child coverage hook outside the production scope' {
         $hook = Join-Path $PSScriptRoot 'test-support\powershell-coverage-hook.ps1'
-        (Test-Path -LiteralPath $hook -PathType Leaf) | Should Be $true
+        (Test-Path -LiteralPath $hook -PathType Leaf) | Should -Be $true
         $topLevel = @(Get-ChildItem -LiteralPath $PSScriptRoot -Filter '*.ps1' -File |
             Select-Object -ExpandProperty FullName)
-        ($topLevel -contains (Resolve-Path -LiteralPath $hook).Path) | Should Be $false
+        ($topLevel -contains (Resolve-Path -LiteralPath $hook).Path) | Should -Be $false
     }
 
     It 'does not prepend a coverage parameter ahead of production positional parameters' {
         $runner = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'powershell-coverage.ps1') -Raw
-        $runner | Should Match 'Append the hidden optional parameter'
-        $runner | Should Match '\$paramOffsets\.Close'
-        $runner | Should Not Match 'Insert\(\$openOffset \+ 1'
-        $runner | Should Match 'CommandBaseAst'
-        $runner | Should Match 'Breakpoints use coordinates from the instrumented file'
+        $runner | Should -Match 'Append the hidden optional parameter'
+        $runner | Should -Match '\$paramOffsets\.Close'
+        $runner | Should -Not -Match 'Insert\(\$openOffset \+ 1'
+        $runner | Should -Match 'CommandBaseAst'
+        $runner | Should -Match 'Breakpoints use coordinates from the instrumented file'
     }
 
     It 'passes immutable child paths so reduced environments still record coverage' {
         $runner = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'powershell-coverage.ps1') -Raw
-        $runner | Should Match '-CoverageDirectory'
-        $runner | Should Match '-ScopeFile'
-        $runner | Should Match '-and \$_\.FullName -ne \$PSCommandPath'
+        $runner | Should -Match '-CoverageDirectory'
+        $runner | Should -Match '-ScopeFile'
+        $runner | Should -Match '-and \$_\.FullName -ne \$PSCommandPath'
     }
 
     It 'uses Pester-compatible breakpoints for child process coverage' {
         $hook = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'test-support\powershell-coverage-hook.ps1') -Raw
-        $hook | Should Match 'Set-PSBreakpoint'
-        $hook | Should Match 'CommandBaseAst'
-        $hook | Should Match "kind = 'hit'"
+        $hook | Should -Match 'Set-PSBreakpoint'
+        $hook | Should -Match 'CommandBaseAst'
+        $hook | Should -Match "kind = 'hit'"
     }
 
     It 'executes deterministic build and generation orchestrators' {
@@ -408,10 +444,10 @@ teardown-native-runtime-release=true
             } catch {
                 $buildFailure = $_
             }
-            $buildFailure.Exception.Message | Should Match 'smoke process runner build failed'
-            (Normalize-TcpAddress '') | Should Be ''
-            (Normalize-TcpAddress '::ffff:127.0.0.1') | Should Be '127.0.0.1'
-            (Normalize-TcpAddress 'NOT AN IP') | Should Be 'not an ip'
+            $buildFailure.Exception.Message | Should -Match 'smoke process runner build failed'
+            (Normalize-TcpAddress '') | Should -Be ''
+            (Normalize-TcpAddress '::ffff:127.0.0.1') | Should -Be '127.0.0.1'
+            (Normalize-TcpAddress 'NOT AN IP') | Should -Be 'not an ip'
             $global:miniappBridgeSmokeGoFailure = ''
 
             $runner.HasExited = $true
@@ -419,7 +455,7 @@ teardown-native-runtime-release=true
             try {
                 & (Join-Path $PSScriptRoot 'smoke-windows.ps1') -KeepBridgeRunning | Out-Null
             } catch { $earlyRunnerFailure = $_ }
-            $earlyRunnerFailure.Exception.Message | Should Match 'exited before reporting child PID'
+            $earlyRunnerFailure.Exception.Message | Should -Match 'exited before reporting child PID'
 
             $runner.HasExited = $false
             $global:miniappBridgeSmokePhase = 'exit-after-pid'
@@ -427,7 +463,7 @@ teardown-native-runtime-release=true
             try {
                 & (Join-Path $PSScriptRoot 'smoke-windows.ps1') -KeepBridgeRunning | Out-Null
             } catch { $afterPidFailure = $_ }
-            $afterPidFailure.Exception.Message | Should Match 'exited before smoke checks'
+            $afterPidFailure.Exception.Message | Should -Match 'exited before smoke checks'
 
             $runner.HasExited = $false
             $global:miniappBridgeSmokePhase = ''
@@ -437,7 +473,7 @@ teardown-native-runtime-release=true
             try {
                 & (Join-Path $PSScriptRoot 'smoke-windows.ps1') -KeepBridgeRunning | Out-Null
             } catch { $noPidFailure = $_ }
-            $noPidFailure.Exception.Message | Should Match 'did not report child PID within 10s'
+            $noPidFailure.Exception.Message | Should -Match 'did not report child PID within 10s'
 
             $runner.HasExited = $false
             $global:miniappBridgeSmokeContentMode = 'no-attach'
@@ -446,14 +482,14 @@ teardown-native-runtime-release=true
             try {
                 & (Join-Path $PSScriptRoot 'smoke-windows.ps1') -KeepBridgeRunning | Out-Null
             } catch { $attachTimeoutFailure = $_ }
-            $attachTimeoutFailure.Exception.Message | Should Match 'Frida attach was not confirmed within 30s'
+            $attachTimeoutFailure.Exception.Message | Should -Match 'Frida attach was not confirmed within 30s'
             $global:miniappBridgeSmokeContentMode = ''
             $global:miniappBridgeSmokeListenerMode = 'missing'
             $listenerFailure = $null
             try {
                 & (Join-Path $PSScriptRoot 'smoke-windows.ps1') -KeepBridgeRunning | Out-Null
             } catch { $listenerFailure = $_ }
-            $listenerFailure.Exception.Message | Should Match 'listeners are not owned'
+            $listenerFailure.Exception.Message | Should -Match 'listeners are not owned'
 
             $runner.HasExited = $false
             $global:miniappBridgeSmokeListenerMode = 'complete'
@@ -462,7 +498,7 @@ teardown-native-runtime-release=true
             try {
                 & (Join-Path $PSScriptRoot 'smoke-windows.ps1') -KeepBridgeRunning | Out-Null
             } catch { $attachFailure = $_ }
-            $attachFailure.Exception.Message | Should Match 'exited before Frida attach'
+            $attachFailure.Exception.Message | Should -Match 'exited before Frida attach'
 
             $runner.HasExited = $false
             $global:miniappBridgeSmokePhase = ''
@@ -471,7 +507,7 @@ teardown-native-runtime-release=true
             try {
                 & (Join-Path $PSScriptRoot 'smoke-windows.ps1') -KeepBridgeRunning | Out-Null
             } catch { $targetFailure = $_ }
-            $targetFailure.Exception.Message | Should Match 'target-process: not-present'
+            $targetFailure.Exception.Message | Should -Match 'target-process: not-present'
 
             $runner.HasExited = $false
             $global:miniappBridgeSmokeCimMode = 'complete'
@@ -481,16 +517,16 @@ teardown-native-runtime-release=true
             try {
                 & (Join-Path $PSScriptRoot 'smoke-windows.ps1') -KeepBridgeRunning | Out-Null
             } catch { $upstreamExitFailure = $_ }
-            $upstreamExitFailure.Exception.Message | Should Match 'exited while waiting for WMPF upstream'
+            $upstreamExitFailure.Exception.Message | Should -Match 'exited while waiting for WMPF upstream'
 
             $runner.HasExited = $false
             $global:miniappBridgeSmokePhase = ''
 
             $finalTargetSnapshot = @()
             $output = @(& (Join-Path $PSScriptRoot 'smoke-windows.ps1') -UpstreamWaitSeconds 1 -ShutdownTimeoutSeconds 1 -CDPMode all -KeepBridgeRunning)
-            ($output -match '^bridge-session-preserved=true').Count | Should Be 1
-            ($output -contains 'cdp-coverage=full mode=all acceptance=true') | Should Be $true
-            ($output -match '^upstream-peer-validated=true').Count | Should Be 1
+            ($output -match '^bridge-session-preserved=true').Count | Should -Be 1
+            ($output -contains 'cdp-coverage=full mode=all acceptance=true') | Should -Be $true
+            ($output -match '^upstream-peer-validated=true').Count | Should -Be 1
 
             $runner.HasExited = $false
             $global:miniappBridgeSmokeSnapshotCall = 0
@@ -498,24 +534,24 @@ teardown-native-runtime-release=true
             $withOnLoadStdout = $global:miniappBridgeSmokeStdout
             $global:miniappBridgeSmokeStdout = $global:miniappBridgeSmokeStdout -replace "AppletIndexContainer::OnLoadStart onEnter`r?`n", ''
             $fallbackOutput = @(& (Join-Path $PSScriptRoot 'smoke-windows.ps1') -UpstreamWaitSeconds 1 -ShutdownTimeoutSeconds 1 -CDPMode link -KeepBridgeRunning)
-            ($fallbackOutput -match '^fallback-applet-renderer=true').Count | Should Be 1
-            ($fallbackOutput -contains 'cdp-coverage=partial mode=link acceptance=false') | Should Be $true
-            ($fallbackOutput -match '^agent-on-load-start=false').Count | Should Be 1
+            ($fallbackOutput -match '^fallback-applet-renderer=true').Count | Should -Be 1
+            ($fallbackOutput -contains 'cdp-coverage=partial mode=link acceptance=false') | Should -Be $true
+            ($fallbackOutput -match '^agent-on-load-start=false').Count | Should -Be 1
             $global:miniappBridgeSmokeStdout = $withOnLoadStdout
 
             $runner.HasExited = $false
             $global:miniappBridgeSmokeSnapshotCall = 0
             $global:miniappBridgeSmokeRendererMode = 'reused'
             $reusedOutput = @(& (Join-Path $PSScriptRoot 'smoke-windows.ps1') -UpstreamWaitSeconds 1 -ShutdownTimeoutSeconds 1 -CDPMode interaction -KeepBridgeRunning)
-            ($reusedOutput -match '^renderer-selection=reused').Count | Should Be 1
-            ($reusedOutput -contains 'cdp-coverage=partial mode=interaction acceptance=false') | Should Be $true
+            ($reusedOutput -match '^renderer-selection=reused').Count | Should -Be 1
+            ($reusedOutput -contains 'cdp-coverage=partial mode=interaction acceptance=false') | Should -Be $true
 
             $runner.HasExited = $false
             $global:miniappBridgeSmokeSnapshotCall = 0
             $global:miniappBridgeSmokeNetworkCall = 0
             $global:miniappBridgeSmokeRendererMode = 'reused-fallback'
             $reusedFallbackOutput = @(& (Join-Path $PSScriptRoot 'smoke-windows.ps1') -UpstreamWaitSeconds 1 -ShutdownTimeoutSeconds 1 -CDPMode link -KeepBridgeRunning)
-            ($reusedFallbackOutput -match '^renderer-selection=reused').Count | Should Be 1
+            ($reusedFallbackOutput -match '^renderer-selection=reused').Count | Should -Be 1
 
             $runner.HasExited = $false
             $global:miniappBridgeSmokeSnapshotCall = 0
@@ -524,7 +560,7 @@ teardown-native-runtime-release=true
             $global:miniappBridgeSmokeContentMode = 'dynamic-onload'
             $global:miniappBridgeSmokeContentCall = 0
             $onLoadOutput = @(& (Join-Path $PSScriptRoot 'smoke-windows.ps1') -UpstreamWaitSeconds 1 -ShutdownTimeoutSeconds 1 -CDPMode link -KeepBridgeRunning)
-            ($onLoadOutput -contains 'agent-on-load-start=true') | Should Be $true
+            ($onLoadOutput -contains 'agent-on-load-start=true') | Should -Be $true
             $global:miniappBridgeSmokeContentMode = ''
 
             $runner.HasExited = $false
@@ -535,7 +571,7 @@ teardown-native-runtime-release=true
             try {
                 & (Join-Path $PSScriptRoot 'smoke-windows.ps1') -UpstreamWaitSeconds 1 -ShutdownTimeoutSeconds 1 -CDPMode link -KeepBridgeRunning | Out-Null
             } catch { $incompleteTupleFailure = $_ }
-            $incompleteTupleFailure.Exception.Message | Should Match 'complete server/peer tuple'
+            $incompleteTupleFailure.Exception.Message | Should -Match 'complete server/peer tuple'
 
             $runner.HasExited = $false
             $global:miniappBridgeSmokeSnapshotCall = 0
@@ -543,7 +579,7 @@ teardown-native-runtime-release=true
             $global:miniappBridgeSmokeNetworkMode = 'pid-change'
             $global:miniappBridgeSmokeRendererMode = 'new'
             $pidChangeOutput = @(& (Join-Path $PSScriptRoot 'smoke-windows.ps1') -UpstreamWaitSeconds 1 -ShutdownTimeoutSeconds 1 -CDPMode link -KeepBridgeRunning)
-            ($pidChangeOutput -match '^upstream-peer-validated=true attempt=2').Count | Should Be 1
+            ($pidChangeOutput -match '^upstream-peer-validated=true attempt=2').Count | Should -Be 1
 
             $runner.HasExited = $false
             $global:miniappBridgeSmokeSnapshotCall = 0
@@ -553,8 +589,8 @@ teardown-native-runtime-release=true
             try {
                 & (Join-Path $PSScriptRoot 'smoke-windows.ps1') -UpstreamWaitSeconds 1 -ShutdownTimeoutSeconds 1 -CDPMode link -KeepBridgeRunning | Out-Null
             } catch { $identityChangeFailure = $_ }
-            $identityChangeFailure.Exception.Message | Should Match 'TOCTOU validation'
-            $identityChangeFailure.Exception.Message | Should Match 'peer-pid-start-time-changed'
+            $identityChangeFailure.Exception.Message | Should -Match 'TOCTOU validation'
+            $identityChangeFailure.Exception.Message | Should -Match 'peer-pid-start-time-changed'
 
             $runner.HasExited = $false
             $global:miniappBridgeSmokeSnapshotCall = 0
@@ -564,7 +600,7 @@ teardown-native-runtime-release=true
             try {
                 & (Join-Path $PSScriptRoot 'smoke-windows.ps1') -UpstreamWaitSeconds 1 -ShutdownTimeoutSeconds 1 -CDPMode link -KeepBridgeRunning | Out-Null
             } catch { $processMissingFailure = $_ }
-            $processMissingFailure.Exception.Message | Should Match 'TOCTOU validation'
+            $processMissingFailure.Exception.Message | Should -Match 'TOCTOU validation'
             $global:miniappBridgeSmokeNetworkMode = 'complete'
             $global:miniappBridgeSmokeNetworkMode = 'complete'
 
@@ -575,7 +611,7 @@ teardown-native-runtime-release=true
             $global:miniappBridgeSmokeContentMode = 'dynamic-onload'
             $global:miniappBridgeSmokeContentCall = 0
             $reusedOnLoadOutput = @(& (Join-Path $PSScriptRoot 'smoke-windows.ps1') -UpstreamWaitSeconds 1 -ShutdownTimeoutSeconds 1 -CDPMode all -KeepBridgeRunning)
-            ($reusedOnLoadOutput -match 'evidence=onload-start,upstream,cdp-matrix,cdp-link').Count | Should Be 1
+            ($reusedOnLoadOutput -match 'evidence=onload-start,upstream,cdp-matrix,cdp-link').Count | Should -Be 1
             $global:miniappBridgeSmokeContentMode = ''
 
             $runner.HasExited = $false
@@ -590,7 +626,7 @@ teardown-native-runtime-release=true
             } finally {
                 $rendererProcess.StartTime = $oldRendererStart
             }
-            ($peerRendererOutput -match 'roles=.*upstream-peer.*renderer').Count | Should BeGreaterThan 0
+            ($peerRendererOutput -match 'roles=.*upstream-peer.*renderer').Count | Should -BeGreaterThan 0
             $global:miniappBridgeSmokeCimMode = 'complete'
 
             $runner.HasExited = $false
@@ -599,8 +635,8 @@ teardown-native-runtime-release=true
             $global:miniappBridgeSmokeRendererMode = 'new'
             $global:miniappBridgeSmokeCimMode = 'window-and-background'
             $windowOutput = @(& (Join-Path $PSScriptRoot 'smoke-windows.ps1') -UpstreamWaitSeconds 1 -ShutdownTimeoutSeconds 1 -CDPMode link -KeepBridgeRunning)
-            ($windowOutput -match 'pid=203 .*roles=window-owner').Count | Should Be 1
-            ($windowOutput -match 'roles= title=').Count | Should BeGreaterThan 0
+            ($windowOutput -match 'pid=203 .*roles=window-owner').Count | Should -Be 1
+            ($windowOutput -match 'roles= title=').Count | Should -BeGreaterThan 0
             $global:miniappBridgeSmokeCimMode = 'complete'
 
             $plainRendererBreakpoint = Set-PSBreakpoint -Script ((Resolve-Path (Join-Path $PSScriptRoot 'smoke-windows.ps1')).Path) -Line 463 -Action {
@@ -613,7 +649,7 @@ teardown-native-runtime-release=true
                 $global:miniappBridgeSmokeNetworkCall = 0
                 $global:miniappBridgeSmokeRendererMode = 'new'
                 $plainRendererOutput = @(& (Join-Path $PSScriptRoot 'smoke-windows.ps1') -UpstreamWaitSeconds 1 -ShutdownTimeoutSeconds 1 -CDPMode link -KeepBridgeRunning)
-                ($plainRendererOutput -match 'roles=renderer').Count | Should BeGreaterThan 0
+                ($plainRendererOutput -match 'roles=renderer').Count | Should -BeGreaterThan 0
             } finally {
                 Remove-PSBreakpoint -Id $plainRendererBreakpoint.Id -ErrorAction SilentlyContinue
             }
@@ -630,7 +666,7 @@ teardown-native-runtime-release=true
                 try {
                     & (Join-Path $PSScriptRoot 'smoke-windows.ps1') -UpstreamWaitSeconds 1 -ShutdownTimeoutSeconds 1 -CDPMode link -KeepBridgeRunning | Out-Null
                 } catch { $zeroRolesFailure = $_ }
-                $zeroRolesFailure.Exception.Message | Should Match 'no connection or window-owned target process'
+                $zeroRolesFailure.Exception.Message | Should -Match 'no connection or window-owned target process'
             } finally {
                 Remove-PSBreakpoint -Id $zeroRolesBreakpoint.Id -ErrorAction SilentlyContinue
             }
@@ -645,7 +681,7 @@ teardown-native-runtime-release=true
             try {
                 & (Join-Path $PSScriptRoot 'smoke-windows.ps1') -UpstreamWaitSeconds 1 -ShutdownTimeoutSeconds 1 -CDPMode link -KeepBridgeRunning | Out-Null
             } catch { $missingHost = $_ }
-            $missingHost.Exception.Message | Should Match 'attached Frida host PID 300 was not present'
+            $missingHost.Exception.Message | Should -Match 'attached Frida host PID 300 was not present'
             $global:miniappBridgeSmokeStdout = $originalStdout
 
             foreach ($peerFailureCase in @(
@@ -661,7 +697,7 @@ teardown-native-runtime-release=true
                 try {
                     & (Join-Path $PSScriptRoot 'smoke-windows.ps1') -UpstreamWaitSeconds 1 -ShutdownTimeoutSeconds 1 -CDPMode link -KeepBridgeRunning | Out-Null
                 } catch { $peerFailure = $_ }
-                $peerFailure.Exception.Message | Should Match $peerFailureCase.Expected
+                $peerFailure.Exception.Message | Should -Match $peerFailureCase.Expected
             }
 
             foreach ($cdpFailureMode in 'matrix', 'link', 'interaction') {
@@ -677,7 +713,7 @@ teardown-native-runtime-release=true
                 } catch {
                     $cdpFailure = $_
                 }
-                $cdpFailure.Exception.Message | Should Match 'CDP|cdp'
+                $cdpFailure.Exception.Message | Should -Match 'CDP|cdp'
             }
             $global:miniappBridgeSmokeGoFailure = ''
 
@@ -691,7 +727,7 @@ teardown-native-runtime-release=true
             } catch {
                 $missingRenderer = $_
             }
-            $missingRenderer.Exception.Message | Should Match 'no type=4 applet renderer'
+            $missingRenderer.Exception.Message | Should -Match 'no type=4 applet renderer'
 
             $runner.HasExited = $false
             $global:miniappBridgeSmokeSnapshotCall = 0
@@ -704,7 +740,7 @@ teardown-native-runtime-release=true
             } catch {
                 $toctouFailure = $_
             }
-            $toctouFailure.Exception.Message | Should Match 'TOCTOU validation'
+            $toctouFailure.Exception.Message | Should -Match 'TOCTOU validation'
 
             foreach ($failureCase in @(
                     [pscustomobject]@{ Mode = 'empty'; Expected = 'WMPF upstream connection on 9421 was not established' },
@@ -720,7 +756,7 @@ teardown-native-runtime-release=true
                 } catch {
                     $connectionFailure = $_
                 }
-                $connectionFailure.Exception.Message | Should Match $failureCase.Expected
+                $connectionFailure.Exception.Message | Should -Match $failureCase.Expected
             }
 
             $completeStdout = $global:miniappBridgeSmokeStdout
@@ -737,7 +773,7 @@ teardown-native-runtime-release=true
             try {
                 & (Join-Path $PSScriptRoot 'smoke-windows.ps1') -UpstreamWaitSeconds 1 -ShutdownTimeoutSeconds 1 -CDPMode link | Out-Null
             } catch { $runnerExitFailure = $_ }
-            $runnerExitFailure.Exception.Message | Should Match 'smoke process runner exited with 7'
+            $runnerExitFailure.Exception.Message | Should -Match 'smoke process runner exited with 7'
 
             $runner.HasExited = $false
             $runner.ExitCode = 0
@@ -749,7 +785,7 @@ teardown-native-runtime-release=true
             try {
                 & (Join-Path $PSScriptRoot 'smoke-windows.ps1') -UpstreamWaitSeconds 1 -ShutdownTimeoutSeconds 1 -CDPMode link | Out-Null
             } catch { $missingMarkersFailure = $_ }
-            $missingMarkersFailure.Exception.Message | Should Match 'native teardown markers were not observed'
+            $missingMarkersFailure.Exception.Message | Should -Match 'native teardown markers were not observed'
 
             $runner.HasExited = $false
             $global:miniappBridgeSmokeSnapshotCall = 0
@@ -758,9 +794,9 @@ teardown-native-runtime-release=true
             $global:miniappBridgeSmokeTeardownListenMode = 'release-on-second'
             $global:miniappBridgeSmokeTeardownListenCall = 0
             $proxyOutput = @(& (Join-Path $PSScriptRoot 'smoke-windows.ps1') -UpstreamWaitSeconds 1 -ShutdownTimeoutSeconds 1 -CDPMode link)
-            ($proxyOutput -contains 'teardown-markers=agent-unload,session-detach,device-close,native-runtime-release source=runner-child-exit-proxy dependency=sdk-native-close-order') | Should Be $true
-            ($proxyOutput -match '^target-survives-shutdown=true').Count | Should Be 1
-            ($proxyOutput -contains 'smoke-success=true') | Should Be $true
+            ($proxyOutput -contains 'teardown-markers=agent-unload,session-detach,device-close,native-runtime-release source=runner-child-exit-proxy dependency=sdk-native-close-order') | Should -Be $true
+            ($proxyOutput -match '^target-survives-shutdown=true').Count | Should -Be 1
+            ($proxyOutput -contains 'smoke-success=true') | Should -Be $true
 
             $runner.HasExited = $false
             $global:miniappBridgeSmokeSnapshotCall = 0
@@ -772,7 +808,7 @@ teardown-native-runtime-release=true
             try {
                 & (Join-Path $PSScriptRoot 'smoke-windows.ps1') -UpstreamWaitSeconds 1 -ShutdownTimeoutSeconds 1 -CDPMode link | Out-Null
             } catch { $unresponsiveFailure = $_ }
-            $unresponsiveFailure.Exception.Message | Should Match 'tracked target window stopped responding'
+            $unresponsiveFailure.Exception.Message | Should -Match 'tracked target window stopped responding'
 
             $runner.HasExited = $false
             $global:miniappBridgeSmokeSnapshotCall = 0
@@ -783,7 +819,7 @@ teardown-native-runtime-release=true
             try {
                 & (Join-Path $PSScriptRoot 'smoke-windows.ps1') -UpstreamWaitSeconds 1 -ShutdownTimeoutSeconds 1 -CDPMode link | Out-Null
             } catch { $emptyFinalFailure = $_ }
-            $emptyFinalFailure.Exception.Message | Should Match 'tracked target process exited during bridge shutdown'
+            $emptyFinalFailure.Exception.Message | Should -Match 'tracked target process exited during bridge shutdown'
 
             $runner.HasExited = $false
             $global:miniappBridgeSmokeSnapshotCall = 0
@@ -795,7 +831,7 @@ teardown-native-runtime-release=true
             try {
                 & (Join-Path $PSScriptRoot 'smoke-windows.ps1') -UpstreamWaitSeconds 1 -ShutdownTimeoutSeconds 1 -CDPMode link | Out-Null
             } catch { $persistentListenerFailure = $_ }
-            $persistentListenerFailure.Exception.Message | Should Match 'ports were not released'
+            $persistentListenerFailure.Exception.Message | Should -Match 'ports were not released'
 
             $global:miniappBridgeSmokeTeardownListenMode = 'empty'
             $occupiedPort = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Parse('127.0.0.1'), 9421)
@@ -809,7 +845,7 @@ teardown-native-runtime-release=true
                 try {
                     & (Join-Path $PSScriptRoot 'smoke-windows.ps1') -UpstreamWaitSeconds 1 -ShutdownTimeoutSeconds 1 -CDPMode link | Out-Null
                 } catch { $rebindFailure = $_ }
-                $rebindFailure.Exception.Message | Should Match 'ports could not be rebound'
+                $rebindFailure.Exception.Message | Should -Match 'ports could not be rebound'
             } finally {
                 $occupiedPort.Stop()
             }
@@ -825,7 +861,7 @@ teardown-native-runtime-release=true
                 try {
                     & (Join-Path $PSScriptRoot 'smoke-windows.ps1') -UpstreamWaitSeconds 1 -ShutdownTimeoutSeconds 1 -CDPMode link | Out-Null
                 } catch { $smokeChecksFailure = $_ }
-                $smokeChecksFailure.Exception.Message | Should Match 'smoke checks did not complete'
+                $smokeChecksFailure.Exception.Message | Should -Match 'smoke checks did not complete'
             } finally {
                 Remove-PSBreakpoint -Id $smokeChecksBreakpoint.Id -ErrorAction SilentlyContinue
             }
@@ -844,7 +880,7 @@ teardown-native-runtime-release=true
             } catch {
                 $forcedFailure = $_
             }
-            $forcedFailure | Should Not Be $null
+            $forcedFailure | Should -Not -Be $null
         } finally {
             Remove-Item Function:\global:go -Force -ErrorAction SilentlyContinue
             Remove-Variable miniappBridgeSmokeSnapshotCall -Scope Global -ErrorAction SilentlyContinue
