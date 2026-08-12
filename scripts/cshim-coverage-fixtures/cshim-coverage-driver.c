@@ -90,6 +90,9 @@ static void cover_zlib(void) {
   clear_error(&error);
   check(mb_zlib_decompress(input, sizeof(input), 5, 4, &output, &output_size, &error) == 0, "decompress expected over max");
   clear_error(&error);
+  check(mb_zlib_decompress(input, sizeof(input), 268435457u, 400000000u, &output, &output_size, &error) == 0,
+        "decompress expected over hard max");
+  clear_error(&error);
   check(mb_zlib_decompress(input, sizeof(input), 3, 16, &output, &output_size, &error) == 1, "decompress expected success");
   mb_bytes_free(output);
   output = NULL;

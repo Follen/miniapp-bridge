@@ -114,7 +114,8 @@ int mb_zlib_decompress(const uint8_t *input, size_t input_size, size_t expected_
   static const uint8_t empty = 0;
   if (output == NULL || output_size == NULL) { mb_set_text_error(error, "zlib output arguments are required"); return 0; }
   *output = NULL; *output_size = 0;
-  if ((input == NULL && input_size != 0) || input_size > ULONG_MAX || max_output == 0 || max_output > ULONG_MAX || expected_size > max_output) {
+  if ((input == NULL && input_size != 0) || input_size > ULONG_MAX || max_output == 0 || max_output > ULONG_MAX ||
+      expected_size > max_output || expected_size > MB_MAX_ZLIB_OUTPUT) {
     mb_set_text_error(error, "zlib input or output limit is invalid"); return 0;
   }
   if (max_output > MB_MAX_ZLIB_OUTPUT) max_output = MB_MAX_ZLIB_OUTPUT;
