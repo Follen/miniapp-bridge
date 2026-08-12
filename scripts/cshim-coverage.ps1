@@ -99,7 +99,7 @@ function Get-SourceManifestEntry([string]$RelativePath) {
     if (-not $fullPath.StartsWith($repoPrefix, [StringComparison]::OrdinalIgnoreCase)) {
         throw "source manifest path escapes repository: $RelativePath"
     }
-    $canonicalPath = [IO.Path]::GetRelativePath($repo, $fullPath).Replace('\', '/')
+    $canonicalPath = $fullPath.Substring($repoPrefix.Length).Replace('\', '/')
     if ($canonicalPath -cne $RelativePath -or -not (Test-Path -LiteralPath $fullPath -PathType Leaf)) {
         throw "source manifest path is missing or not canonical: $RelativePath"
     }

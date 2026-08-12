@@ -114,10 +114,14 @@ func TestCShimCoverageBindsReportToCurrentSources(t *testing.T) {
 		"Assert-SourceManifest @($persistedReport.source_manifest)",
 		"Get-FileHash -LiteralPath $fullPath -Algorithm SHA256",
 		"source manifest no longer matches current file",
+		"$fullPath.Substring($repoPrefix.Length).Replace('\\', '/')",
 	} {
 		if !strings.Contains(script, token) {
 			t.Errorf("C coverage provenance contract is missing %q", token)
 		}
+	}
+	if strings.Contains(script, "[IO.Path]::GetRelativePath") {
+		t.Error("C coverage provenance must remain compatible with Windows PowerShell 5.1")
 	}
 }
 
