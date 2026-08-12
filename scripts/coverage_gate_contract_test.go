@@ -21,7 +21,7 @@ func TestCoverageGateRunsTaggedRaceAndUsesStableScope(t *testing.T) {
 	}
 	script := string(data)
 	for _, token := range []string{
-		"go test ./... -count=1 -timeout 300s",
+		"go test ./... -count=1 -timeout 600s",
 		"go test ./cmd/... ./frida -count=1 -timeout 90s",
 		"go test -tags frida ./internal/... ./sdk -count=1 -timeout 180s",
 		"go test -tags frida -race ./... -count=1 -timeout 420s",
