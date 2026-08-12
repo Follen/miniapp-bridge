@@ -1,47 +1,29 @@
-$scripts = Split-Path -Parent $PSScriptRoot
-
-function Invoke-CoveredScript {
-    param(
-        [string]$Name,
-        [hashtable]$Parameters = @{}
-    )
-    try {
-        $output = & (Join-Path $scripts $Name) @Parameters 2>&1
-        return [pscustomobject]@{ ExitCode = 0; Output = @($output) }
-    } catch {
-        return [pscustomobject]@{ ExitCode = 1; Output = @($_) }
-    }
-}
-
-function New-CmdFixture {
-    param([string]$Path, [string]$Body)
-    [IO.File]::WriteAllText($Path, "@echo off`r`n$Body`r`n", [Text.Encoding]::ASCII)
-}
-
-function Invoke-WithPath {
-    param([string]$Path, [scriptblock]$Body)
-    $oldPath = $env:PATH
-    try {
-        $env:PATH = $Path
-        & $Body
-    } finally {
-        $env:PATH = $oldPath
-    }
-}
-
-function Get-TextSHA256 {
-    param([string]$Text)
-    $algorithm = [Security.Cryptography.SHA256]::Create()
-    try {
-        $bytes = [Text.Encoding]::UTF8.GetBytes($Text)
-        return -join @($algorithm.ComputeHash($bytes) | ForEach-Object { $_.ToString('X2') })
-    } finally {
-        $algorithm.Dispose()
-    }
-}
-
 Describe 'Focused build script command coverage' {
     BeforeAll {
+        $script:scripts = Split-Path -Parent $PSScriptRoot
+        function script:Invoke-CoveredScript {
+            param([string]$Name, [hashtable]$Parameters = @{})
+            try {
+                $output = & (Join-Path $script:scripts $Name) @Parameters 2>&1
+                return [pscustomobject]@{ ExitCode = 0; Output = @($output) }
+            } catch {
+                return [pscustomobject]@{ ExitCode = 1; Output = @($_) }
+            }
+        }
+        function script:New-CmdFixture {
+            param([string]$Path, [string]$Body)
+            [IO.File]::WriteAllText($Path, "@echo off`r`n$Body`r`n", [Text.Encoding]::ASCII)
+        }
+        function script:Invoke-WithPath {
+            param([string]$Path, [scriptblock]$Body)
+            $oldPath = $env:PATH
+            try {
+                $env:PATH = $Path
+                & $Body
+            } finally {
+                $env:PATH = $oldPath
+            }
+        }
         if ($env:MINIAPP_BRIDGE_PS_COVERAGE_RUN_GO -ne '1') { return }
         & (Join-Path $PSScriptRoot 'powershell-coverage-hook.ps1') -Start `
             -ScriptPath (Join-Path $scripts 'build-windows.ps1') `
@@ -68,15 +50,15 @@ Describe 'Focused build script command coverage' {
             $output = Join-Path $case 'configs_generated.go'
             $result = Invoke-CoveredScript -Name 'generate-address-configs.ps1' -Parameters @{ SourceDir = $valid; Output = $output }
             if ($result.ExitCode -ne 0) { throw ($result.Output | Out-String) }
-            (Test-Path -LiteralPath $output) | Should Be $true
-            (Invoke-CoveredScript -Name 'generate-address-configs.ps1').ExitCode | Should Be 0
-            (Invoke-CoveredScript -Name 'generate-address-configs.ps1' -Parameters @{ SourceDir = $empty; Output = $output }).ExitCode | Should Not Be 0
-            (Invoke-CoveredScript -Name 'generate-address-configs.ps1' -Parameters @{ SourceDir = $invalid; Output = $output }).ExitCode | Should Not Be 0
+            (Test-Path -LiteralPath $output) | Should -Be $true
+            (Invoke-CoveredScript -Name 'generate-address-configs.ps1').ExitCode | Should -Be 0
+            (Invoke-CoveredScript -Name 'generate-address-configs.ps1' -Parameters @{ SourceDir = $empty; Output = $output }).ExitCode | Should -Not -Be 0
+            (Invoke-CoveredScript -Name 'generate-address-configs.ps1' -Parameters @{ SourceDir = $invalid; Output = $output }).ExitCode | Should -Not -Be 0
 
             $fakeGofmt = Join-Path $case 'gofmt.cmd'
             New-CmdFixture -Path $fakeGofmt -Body 'exit /b 23'
             Invoke-WithPath -Path "$case;$env:PATH" -Body {
-                (Invoke-CoveredScript -Name 'generate-address-configs.ps1' -Parameters @{ SourceDir = $valid; Output = $output }).ExitCode | Should Not Be 0
+                (Invoke-CoveredScript -Name 'generate-address-configs.ps1' -Parameters @{ SourceDir = $valid; Output = $output }).ExitCode | Should -Not -Be 0
             }
         } finally {
             Remove-Item -LiteralPath $case -Recurse -Force -ErrorAction SilentlyContinue
@@ -88,8 +70,8 @@ Describe 'Focused build script command coverage' {
         try {
             $result = Invoke-CoveredScript -Name 'cshim-coverage.ps1' -Parameters @{ ReportPath = $report }
             if ($result.ExitCode -ne 0) { throw ($result.Output | Out-String) }
-            (Test-Path -LiteralPath $report) | Should Be $true
-            (Invoke-CoveredScript -Name 'cshim-coverage.ps1').ExitCode | Should Be 0
+            (Test-Path -LiteralPath $report) | Should -Be $true
+            (Invoke-CoveredScript -Name 'cshim-coverage.ps1').ExitCode | Should -Be 0
         } finally {
             Remove-Item -LiteralPath $report -Force -ErrorAction SilentlyContinue
         }
@@ -121,19 +103,56 @@ Describe 'Focused build script command coverage' {
 }
 
 Describe 'Focused build error coverage' {
+    BeforeAll {
+        $script:scripts = Split-Path -Parent $PSScriptRoot
+        function script:Invoke-CoveredScript {
+            param([string]$Name, [hashtable]$Parameters = @{})
+            try {
+                $output = & (Join-Path $script:scripts $Name) @Parameters 2>&1
+                return [pscustomobject]@{ ExitCode = 0; Output = @($output) }
+            } catch {
+                return [pscustomobject]@{ ExitCode = 1; Output = @($_) }
+            }
+        }
+        function script:New-CmdFixture {
+            param([string]$Path, [string]$Body)
+            [IO.File]::WriteAllText($Path, "@echo off`r`n$Body`r`n", [Text.Encoding]::ASCII)
+        }
+        function script:Invoke-WithPath {
+            param([string]$Path, [scriptblock]$Body)
+            $oldPath = $env:PATH
+            try {
+                $env:PATH = $Path
+                & $Body
+            } finally {
+                $env:PATH = $oldPath
+            }
+        }
+        function script:Get-TextSHA256 {
+            param([string]$Text)
+            $algorithm = [Security.Cryptography.SHA256]::Create()
+            try {
+                $bytes = [Text.Encoding]::UTF8.GetBytes($Text)
+                return -join @($algorithm.ComputeHash($bytes) | ForEach-Object { $_.ToString('X2') })
+            } finally {
+                $algorithm.Dispose()
+            }
+        }
+    }
+
     It 'executes deterministic error diagnostics for build and coverage gates' {
         $case = Join-Path ([IO.Path]::GetTempPath()) ('miniapp-bridge-build-error-coverage-' + [guid]::NewGuid().ToString('N'))
         New-Item -ItemType Directory -Force -Path $case | Out-Null
         try {
             $mismatch = Invoke-CoveredScript -Name 'build-windows.ps1' -Parameters @{ CoverageExportMismatchFixture = $true }
-            $mismatch.ExitCode | Should Not Be 0
+            $mismatch.ExitCode | Should -Not -Be 0
 
             $shimInput = Join-Path $scripts 'cshim-coverage-fixtures\cshim-coverage-driver.c'
             $shimBackup = Join-Path $case 'cshim-coverage-driver.c.bak'
             Copy-Item -LiteralPath $shimInput -Destination $shimBackup -Force
             try {
                 Remove-Item -LiteralPath $shimInput -Force
-                (Invoke-CoveredScript -Name 'cshim-coverage.ps1' -Parameters @{ ReportPath = (Join-Path $case 'missing-input.json') }).ExitCode | Should Not Be 0
+                (Invoke-CoveredScript -Name 'cshim-coverage.ps1' -Parameters @{ ReportPath = (Join-Path $case 'missing-input.json') }).ExitCode | Should -Not -Be 0
             } finally {
                 Copy-Item -LiteralPath $shimBackup -Destination $shimInput -Force
             }
@@ -143,20 +162,20 @@ Describe 'Focused build error coverage' {
                 $emptyPath = Join-Path $case 'empty-path'
                 New-Item -ItemType Directory -Force -Path $emptyPath | Out-Null
                 Invoke-WithPath -Path $emptyPath -Body {
-                    (Invoke-CoveredScript -Name 'cshim-coverage.ps1' -Parameters @{ ReportPath = (Join-Path $case 'missing-tool.json') }).ExitCode | Should Not Be 0
+                    (Invoke-CoveredScript -Name 'cshim-coverage.ps1' -Parameters @{ ReportPath = (Join-Path $case 'missing-tool.json') }).ExitCode | Should -Not -Be 0
                 }
 
                 $gccBad = Join-Path $case 'gcc.cmd'
                 New-CmdFixture -Path $gccBad -Body 'echo.'
-                (Invoke-CoveredScript -Name 'cshim-coverage.ps1' -Parameters @{ ReportPath = (Join-Path $case 'gcc-version.json'); GCCPath = $gccBad }).ExitCode | Should Not Be 0
+                (Invoke-CoveredScript -Name 'cshim-coverage.ps1' -Parameters @{ ReportPath = (Join-Path $case 'gcc-version.json'); GCCPath = $gccBad }).ExitCode | Should -Not -Be 0
 
                 New-CmdFixture -Path $gccBad -Body 'echo 12.4.0'
                 $gcovBad = Join-Path $case 'gcov.cmd'
                 New-CmdFixture -Path $gcovBad -Body 'exit /b 7'
-                (Invoke-CoveredScript -Name 'cshim-coverage.ps1' -Parameters @{ ReportPath = (Join-Path $case 'gcov-version.json'); GCCPath = $gccBad; GCovPath = $gcovBad }).ExitCode | Should Not Be 0
+                (Invoke-CoveredScript -Name 'cshim-coverage.ps1' -Parameters @{ ReportPath = (Join-Path $case 'gcov-version.json'); GCCPath = $gccBad; GCovPath = $gcovBad }).ExitCode | Should -Not -Be 0
 
                 New-CmdFixture -Path $gcovBad -Body 'echo gcov 11.2.0'
-                (Invoke-CoveredScript -Name 'cshim-coverage.ps1' -Parameters @{ ReportPath = (Join-Path $case 'version-mismatch.json'); GCCPath = $gccBad; GCovPath = $gcovBad }).ExitCode | Should Not Be 0
+                (Invoke-CoveredScript -Name 'cshim-coverage.ps1' -Parameters @{ ReportPath = (Join-Path $case 'version-mismatch.json'); GCCPath = $gccBad; GCovPath = $gcovBad }).ExitCode | Should -Not -Be 0
             } finally {
                 $env:PATH = $oldPath
             }
@@ -214,7 +233,7 @@ func main() {
                             ReportPath = (Join-Path $case ($gcovCase.Name + '.json'))
                             GCCPath = $realGcc
                             GCovPath = $gcovWrapper
-                        }).ExitCode | Should Not Be 0
+                        }).ExitCode | Should -Not -Be 0
                 }
             } finally {
                 if ($null -eq $oldFakeGcovMode) {
@@ -262,21 +281,21 @@ func main() {
             $lockPath = Join-Path $lockPaths.Cache 'fixture.tar.xz.lock'
             $heldLock = [IO.File]::Open($lockPath, [IO.FileMode]::OpenOrCreate, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
             try {
-                (Invoke-CoveredScript -Name 'ensure-frida-devkit.ps1' -Parameters (& $newFridaParameters $lockPaths)).ExitCode | Should Not Be 0
+                (Invoke-CoveredScript -Name 'ensure-frida-devkit.ps1' -Parameters (& $newFridaParameters $lockPaths)).ExitCode | Should -Not -Be 0
             } finally {
                 $heldLock.Dispose()
             }
 
             $unusedArchive = & $newFridaCase 'frida-invalid-unused' -ValidDevkit
             [IO.File]::WriteAllText((Join-Path $unusedArchive.Cache 'fixture.tar.xz'), 'invalid unused archive')
-            (Invoke-CoveredScript -Name 'ensure-frida-devkit.ps1' -Parameters (& $newFridaParameters $unusedArchive)).ExitCode | Should Be 0
+            (Invoke-CoveredScript -Name 'ensure-frida-devkit.ps1' -Parameters (& $newFridaParameters $unusedArchive)).ExitCode | Should -Be 0
 
             $candidatePaths = & $newFridaCase 'frida-seven-zip'
             $candidateParameters = & $newFridaParameters $candidatePaths
             $candidateParameters.ForceSevenZipCandidateDiscovery = $true
             $sevenZip = (Get-Command 7z.exe -ErrorAction Stop).Source
             $candidateParameters.SevenZipCandidatePath = $sevenZip
-            (Invoke-CoveredScript -Name 'ensure-frida-devkit.ps1' -Parameters $candidateParameters).ExitCode | Should Be 0
+            (Invoke-CoveredScript -Name 'ensure-frida-devkit.ps1' -Parameters $candidateParameters).ExitCode | Should -Be 0
 
             $partialPaths = & $newFridaCase 'frida-partial'
             [IO.File]::WriteAllText((Join-Path $partialPaths.Cache 'fixture.tar.xz.partial'), 'stale partial')
@@ -287,38 +306,38 @@ func main() {
             $partialParameters.ForceHttpClient = $true
             $partialParameters.DownloadAttempts = 1
             $partialParameters.DownloadTimeoutSeconds = 1
-            (Invoke-CoveredScript -Name 'ensure-frida-devkit.ps1' -Parameters $partialParameters).ExitCode | Should Not Be 0
+            (Invoke-CoveredScript -Name 'ensure-frida-devkit.ps1' -Parameters $partialParameters).ExitCode | Should -Not -Be 0
 
             $driftPaths = & $newFridaCase 'frida-drift'
             $driftParameters = & $newFridaParameters $driftPaths
             $driftParameters.DriftArchiveAfterValidation = $true
-            (Invoke-CoveredScript -Name 'ensure-frida-devkit.ps1' -Parameters $driftParameters).ExitCode | Should Not Be 0
+            (Invoke-CoveredScript -Name 'ensure-frida-devkit.ps1' -Parameters $driftParameters).ExitCode | Should -Not -Be 0
 
             $headerPaths = & $newFridaCase 'frida-header-mismatch'
             $headerParameters = & $newFridaParameters $headerPaths
             $headerParameters.ExpectedHeaderSHA256 = ('0' * 64)
-            (Invoke-CoveredScript -Name 'ensure-frida-devkit.ps1' -Parameters $headerParameters).ExitCode | Should Not Be 0
+            (Invoke-CoveredScript -Name 'ensure-frida-devkit.ps1' -Parameters $headerParameters).ExitCode | Should -Not -Be 0
 
             $libraryPaths = & $newFridaCase 'frida-library-mismatch'
             $libraryParameters = & $newFridaParameters $libraryPaths
             $libraryParameters.ExpectedLibrarySHA256 = ('0' * 64)
-            (Invoke-CoveredScript -Name 'ensure-frida-devkit.ps1' -Parameters $libraryParameters).ExitCode | Should Not Be 0
+            (Invoke-CoveredScript -Name 'ensure-frida-devkit.ps1' -Parameters $libraryParameters).ExitCode | Should -Not -Be 0
 
             $publishPaths = & $newFridaCase 'frida-publish' -OldDevkit
             $publishParameters = & $newFridaParameters $publishPaths
             $publishParameters.FailAfterPublish = $true
-            (Invoke-CoveredScript -Name 'ensure-frida-devkit.ps1' -Parameters $publishParameters).ExitCode | Should Not Be 0
+            (Invoke-CoveredScript -Name 'ensure-frida-devkit.ps1' -Parameters $publishParameters).ExitCode | Should -Not -Be 0
 
             $rollbackPaths = & $newFridaCase 'frida-rollback' -OldDevkit
             $rollbackParameters = & $newFridaParameters $rollbackPaths
             $rollbackParameters.FailAfterPublish = $true
             $rollbackParameters.FailRollback = $true
-            (Invoke-CoveredScript -Name 'ensure-frida-devkit.ps1' -Parameters $rollbackParameters).ExitCode | Should Not Be 0
+            (Invoke-CoveredScript -Name 'ensure-frida-devkit.ps1' -Parameters $rollbackParameters).ExitCode | Should -Not -Be 0
 
             $cleanupPaths = & $newFridaCase 'frida-cleanup' -OldDevkit
             $cleanupParameters = & $newFridaParameters $cleanupPaths
             $cleanupParameters.FailBackupCleanup = $true
-            (Invoke-CoveredScript -Name 'ensure-frida-devkit.ps1' -Parameters $cleanupParameters).ExitCode | Should Be 0
+            (Invoke-CoveredScript -Name 'ensure-frida-devkit.ps1' -Parameters $cleanupParameters).ExitCode | Should -Be 0
 
             $gateCodex = Join-Path (Split-Path $scripts -Parent) 'testdata\golden\reference_codex.json'
             $gateCodexBackup = Join-Path $case 'reference_codex.json.bak'
@@ -327,7 +346,7 @@ func main() {
                 $codex = Get-Content -LiteralPath $gateCodex -Raw | ConvertFrom-Json
                 $codex.debug_wrap = @()
                 $codex | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $gateCodex -Encoding UTF8
-                (Invoke-CoveredScript -Name 'coverage-gate.ps1').ExitCode | Should Not Be 0
+                (Invoke-CoveredScript -Name 'coverage-gate.ps1').ExitCode | Should -Not -Be 0
             } finally {
                 Copy-Item -LiteralPath $gateCodexBackup -Destination $gateCodex -Force
             }
@@ -337,7 +356,7 @@ func main() {
             Copy-Item -LiteralPath $matrixPath -Destination $matrixBackup -Force
             try {
                 (Get-Content -LiteralPath $matrixPath -Raw) -replace ([string][char]0x5DF2 + [char]0x5B9E + [char]0x73B0), 'fixture' | Set-Content -LiteralPath $matrixPath -Encoding UTF8
-                (Invoke-CoveredScript -Name 'coverage-gate.ps1').ExitCode | Should Not Be 0
+                (Invoke-CoveredScript -Name 'coverage-gate.ps1').ExitCode | Should -Not -Be 0
             } finally {
                 Copy-Item -LiteralPath $matrixBackup -Destination $matrixPath -Force
             }
@@ -360,7 +379,7 @@ echo total: ^(statements^) 99.0%%
 exit /b 0
 "@
                 Invoke-WithPath -Path "$case;$env:PATH" -Body {
-                    (Invoke-CoveredScript -Name 'coverage-gate.ps1').ExitCode | Should Not Be 0
+                    (Invoke-CoveredScript -Name 'coverage-gate.ps1').ExitCode | Should -Not -Be 0
                 }
             }
         } finally {

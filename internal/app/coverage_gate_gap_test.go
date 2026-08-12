@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -105,7 +106,12 @@ func TestCoverageGateOwnerSpecificMessageLimits(t *testing.T) {
 
 func TestCoverageGateUpgradeInstallOwnerRace(t *testing.T) {
 	originalUpgrader := localUpgrader
-	t.Cleanup(func() { localUpgrader = originalUpgrader })
+	var upgraderMu sync.Mutex
+	t.Cleanup(func() {
+		upgraderMu.Lock()
+		localUpgrader = originalUpgrader
+		upgraderMu.Unlock()
+	})
 
 	tests := []struct {
 		name    string
@@ -118,6 +124,7 @@ func TestCoverageGateUpgradeInstallOwnerRace(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			a := New(0, 62000, logging.New(false, false))
+			upgraderMu.Lock()
 			localUpgrader = originalUpgrader
 			originChecked := make(chan struct{})
 			localUpgrader.CheckOrigin = func(*http.Request) bool {
@@ -125,7 +132,10 @@ func TestCoverageGateUpgradeInstallOwnerRace(t *testing.T) {
 				close(originChecked)
 				return true
 			}
+			upgraderMu.Unlock()
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				upgraderMu.Lock()
+				defer upgraderMu.Unlock()
 				tc.handler(a, w, r)
 			}))
 			headers := http.Header{}
