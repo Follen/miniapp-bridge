@@ -176,7 +176,12 @@ func TestSelectedTargetRecordingAndStatusCopies(t *testing.T) {
 
 func TestNewRecordPathIsAllocationOnly(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "missing", "capture.bin")
-	s, err := New(Options{RecordPath: path, Native: disabledNativeStarter})
+	s, err := New(Options{
+		DebugPort:  sdkFreePort(t),
+		CDPPort:    sdkFreePort(t),
+		RecordPath: path,
+		Native:     disabledNativeStarter,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -303,9 +303,12 @@ func TestStartClosesNativeSessionReturnedWithError(t *testing.T) {
 
 	closeErr := errors.New("native cleanup error")
 	closingNative := &advancedNative{closeErr: closeErr}
-	s, err = New(Options{Native: func(context.Context, func(LogEvent)) (NativeSession, error) {
-		return closingNative, startupErr
-	}})
+	s, err = New(Options{
+		DebugPort: sdkFreePort(t),
+		CDPPort:   sdkFreePort(t),
+		Native: func(context.Context, func(LogEvent)) (NativeSession, error) {
+			return closingNative, startupErr
+		}})
 	if err != nil {
 		t.Fatal(err)
 	}

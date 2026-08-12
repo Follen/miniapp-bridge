@@ -1446,13 +1446,14 @@ func prepareNativeRollbackPair(t *testing.T) (retainedDLL, currentDLL []byte, de
 		}
 	}
 	currentVersion := readNativeCurrentVersionDirectory(t, destination)
+	currentVersionName := filepath.Base(filepath.Clean(currentVersion))
 	versions, err := os.ReadDir(filepath.Join(destination, ".native-runtime", "versions"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	for _, version := range versions {
 		candidate := filepath.Join(destination, ".native-runtime", "versions", version.Name())
-		if !version.IsDir() || strings.EqualFold(candidate, currentVersion) {
+		if !version.IsDir() || strings.EqualFold(version.Name(), currentVersionName) {
 			continue
 		}
 		if retained != "" {
