@@ -563,6 +563,9 @@ func (s *Service) Close(ctx context.Context) error {
 		if done == nil {
 			return err
 		}
+		if ctx.Err() != nil {
+			return contextOperationError("close", ctx.Err())
+		}
 		select {
 		case <-done:
 			return err
@@ -580,6 +583,9 @@ func (s *Service) Close(ctx context.Context) error {
 		if cancel != nil {
 			cancel()
 		}
+		if ctx.Err() != nil {
+			return contextOperationError("close", ctx.Err())
+		}
 		select {
 		case <-done:
 			return s.Close(ctx)
@@ -590,6 +596,9 @@ func (s *Service) Close(ctx context.Context) error {
 	if s.state == StateStopping {
 		done := s.closeDone
 		s.mu.Unlock()
+		if ctx.Err() != nil {
+			return contextOperationError("close", ctx.Err())
+		}
 		select {
 		case <-done:
 			s.mu.Lock()
@@ -611,6 +620,9 @@ func (s *Service) Close(ctx context.Context) error {
 		cancel()
 	}
 	go s.shutdown(done)
+	if ctx.Err() != nil {
+		return contextOperationError("close", ctx.Err())
+	}
 	select {
 	case <-done:
 		s.mu.Lock()

@@ -9,6 +9,11 @@ import (
 
 const fuzzInputLimit = 64 << 10
 
+// Native round-trip fuzzing invokes compression plus two bounded decompressions
+// for every case. Keep its per-case payload modest so the short tagged CI smoke
+// window cannot expire while a cgo call is still in flight.
+const fuzzZlibRoundTripInputLimit = 8 << 10
+
 func FuzzWMPFDebugMessageDecode(f *testing.F) {
 	plain := DebugMessage{
 		Seq:      7,
@@ -133,7 +138,7 @@ func FuzzWMPFZlibBoundedRoundTrip(f *testing.F) {
 	f.Add(bytes.Repeat([]byte("a"), 1024), uint32(1024), 1024)
 
 	f.Fuzz(func(t *testing.T, input []byte, declared uint32, limit int) {
-		if len(input) > fuzzInputLimit {
+		if len(input) > fuzzZlibRoundTripInputLimit {
 			t.Skip()
 		}
 		compressed, _, err := WrapData(input, CategoryChromeDevtools, CompressZlib)
@@ -143,7 +148,7 @@ func FuzzWMPFZlibBoundedRoundTrip(f *testing.F) {
 
 		// Exercise arbitrary declared sizes and limits first. Most combinations
 		// reject by design; every successful result must honor the requested cap.
-		boundedLimit := limit % (fuzzInputLimit + 1)
+		boundedLimit := limit % (fuzzZlibRoundTripInputLimit + 1)
 		output, _ := zlibDecompressBounded(compressed, declared, boundedLimit)
 		if len(output) > boundedLimit && boundedLimit >= 0 {
 			t.Fatalf("bounded output=%d exceeds limit=%d", len(output), boundedLimit)
