@@ -75,7 +75,8 @@ foreach ($scopePath in $scope) {
 
 $directory = [string]$CoverageDirectory
 New-Item -ItemType Directory -Force -Path $directory | Out-Null
-$ledgerPath = Join-Path $directory ("powershell-$PID.jsonl")
+$ledgerIdentity = [guid]::NewGuid().ToString('N')
+$ledgerPath = Join-Path $directory ("powershell-$PID-$ledgerIdentity.jsonl")
 $utf8 = [Text.UTF8Encoding]::new($false)
 $writer = [IO.StreamWriter]::new($ledgerPath, $false, $utf8)
 $writer.AutoFlush = $true
@@ -140,20 +141,26 @@ try {
             $breakpointLine = [int]$command.Extent.StartLineNumber
             $breakpointColumn = [int]$command.Extent.StartColumnNumber
             $action = {
-                $coverageState = Get-Variable -Name '__MiniappBridgePowerShellCoverageState' -Scope Global -ValueOnly -ErrorAction SilentlyContinue
-                if ($null -eq $coverageState) { return }
+                $savedLastExitCode = $global:LASTEXITCODE
                 try {
-                    $coverageState.Writer.WriteLine(([ordered]@{
-                                schema = 'miniapp_bridge.powershell_coverage.v1'
-                                kind = 'hit'
-                                pid = [int]$PID
-                                file = [string]$breakpointFile
-                                line = [int]$breakpointLine
-                                start_column = [int]$breakpointColumn
-                            } | ConvertTo-Json -Compress))
-                } catch {
-                    $coverageState.WriteFailed = $true
-                    [Console]::Error.WriteLine("PowerShell coverage ledger write failed: $($_.Exception.Message)")
+                    $coverageState = Get-Variable -Name '__MiniappBridgePowerShellCoverageState' -Scope Global -ValueOnly -ErrorAction SilentlyContinue
+                    if ($null -ne $coverageState) {
+                        try {
+                            $coverageState.Writer.WriteLine(([ordered]@{
+                                        schema = 'miniapp_bridge.powershell_coverage.v1'
+                                        kind = 'hit'
+                                        pid = [int]$PID
+                                        file = [string]$breakpointFile
+                                        line = [int]$breakpointLine
+                                        start_column = [int]$breakpointColumn
+                                    } | ConvertTo-Json -Compress))
+                        } catch {
+                            $coverageState.WriteFailed = $true
+                            [Console]::Error.WriteLine("PowerShell coverage ledger write failed: $($_.Exception.Message)")
+                        }
+                    }
+                } finally {
+                    $global:LASTEXITCODE = $savedLastExitCode
                 }
             }.GetNewClosure()
             $lineOnly = $command -is [System.Management.Automation.Language.ThrowStatementAst]

@@ -91,6 +91,8 @@ func (a *App) releaseReservation(kind string) {
 }
 
 func (a *App) installOwner(kind string, client *wsClient) bool {
+	a.dispatchMu.Lock()
+	defer a.dispatchMu.Unlock()
 	a.connMu.Lock()
 	defer a.connMu.Unlock()
 	if kind == "upstream" {
@@ -153,6 +155,7 @@ func (a *App) handleDebugWebSocket(w http.ResponseWriter, r *http.Request) {
 		setter.SetReadLimit(websocketMaxMessageBytes)
 	}
 	client := newWSClient(c, websocket.BinaryMessage)
+	client.network = true
 	if !a.installOwner("upstream", client) {
 		_ = c.Close()
 		return
@@ -193,6 +196,7 @@ func (a *App) handleCDPWebSocket(w http.ResponseWriter, r *http.Request) {
 		setter.SetReadLimit(websocketMaxMessageBytes)
 	}
 	client := newWSClient(c, websocket.TextMessage)
+	client.network = true
 	if !a.installOwner("cdp", client) {
 		_ = c.Close()
 		return

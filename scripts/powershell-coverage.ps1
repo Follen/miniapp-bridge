@@ -2,12 +2,44 @@ param(
     [string]$TestPath,
     [string]$ReportPath,
     [string[]]$CoveragePath,
+    [string]$CoveragePathJson,
     [string[]]$TestName,
-    [string[]]$ShardReportPath
+    [string[]]$ShardReportPath,
+    [string]$ShardReportPathJson
 )
 
 $ErrorActionPreference = 'Stop'
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+
+function ConvertFrom-JsonArrayArgument {
+    param(
+        [string]$Value,
+        [string]$Name
+    )
+    $json = $Value
+    if (Test-Path -LiteralPath $Value -PathType Leaf) {
+        $json = Get-Content -LiteralPath $Value -Raw
+    }
+    try {
+        $parsed = ConvertFrom-Json -InputObject $json
+        if ($parsed -is [Array]) {
+            foreach ($item in $parsed) { Write-Output $item }
+        } else {
+            Write-Output $parsed
+        }
+    } catch {
+        throw "$Name must be valid inline JSON or a path to a JSON file"
+    }
+}
+
+if (-not [string]::IsNullOrWhiteSpace($CoveragePathJson)) {
+    if ($null -ne $CoveragePath -and $CoveragePath.Count -gt 0) { throw 'CoveragePath and CoveragePathJson are mutually exclusive' }
+    $CoveragePath = @(ConvertFrom-JsonArrayArgument -Value $CoveragePathJson -Name 'CoveragePathJson')
+}
+if (-not [string]::IsNullOrWhiteSpace($ShardReportPathJson)) {
+    if ($null -ne $ShardReportPath -and $ShardReportPath.Count -gt 0) { throw 'ShardReportPath and ShardReportPathJson are mutually exclusive' }
+    $ShardReportPath = @(ConvertFrom-JsonArrayArgument -Value $ShardReportPathJson -Name 'ShardReportPathJson')
+}
 $testPathWasExplicit = -not [string]::IsNullOrWhiteSpace($TestPath)
 $coveragePathWasExplicit = $null -ne $CoveragePath -and $CoveragePath.Count -gt 0
 $helperPath = (Resolve-Path (Join-Path $PSScriptRoot 'test-support\powershell-coverage-hook.ps1')).Path
@@ -374,6 +406,15 @@ function Merge-CoverageShards {
         }
         $manifest = @($report.source_manifest)
         if ($manifest.Count -eq 0) { throw "PowerShell coverage shard has no source manifest: $fullReport" }
+        if ([int]$report.source_count -ne $manifest.Count) {
+            throw "PowerShell coverage shard source count does not match its manifest: $fullReport"
+        }
+        $manifestAnalyzed = [int](($manifest | Measure-Object -Property commands_analyzed -Sum).Sum)
+        if ([int]$report.commands_analyzed -ne $manifestAnalyzed -or
+            [int]$report.commands_executed -ne $manifestAnalyzed -or
+            [int]$report.failed_tests -ne 0) {
+            throw "PowerShell coverage shard counters do not match its manifest: $fullReport"
+        }
         foreach ($source in $manifest) {
             $relative = ([string]$source.path).Replace('\', '/')
             if (-not $expected.ContainsKey($relative)) { throw "PowerShell coverage shard contains out-of-scope source: $relative" }
@@ -426,6 +467,7 @@ function Merge-CoverageShards {
 
 function Invoke-CoverageShardSet {
     $runner = $PSCommandPath
+    $hostPath = (Get-Process -Id $PID).Path
     $artifactRoot = Join-Path $repo 'ci-artifacts\powershell'
     $buildReport = Join-Path $artifactRoot 'build\coverage.json'
     $nativeReport = Join-Path $artifactRoot 'native\coverage.json'
@@ -439,22 +481,52 @@ function Invoke-CoverageShardSet {
         'native-prepare.ps1', 'native-release.ps1', 'package-windows-release.ps1'
     ) | ForEach-Object { Join-Path $PSScriptRoot $_ }
     $smokeCoverage = @(Get-ChildItem -LiteralPath $PSScriptRoot -Filter ('smoke-' + '*.ps1') -File |
-        Select-Object -First 1 -ExpandProperty FullName)
+        Sort-Object FullName |
+        Select-Object -ExpandProperty FullName)
     if ($smokeCoverage.Count -ne 1) { throw 'PowerShell smoke coverage requires exactly one deterministic smoke script' }
 
-    & $runner -TestPath (Join-Path $PSScriptRoot 'test-support\powershell-build-coverage.Tests.ps1') `
-        -CoveragePath $buildCoverage -ReportPath $buildReport
-    if ($LASTEXITCODE -ne 0) { throw "PowerShell build shard failed with exit $LASTEXITCODE" }
-    & $runner -TestPath (Join-Path $PSScriptRoot 'test-support\powershell-native-coverage.Tests.ps1') `
-        -CoveragePath $nativeCoverage -ReportPath $nativeReport
-    if ($LASTEXITCODE -ne 0) { throw "PowerShell native shard failed with exit $LASTEXITCODE" }
-    & $runner -TestPath (Join-Path $PSScriptRoot 'powershell-coverage.Tests.ps1') `
-        -TestName 'PowerShell Windows smoke coverage fixture' `
-        -CoveragePath $smokeCoverage -ReportPath $smokeReport
-    if ($LASTEXITCODE -ne 0) { throw "PowerShell smoke shard failed with exit $LASTEXITCODE" }
-    & $runner -ShardReportPath @($buildReport, $nativeReport, $smokeReport) `
-        -ReportPath (Join-Path $repo 'ci-artifacts\powershell-coverage.log')
-    if ($LASTEXITCODE -ne 0) { throw "PowerShell shard merge failed with exit $LASTEXITCODE" }
+    $argumentRoot = Join-Path ([IO.Path]::GetTempPath()) ('miniapp-bridge-ps-coverage-' + [guid]::NewGuid().ToString('N'))
+    New-Item -ItemType Directory -Force -Path $argumentRoot | Out-Null
+    try {
+        $buildPaths = Join-Path $argumentRoot 'build-paths.json'
+        $nativePaths = Join-Path $argumentRoot 'native-paths.json'
+        $smokePaths = Join-Path $argumentRoot 'smoke-paths.json'
+        [IO.File]::WriteAllText($buildPaths, ($buildCoverage | ConvertTo-Json -Compress), [Text.UTF8Encoding]::new($false))
+        [IO.File]::WriteAllText($nativePaths, ($nativeCoverage | ConvertTo-Json -Compress), [Text.UTF8Encoding]::new($false))
+        [IO.File]::WriteAllText($smokePaths, ($smokeCoverage | ConvertTo-Json -Compress), [Text.UTF8Encoding]::new($false))
+
+        $shards = @(
+            [pscustomobject]@{
+                Name = 'build'
+                Arguments = @('-TestPath', (Join-Path $PSScriptRoot 'test-support\powershell-build-coverage.Tests.ps1'),
+                    '-CoveragePathJson', $buildPaths, '-ReportPath', $buildReport)
+            },
+            [pscustomobject]@{
+                Name = 'native'
+                Arguments = @('-TestPath', (Join-Path $PSScriptRoot 'test-support\powershell-native-coverage.Tests.ps1'),
+                    '-CoveragePathJson', $nativePaths, '-ReportPath', $nativeReport)
+            },
+            [pscustomobject]@{
+                Name = 'smoke'
+                Arguments = @('-TestPath', (Join-Path $PSScriptRoot 'powershell-coverage.Tests.ps1'), '-TestName',
+                    'PowerShell Windows smoke coverage fixture', '-CoveragePathJson', $smokePaths,
+                    '-ReportPath', $smokeReport)
+            }
+        )
+        foreach ($shard in $shards) {
+            $childArguments = @($shard.Arguments)
+            & $hostPath -NoProfile -File $runner @childArguments
+            if ($LASTEXITCODE -ne 0) { throw "PowerShell $($shard.Name) shard failed with exit $LASTEXITCODE" }
+        }
+
+        $mergeReport = Join-Path $repo 'ci-artifacts\powershell-coverage.log'
+        $mergePaths = Join-Path $argumentRoot 'merge-paths.json'
+        [IO.File]::WriteAllText($mergePaths, (@($buildReport, $nativeReport, $smokeReport) | ConvertTo-Json -Compress), [Text.UTF8Encoding]::new($false))
+        & $hostPath -NoProfile -File $runner -ShardReportPathJson $mergePaths -ReportPath $mergeReport
+        if ($LASTEXITCODE -ne 0) { throw "PowerShell shard merge failed with exit $LASTEXITCODE" }
+    } finally {
+        Remove-Item -LiteralPath $argumentRoot -Recurse -Force -ErrorAction SilentlyContinue
+    }
 }
 
 if ($null -ne $ShardReportPath -and $ShardReportPath.Count -gt 0) {
@@ -463,7 +535,20 @@ if ($null -ne $ShardReportPath -and $ShardReportPath.Count -gt 0) {
 }
 
 if (-not $testPathWasExplicit -and -not $coveragePathWasExplicit) {
-    Invoke-CoverageShardSet
+    $defaultRunMutex = [Threading.Mutex]::new($false, 'Local\MiniappBridge.PowerShellCoverage.Default')
+    $defaultRunMutexAcquired = $false
+    try {
+        try {
+            $defaultRunMutexAcquired = $defaultRunMutex.WaitOne([TimeSpan]::FromMinutes(30))
+        } catch [Threading.AbandonedMutexException] {
+            $defaultRunMutexAcquired = $true
+        }
+        if (-not $defaultRunMutexAcquired) { throw 'Timed out waiting for another PowerShell coverage run to finish' }
+        Invoke-CoverageShardSet
+    } finally {
+        if ($defaultRunMutexAcquired) { $defaultRunMutex.ReleaseMutex() }
+        $defaultRunMutex.Dispose()
+    }
     return
 }
 

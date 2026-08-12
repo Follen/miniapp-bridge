@@ -43,7 +43,8 @@ $gccVersion = (& $gcc -dumpfullversion).Trim()
 if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($gccVersion)) {
     throw "gcc version probe failed with exit $LASTEXITCODE"
 }
-$gcovVersionText = (& $gcov --version | Select-Object -First 1)
+$gcovVersionOutput = @(& $gcov --version)
+$gcovVersionText = if ($gcovVersionOutput.Count -gt 0) { $gcovVersionOutput[0] } else { '' }
 if ($LASTEXITCODE -ne 0 -or $gcovVersionText -notmatch '(?<version>[0-9]+(?:\.[0-9]+)+)') {
     throw "gcov version probe failed with exit $LASTEXITCODE"
 }

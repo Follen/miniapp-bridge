@@ -31,6 +31,22 @@ func TestPowerShellCoverageUsesRealPesterCounters(t *testing.T) {
 		"threshold_percent = 100.0",
 		"result = 'passed'",
 		"no fallback or synthetic percentage is accepted",
+		"(Get-Process -Id $PID).Path",
+		"-NoProfile -File $runner",
+		"PowerShell $($shard.Name) shard failed",
+		"CoveragePathJson",
+		"ShardReportPathJson",
+		"ConvertFrom-JsonArrayArgument",
+		"miniapp-bridge-ps-coverage-",
+		"build-paths.json",
+		"merge-paths.json",
+		"Remove-Item -LiteralPath $argumentRoot -Recurse -Force",
+		"source count does not match its manifest",
+		"counters do not match its manifest",
+		"Sort-Object FullName",
+		"Local\\MiniappBridge.PowerShellCoverage.Default",
+		"WaitOne([TimeSpan]::FromMinutes(30))",
+		"ReleaseMutex()",
 	} {
 		if !strings.Contains(script, required) {
 			t.Errorf("PowerShell coverage gate is missing %q", required)
@@ -67,9 +83,14 @@ func TestCShimCoverageUsesNativeGcovSummary(t *testing.T) {
 		"c_shim_function_coverage=100.00%",
 		"C shim line coverage must be 100.00%",
 		"C shim function coverage must be 100.00%",
+		"$gcovVersionOutput = @(& $gcov --version)",
+		"$gcovVersionOutput[0]",
 	} {
 		if !strings.Contains(script, required) {
 			t.Errorf("C shim coverage gate is missing %q", required)
 		}
+	}
+	if strings.Contains(script, "& $gcov --version | Select-Object") {
+		t.Error("C shim coverage must not pipe native gcov output through Select-Object")
 	}
 }

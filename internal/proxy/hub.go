@@ -110,6 +110,8 @@ type Listener struct {
 	closeErr       error
 	acceptWG       sync.WaitGroup
 	handlerWG      sync.WaitGroup
+	connMu         sync.Mutex
+	conns          map[net.Conn]struct{}
 	closeOnce      sync.Once
 	errorCloseOnce sync.Once
 	errors         chan error
@@ -122,6 +124,7 @@ func NewListener(addr string, h func(net.Conn)) *Listener {
 		Handler: h,
 		listen:  net.Listen,
 		errors:  make(chan error, listenerErrorBuffer),
+		conns:   make(map[net.Conn]struct{}),
 	}
 }
 
@@ -176,6 +179,9 @@ func (s *Listener) accept(ln net.Listener, handler func(net.Conn)) {
 			continue
 		}
 		retryDelay = 0
+		s.connMu.Lock()
+		s.conns[c] = struct{}{}
+		s.connMu.Unlock()
 		s.handlerWG.Add(1)
 		go s.handle(c, handler)
 	}
@@ -183,12 +189,29 @@ func (s *Listener) accept(ln net.Listener, handler func(net.Conn)) {
 
 func (s *Listener) handle(c net.Conn, handler func(net.Conn)) {
 	defer s.handlerWG.Done()
+	defer func() {
+		s.connMu.Lock()
+		delete(s.conns, c)
+		s.connMu.Unlock()
+	}()
 	if handler != nil {
 		handler(c)
 		return
 	}
 	_, _ = bufio.NewReader(c).ReadBytes('\n')
 	_ = c.Close()
+}
+
+func (s *Listener) closeConnections() {
+	s.connMu.Lock()
+	conns := make([]net.Conn, 0, len(s.conns))
+	for c := range s.conns {
+		conns = append(conns, c)
+	}
+	s.connMu.Unlock()
+	for _, c := range conns {
+		_ = c.Close()
+	}
 }
 
 func (s *Listener) stopping() bool {
@@ -260,6 +283,7 @@ func (s *Listener) Close() error {
 			}
 		}
 		s.acceptWG.Wait()
+		s.closeConnections()
 		s.handlerWG.Wait()
 		s.closeErrorStream()
 

@@ -65,6 +65,7 @@ func TestGitHubCIWorkflowContract(t *testing.T) {
 		"8AF15423D6E534626F91A67FAA0582E42C67A07A95A190F4C622695105549C72",
 		"Frida devkit archive SHA-256 mismatch",
 		".\\scripts\\build-windows.ps1",
+		".\\scripts\\powershell-coverage.ps1",
 		".\\scripts\\coverage-gate.ps1",
 		"retention-days: 7",
 	} {

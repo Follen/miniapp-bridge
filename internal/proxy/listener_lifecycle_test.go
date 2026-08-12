@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"bufio"
 	"errors"
 	"net"
 	"sync"
@@ -112,6 +113,37 @@ func TestListenerCloseWaitsForHandlersAndIsConcurrentSafe(t *testing.T) {
 	if err := listener.Close(); !errors.Is(err, wantCloseErr) {
 		t.Fatalf("repeated Close error=%v, want %v", err, wantCloseErr)
 	}
+}
+
+func TestListenerCloseClosesIdleAcceptedConnections(t *testing.T) {
+	underlying := newChannelListener(nil)
+	started := make(chan struct{})
+	listener := NewListener("unused", func(conn net.Conn) {
+		close(started)
+		_, _ = bufio.NewReader(conn).ReadBytes('\n')
+	})
+	listener.listen = func(string, string) (net.Listener, error) { return underlying, nil }
+	if err := listener.Start(); err != nil {
+		t.Fatal(err)
+	}
+	server, client := net.Pipe()
+	underlying.accepted <- server
+	select {
+	case <-started:
+	case <-time.After(time.Second):
+		t.Fatal("idle handler did not start")
+	}
+	closed := make(chan error, 1)
+	go func() { closed <- listener.Close() }()
+	select {
+	case err := <-closed:
+		if err != nil {
+			t.Fatalf("listener close error=%v", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("listener close blocked on idle accepted connection")
+	}
+	_ = client.Close()
 }
 
 func TestListenerReportsPermanentAcceptFailureAndReturnsItFromClose(t *testing.T) {

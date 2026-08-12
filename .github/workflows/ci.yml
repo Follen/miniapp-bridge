@@ -304,6 +304,13 @@ jobs:
             Write-Output "pe-gate=$path imports=$($actual -join ',')"
           }
 
+      - name: PowerShell command coverage
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & .\scripts\powershell-coverage.ps1 *>&1 | Tee-Object -FilePath ci-artifacts\powershell-coverage.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Complete Windows coverage gate
         shell: pwsh
         run: |

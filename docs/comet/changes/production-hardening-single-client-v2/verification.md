@@ -12,10 +12,10 @@
 | Windows native build | `scripts/build-windows.ps1` | passed; DLL/archive/manifest/SHA256SUMS produced |
 | Windows update soak | 4 native prepare rollback tests, `-count=3` | passed |
 | C shim | `scripts/cshim-coverage.ps1` | 233/233 lines, 70/70 functions, 202/202 branch sites |
-| PowerShell Build | Build shard | 917/917 commands, 100.00%, 6/6 tests |
+| PowerShell Build | Build shard | 919/919 commands, 100.00%, 6/6 tests |
 | PowerShell Native | Native shard | 885/885 commands, 100.00%, 11/11 tests |
 | PowerShell Smoke | Smoke shard | 687/687 commands, 100.00%, 1/1 test |
-| PowerShell merged | strict 3-shard merge | 2489/2489 commands, 100.00%, 0 missed, 0 failed |
+| PowerShell merged | strict 3-shard merge | 2491/2491 commands, 100.00%, 0 missed, 0 failed |
 | Static/security | `go vet ./...`; `govulncheck ./...` | passed; no vulnerabilities |
 
 ## CI repair verification
@@ -25,6 +25,16 @@
 - Windows tagged SDK tests passed at 100.0% statement coverage, including deterministic DOS 8.3-to-long-path identity expansion.
 - The three GitHub Windows regressions (`ResolveAndLoaderErrors`, `BootstrapFailureAndSuccess`, and `BlocksReplacementDuringLoad`) passed for 20 consecutive runs.
 - `scripts/build-windows.ps1` passed in 141.8 seconds and produced the DLL, archive, manifest, and SHA256SUMS.
+
+## Independent review repair
+
+- Upstream owner installation now follows the established `dispatchMu -> connMu` lock order before clearing CDP response fences.
+- Network CDP requests without an active upstream or selected context receive a structured error and do not enter the pending request registry.
+- Segmented capture serializes queue send/close with `queueMu`; the close/write race passed 100 race-detector repetitions.
+- Proxy listeners track accepted connections and close them before waiting for handlers, so idle clients cannot block shutdown.
+- Windows CI now runs the real PowerShell command coverage gate. Build, Native, and Smoke shards run in isolated PowerShell processes to prevent ledger state leakage.
+- PowerShell results after isolation: Build 919/919, Native 885/885, Smoke 687/687; strict merge 2491/2491, 0 missed, 0 failed.
+- The default three-shard orchestration passed end to end in 1036.3 seconds. JSON arrays cross the Windows process boundary through temporary files, run-level mutation is serialized, ledger filenames are process-unique, and breakpoint actions preserve native `$LASTEXITCODE`.
 
 ## Commands and results
 
@@ -38,7 +48,7 @@
 - `ci-artifacts/windows-native-build.log`
 - `ci-artifacts/linux-fuzz.log`
 
-严格合并报告的 literal summary 为：`commands_analyzed=2489`, `commands_executed=2489`, `commands_missed=0`, `failed_tests=0`, `result=passed`。
+严格合并报告的 literal summary 为：`commands_analyzed=2491`, `commands_executed=2491`, `commands_missed=0`, `failed_tests=0`, `result=passed`。
 
 ## Skipped checks
 

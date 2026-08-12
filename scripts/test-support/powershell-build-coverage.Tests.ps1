@@ -336,7 +336,7 @@ func main() {
             $matrixBackup = Join-Path $case 'behavior-matrix.md.bak'
             Copy-Item -LiteralPath $matrixPath -Destination $matrixBackup -Force
             try {
-                (Get-Content -LiteralPath $matrixPath -Raw) -replace '已实现', 'fixture' | Set-Content -LiteralPath $matrixPath -Encoding UTF8
+                (Get-Content -LiteralPath $matrixPath -Raw) -replace ([string][char]0x5DF2 + [char]0x5B9E + [char]0x73B0), 'fixture' | Set-Content -LiteralPath $matrixPath -Encoding UTF8
                 (Invoke-CoveredScript -Name 'coverage-gate.ps1').ExitCode | Should Not Be 0
             } finally {
                 Copy-Item -LiteralPath $matrixBackup -Destination $matrixPath -Force

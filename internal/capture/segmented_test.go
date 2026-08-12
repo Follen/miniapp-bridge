@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 )
@@ -145,5 +146,46 @@ func TestSegmentedRecorderDiskBackpressureAndDrainBudget(t *testing.T) {
 	}
 	if err := r.Close(); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestSegmentedRecorderConcurrentCloseAndWrite(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "concurrent-close")
+	r, err := StartSegmented(path, SegmentOptions{QueueDepth: 32, CloseDrain: time.Second})
+	if err != nil {
+		t.Fatal(err)
+	}
+	start := make(chan struct{})
+	var writers sync.WaitGroup
+	for i := 0; i < 32; i++ {
+		writers.Add(1)
+		go func() {
+			defer writers.Done()
+			<-start
+			for j := 0; j < 64; j++ {
+				if err := r.Write([]byte("concurrent")); errors.Is(err, ErrRecorderClosed) {
+					return
+				}
+			}
+		}()
+	}
+	closeDone := make(chan error, 1)
+	go func() {
+		<-start
+		closeDone <- r.Close()
+	}()
+	close(start)
+
+	select {
+	case err := <-closeDone:
+		if err != nil && !errors.Is(err, ErrCloseDrainTimeout) {
+			t.Fatalf("concurrent close error: %v", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("concurrent close exceeded shutdown bound")
+	}
+	writers.Wait()
+	if err := r.Close(); err != nil {
+		t.Fatalf("second close error: %v", err)
 	}
 }

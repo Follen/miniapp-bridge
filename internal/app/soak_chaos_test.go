@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	bridgecontext "github.com/Follen/miniapp-bridge/internal/context"
 	"github.com/Follen/miniapp-bridge/internal/logging"
 	"github.com/Follen/miniapp-bridge/internal/proxy"
 	"github.com/Follen/miniapp-bridge/internal/wmpf"
@@ -36,6 +37,9 @@ func TestSingleOwnerReconnectDeterministicSoak(t *testing.T) {
 		upstream := auditDial(t, debugPort)
 		controller := auditDial(t, cdpPort)
 		waitForConnectionCounts(t, bridge, 1, 1)
+		contextID := fmt.Sprintf("soak-context-%d", cycle)
+		bridge.Contexts.Upsert(bridgecontext.Context{ID: contextID})
+		bridge.Contexts.Select(contextID)
 		auditRejectedDial(t, debugPort, "owner_exists")
 		auditRejectedDial(t, cdpPort, "owner_exists")
 

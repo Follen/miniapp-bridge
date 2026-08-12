@@ -138,6 +138,7 @@ type wsClient struct {
 	queueByteLimit  int64
 	maxMessageBytes int64
 	generation      uint64
+	network         bool
 	onError         func(error)
 }
 
@@ -781,7 +782,14 @@ func (a *App) SendCDPRoute(payload []byte, jscontextID string) error {
 }
 
 func (a *App) sendCDPLocked(payload string, c *wsClient) {
-	contextID, _ := a.routeContextID("")
+	contextID, err := a.routeContextID("")
+	if err != nil {
+		if c != nil && c.network {
+			a.sendCDPErrorForPayloadLocked(c, payload, err)
+			return
+		}
+		contextID = ""
+	}
 	a.sendCDPToContextLocked(payload, c, contextID)
 }
 
@@ -811,6 +819,17 @@ func (a *App) sendCDPToContextLocked(payload string, c *wsClient, contextID stri
 		if id, err := decodeExactJSONValue(env.ID); err == nil {
 			requestID = id
 			hasRequestID = true
+		}
+	}
+	if hasRequestID && c != nil && c.generation != 0 {
+		if c.network {
+			a.connMu.RLock()
+			upstreamActive := a.debugOwner != nil
+			a.connMu.RUnlock()
+			if !upstreamActive {
+				a.sendCDPErrorLocked(c, requestID, cdpServerErrorCode, ErrCDPUpstreamDisconnected.Error())
+				return
+			}
 		}
 	}
 	if hasRequestID && c != nil && c.generation != 0 {
@@ -848,6 +867,22 @@ func (a *App) sendCDPToContextLocked(payload string, c *wsClient, contextID stri
 	frame := wmpf.EncodeOutgoingDebugMessage(wmpf.DebugMessage{Seq: a.seq.Add(1), Category: wmpf.CategoryChromeDevtools, Data: inner})
 	a.recordFrameLocked(capture.DirectionDownstream, frame)
 	a.DebugHub.Broadcast(frame)
+}
+
+func (a *App) sendCDPErrorForPayloadLocked(c *wsClient, payload string, err error) {
+	if c == nil {
+		return
+	}
+	var envelope struct {
+		ID json.RawMessage `json:"id"`
+	}
+	if json.Unmarshal([]byte(payload), &envelope) != nil || len(envelope.ID) == 0 || string(envelope.ID) == "null" {
+		return
+	}
+	// RawMessage came from a successful object unmarshal, so the ID is valid
+	// JSON here; decodeExactJSONValue is retained for UseNumber semantics.
+	id, _ := decodeExactJSONValue(envelope.ID)
+	a.sendCDPErrorLocked(c, id, cdpServerErrorCode, err.Error())
 }
 
 func (a *App) trackSubscriptionLocked(method string, c *wsClient) error {

@@ -83,6 +83,7 @@ type SegmentedRecorder struct {
 	done      chan struct{}
 	closing   atomic.Bool
 	once      sync.Once
+	queueMu   sync.RWMutex
 	mu        sync.Mutex
 	err       error
 	index     uint64
@@ -145,6 +146,8 @@ func (r *SegmentedRecorder) WriteFrame(direction Direction, timestamp time.Time,
 	if len(frame) > MaxFrameSize {
 		return fmt.Errorf("%w: capture frame length %d exceeds limit %d", ErrFrameTooLarge, len(frame), MaxFrameSize)
 	}
+	r.queueMu.RLock()
+	defer r.queueMu.RUnlock()
 	if r.closing.Load() {
 		return ErrRecorderClosed
 	}
@@ -168,8 +171,10 @@ func (r *SegmentedRecorder) WriteFrame(direction Direction, timestamp time.Time,
 
 func (r *SegmentedRecorder) Close() error {
 	r.once.Do(func() {
+		r.queueMu.Lock()
 		r.closing.Store(true)
 		close(r.queue)
+		r.queueMu.Unlock()
 	})
 	timer := time.NewTimer(r.opts.CloseDrain)
 	defer timer.Stop()

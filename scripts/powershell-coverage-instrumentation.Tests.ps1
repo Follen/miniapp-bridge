@@ -1,6 +1,40 @@
 Set-StrictMode -Version Latest
 
 Describe 'PowerShell cross-process coverage instrumentation' {
+    BeforeAll {
+        $script:nativeDriver = Join-Path $PSScriptRoot 'cshim-coverage.ps1'
+        $nativeHook = Join-Path $PSScriptRoot 'test-support\powershell-coverage-hook.ps1'
+        $nativeScope = Join-Path $TestDrive 'native-scope.json'
+        $nativeEvents = Join-Path $TestDrive 'native-events'
+        [IO.File]::WriteAllText($nativeScope, (@($script:nativeDriver) | ConvertTo-Json -Compress))
+        & $nativeHook -Start -ScriptPath $script:nativeDriver -CoverageDirectory $nativeEvents -ScopeFile $nativeScope
+    }
+
+    It 'uses a process-unique safe ledger name and preserves event PID' {
+        $hook = Join-Path $PSScriptRoot 'test-support\powershell-coverage-hook.ps1'
+        $fixture = Join-Path $PSScriptRoot 'test-support\powershell-coverage-fixture.ps1'
+        $scope = Join-Path $TestDrive 'scope.json'
+        $events = Join-Path $TestDrive 'events'
+        [IO.File]::WriteAllText($scope, (@($fixture) | ConvertTo-Json -Compress))
+
+        $hostPath = (Get-Process -Id $PID).Path
+        $command = "& '$($hook.Replace("'", "''"))' -Start -ScriptPath '$($fixture.Replace("'", "''"))' -CoverageDirectory '$($events.Replace("'", "''"))' -ScopeFile '$($scope.Replace("'", "''"))'; & cmd.exe /d /c exit 0; & '$($fixture.Replace("'", "''"))' world | Out-Null; if (`$LASTEXITCODE -ne 0) { exit 42 }"
+        foreach ($index in 1..2) {
+            & $hostPath -NoProfile -NonInteractive -Command $command
+            $LASTEXITCODE | Should Be 0
+        }
+
+        $ledgers = @(Get-ChildItem -LiteralPath $events -Filter '*.jsonl' -File)
+        $ledgers.Count | Should Be 2
+        ($ledgers.Name | Select-Object -Unique).Count | Should Be 2
+        foreach ($ledger in $ledgers) {
+            $ledger.Name | Should Match '^powershell-[0-9]+-[0-9a-f]{32}\.jsonl$'
+            $start = Get-Content -LiteralPath $ledger.FullName -First 1 | ConvertFrom-Json
+            $start.kind | Should Be 'start'
+            $ledger.Name | Should Match ("^powershell-$($start.pid)-")
+        }
+    }
+
     It 'preserves positional arguments and records both branch statements' {
         $fixture = Join-Path $PSScriptRoot 'test-support\powershell-coverage-fixture.ps1'
         (& $fixture 'world') | Should Be 'hello world'
@@ -12,6 +46,27 @@ Describe 'PowerShell cross-process coverage instrumentation' {
             $_.Exception.Message | Should Be 'fixture failure'
         }
         $thrown | Should Be $true
+    }
+
+    It 'preserves native exit codes while coverage breakpoints execute' {
+        $report = Join-Path $TestDrive 'cshim.json'
+        try {
+            & $script:nativeDriver -ReportPath $report | Out-Null
+            $LASTEXITCODE | Should Be 0
+            $result = Get-Content -LiteralPath $report -Raw | ConvertFrom-Json
+            $result.result | Should Be 'passed'
+            $result.line_percent | Should Be 100
+            $result.function_percent | Should Be 100
+        } finally {
+            $coverageState = Get-Variable -Name '__MiniappBridgePowerShellCoverageState' -Scope Global -ValueOnly -ErrorAction SilentlyContinue
+            if ($null -ne $coverageState) {
+                foreach ($breakpoint in @($coverageState.Breakpoints)) {
+                    Remove-PSBreakpoint -Breakpoint $breakpoint -ErrorAction SilentlyContinue
+                }
+                $coverageState.Writer.Dispose()
+                Remove-Variable -Name '__MiniappBridgePowerShellCoverageState' -Scope Global -ErrorAction SilentlyContinue
+            }
+        }
     }
 
     It 'merges only complete non-overlapping source-bound shard reports' {
@@ -41,9 +96,11 @@ Describe 'PowerShell cross-process coverage instrumentation' {
                     schema = 'miniapp_bridge.coverage.v1'
                     language = 'PowerShell'
                     command_percent = 100.0
+                    source_count = 1
                     commands_analyzed = $count
                     commands_executed = $count
                     commands_missed = 0
+                    failed_tests = 0
                     source_manifest = @([ordered]@{
                             path = $relative
                             sha256 = (Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -83,4 +140,5 @@ Describe 'PowerShell cross-process coverage instrumentation' {
             }
         }
     }
+
 }
