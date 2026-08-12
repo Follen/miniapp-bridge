@@ -74,7 +74,7 @@ var (
 	nativeUnsetEnv   = os.Unsetenv
 	nativeNewDevice  = func() (platformDevice, error) { return fridacore.NewNativeDevice() }
 	nativeBindTarget = func(ctx context.Context, target process.Process) (process.Process, error) {
-		return process.BindTarget(ctx, target, "", "", time.Now().UTC())
+		return process.BindTarget(ctx, target, "", "host", time.Now().UTC())
 	}
 )
 

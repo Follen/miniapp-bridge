@@ -33,6 +33,15 @@ func BindTarget(ctx context.Context, p Process, expectedAppID, expectedRenderer 
 		return Process{}, errors.New("target identity: missing start time")
 	}
 	appID, renderer := ParseCommandLineIdentity(peer.CommandLine)
+	if expectedRenderer == "host" {
+		if renderer != "" {
+			return Process{}, fmt.Errorf("target identity: renderer host mismatch: got %q", renderer)
+		}
+		p.ParentPID, p.Identity = peer.ParentPID, TargetIdentity{
+			PID: peer.PID, StartTime: peer.StartTime, RendererType: "host", DiscoveredAt: now,
+		}
+		return p, nil
+	}
 	if appID == "" {
 		return Process{}, errors.New("target identity: missing app id")
 	}

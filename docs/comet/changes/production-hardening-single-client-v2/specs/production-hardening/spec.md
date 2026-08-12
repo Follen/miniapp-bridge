@@ -94,15 +94,16 @@ miniapp-bridge 必须以单租户 Windows bridge 运行：一个 Service 实例�
 - Windows live matrix 必须覆盖一个 upstream、一个 CDP controller、第二连接拒绝、断线重连、端口复用、真实目标 canary 和更新回滚；缺少外部环境或签名凭据的检查必须作为已知风险记录，不能伪记通过。
 - Go 仓库自有生产代码必须在合并 Windows 默认与 `frida` profile 后达到 100% statement coverage；所有生产包通过 `-coverpkg` 或等价全包插桩纳入统计。
 - C shim 仓库自有生产代码必须通过原生插桩 profile 达到 100% line coverage 和 100% function coverage；错误、清理、callback、init/deinit 和 loader 分支必须由真实执行覆盖。
-- PowerShell 仓库自有生产脚本必须通过脚本覆盖率 profile 达到 100% command coverage；下载、校验、构建、发布、更新、异常恢复和 rollback 路径必须实际执行。
-- 三类覆盖率必须分别使用真实执行 profile 计算，不得通过排除有行为的生产文件、生成空桩、只测 getter、改变统计根或把未覆盖代码标成生成代码来规避门禁。
-- CI 必须将覆盖率、race、fuzz smoke、协议矩阵、native build、供应链校验和 required checks 作为合并门禁。
+- `build-windows.ps1` 必须能在干净 Windows 环境完整构建 EXE、DLL、manifest 和 native archive；manifest、编译内置信任根、DLL/archive SHA-256、exports/imports、PE 安全门禁与最终发布包必须彼此一致。
+- Windows 构建在依赖工具缺失、编译失败、签名/hash/export 不匹配时必须失败关闭；临时文件必须可靠清理，重复执行必须得到一致的可信关系，更新 rollback/recovery 必须可重复执行并恢复到已验证产物。
+- Go 与 C 覆盖率必须分别使用真实执行 profile 计算，不得通过排除有行为的生产文件、生成空桩、只测 getter、改变统计根或把未覆盖代码标成生成代码来规避门禁。PowerShell 不设数值 command coverage 门槛，以真实生产构建、产物一致性和失败路径证据验收。
+- CI 必须将 Go/C 覆盖率、race、fuzz smoke、协议矩阵、真实 Windows native build、供应链校验和 required checks 作为合并门禁；GitHub Windows required CI 必须对候选提交完整构建并通过。
 
 ## GitHub 交付与收尾
 
 - 候选实现通过本地完整验证后推送 `codex/production-hardening-single-client` 到 GitHub，并创建以 `main` 为 base 的 PR。
 - 必须等待 GitHub required checks 全部成功；失败或取消的 check 必须读取真实日志、修复根因并重新运行。
-- PR 必须由独立子 Agent 按 findings-first 方式审核。所有阻塞 finding 必须修复、补测试并再次经过本地与 GitHub CI；审核通过前不得合并。
+- PR 必须由主 Agent 按 findings-first 方式完整审核，不再启动子 Agent。所有阻塞 finding 必须修复、补测试并再次经过本地与 GitHub CI；审核通过前不得合并。
 - PR 合并后必须在 `main` 上运行风险匹配的合并后验证并核对合并提交，然后删除 `.worktree/production-hardening-single-client` 和已合并本地 change 分支。
 - GitHub PR、CI、review、merge 和 worktree 清理结果都必须作为可核验的完成证据记录。
 

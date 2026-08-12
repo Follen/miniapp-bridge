@@ -44,6 +44,31 @@ func TestBindTargetIdentity(t *testing.T) {
 	}
 }
 
+func TestBindTargetHostIdentity(t *testing.T) {
+	original := peerQuery
+	t.Cleanup(func() { peerQuery = original })
+	start := time.Now().UTC().Truncate(time.Millisecond)
+	peerQuery = func(context.Context, uint32) (PeerInfo, error) {
+		return PeerInfo{PID: 7, ParentPID: 2, StartTime: start, CommandLine: `WeChatAppEx.exe --product-id=1002`}, nil
+	}
+	bound, err := BindTarget(context.Background(), Process{PID: 7}, "", "host", start)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bound.ParentPID != 2 || bound.Identity.PID != 7 || bound.Identity.RendererType != "host" ||
+		!bound.Identity.StartTime.Equal(start) || !bound.Identity.DiscoveredAt.Equal(start) || bound.Identity.AppID != "" {
+		t.Fatalf("host identity=%+v parent=%d", bound.Identity, bound.ParentPID)
+	}
+
+	peerQuery = func(context.Context, uint32) (PeerInfo, error) {
+		return PeerInfo{PID: 7, StartTime: start, CommandLine: `--type=renderer --wmpf-appid=app --wmpf-render-type=4`}, nil
+	}
+	if _, err := BindTarget(context.Background(), Process{PID: 7}, "", "host", start); err == nil ||
+		!strings.Contains(err.Error(), "renderer host mismatch") {
+		t.Fatalf("renderer accepted as host: %v", err)
+	}
+}
+
 func TestBindTargetQueryErrorAndZeroPID(t *testing.T) {
 	old := peerQuery
 	defer func() { peerQuery = old }()

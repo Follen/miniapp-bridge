@@ -7,9 +7,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
+
+var powershellJSONDate = regexp.MustCompile(`^/Date\((-?[0-9]+)(?:[+-][0-9]{4})?\)/$`)
 
 var queryWindowsPeerOutput = func(ctx context.Context, pid uint32) ([]byte, error) {
 	filter := fmt.Sprintf("ProcessId=%d", pid)
@@ -48,11 +52,16 @@ func parsePeerStartTime(creation string) (time.Time, error) {
 	if start, err := time.Parse(time.RFC3339Nano, creation); err == nil {
 		return start, nil
 	}
-	start, err := time.Parse("20060102150405.000000-070", creation)
-	if err != nil { // CIM may return timezone without sign normalization.
-		if len(creation) >= 14 {
-			start, err = time.Parse("20060102150405", creation[:14])
+	if match := powershellJSONDate.FindStringSubmatch(creation); match != nil {
+		milliseconds, err := strconv.ParseInt(match[1], 10, 64)
+		if err != nil {
+			return time.Time{}, fmt.Errorf("parse PowerShell process creation time: %w", err)
 		}
+		return time.UnixMilli(milliseconds).UTC(), nil
+	}
+	start, err := time.Parse("20060102150405.000000-070", creation)
+	if err != nil && len(creation) == 14 {
+		start, err = time.Parse("20060102150405", creation)
 	}
 	return start, err
 }

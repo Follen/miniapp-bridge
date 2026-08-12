@@ -1,4 +1,4 @@
-//go:build !release_signed
+//go:build !release_signed && !native_generated
 
 package native
 

@@ -5,12 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/Follen/miniapp-bridge/internal/capture"
+	"github.com/Follen/miniapp-bridge/internal/cdp"
 	bridgecontext "github.com/Follen/miniapp-bridge/internal/context"
 	"github.com/Follen/miniapp-bridge/internal/logging"
 	"github.com/Follen/miniapp-bridge/internal/proxy"
@@ -140,6 +142,63 @@ func TestCoverageSDKRecorderObserverAndCounts(t *testing.T) {
 	a.CDPHub.Remove(cdp)
 	if a.DebugClientCount() != 0 || a.CDPClientCount() != 0 {
 		t.Fatalf("counts after remove debug=%d cdp=%d", a.DebugClientCount(), a.CDPClientCount())
+	}
+}
+
+func TestUpstreamCDPPayloadValidation(t *testing.T) {
+	a := New(0, 0, logging.New(false, false))
+	client := &appCaptureClient{}
+	a.CDPHub.Add(client)
+	var observed [][]byte
+	var runtimeErrors []RuntimeError
+	a.SetObserver(Observer{
+		OnCDP: func(payload []byte) {
+			observed = append(observed, append([]byte(nil), payload...))
+		},
+		OnError: func(event RuntimeError) {
+			runtimeErrors = append(runtimeErrors, event)
+		},
+	})
+	if err := a.Requests.TryAdd(cdp.Request{ID: 1, Method: "Runtime.enable"}); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, payload := range []string{"", "{", "[]", "null", `"scalar"`} {
+		a.handleUnwrappedDebugForGeneration(
+			mustUnwrappedCategory(t, wmpf.CategoryChromeDevtoolsResult, wmpf.ChromeDevtools{Payload: payload}),
+			7,
+		)
+	}
+	if got := len(client.messages); got != 0 {
+		t.Fatalf("invalid payloads broadcast %d messages", got)
+	}
+	if len(observed) != 0 {
+		t.Fatalf("invalid payloads reached observer: %q", observed)
+	}
+	if a.Requests.Len() != 1 {
+		t.Fatalf("invalid payloads consumed pending request: %d", a.Requests.Len())
+	}
+	if len(runtimeErrors) != 5 {
+		t.Fatalf("runtime errors=%d want 5", len(runtimeErrors))
+	}
+	for _, event := range runtimeErrors {
+		if event.Component != "upstream-cdp-payload" || event.Generation != 7 || !strings.Contains(event.Message, ErrInvalidCDPPayload.Error()) {
+			t.Fatalf("runtime error=%+v", event)
+		}
+	}
+
+	eventPayload := `{"method":"Runtime.executionContextCreated","params":{}}`
+	a.handleUnwrappedDebug(mustUnwrappedCategory(t, wmpf.CategoryChromeDevtoolsResult, wmpf.ChromeDevtools{Payload: eventPayload}))
+	responsePayload := `{"id":1,"result":{}}`
+	a.handleUnwrappedDebug(mustUnwrappedCategory(t, wmpf.CategoryChromeDevtoolsResult, wmpf.ChromeDevtools{Payload: responsePayload}))
+	if got := len(client.messages); got != 2 || string(client.messages[0]) != eventPayload || string(client.messages[1]) != responsePayload {
+		t.Fatalf("valid broadcasts=%q", client.messages)
+	}
+	if len(observed) != 2 || string(observed[0]) != eventPayload || string(observed[1]) != responsePayload {
+		t.Fatalf("valid observer payloads=%q", observed)
+	}
+	if a.Requests.Len() != 0 {
+		t.Fatalf("valid response left pending requests=%d", a.Requests.Len())
 	}
 }
 

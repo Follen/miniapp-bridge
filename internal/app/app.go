@@ -630,12 +630,22 @@ func (a *App) handleUnwrappedDebugForGeneration(u wmpf.Unwrapped, generation uin
 		}
 	case wmpf.CategoryChromeDevtoolsResult:
 		v := value.(wmpf.ChromeDevtools)
+		payload := []byte(v.Payload)
+		var envelope map[string]json.RawMessage
+		if err := json.Unmarshal(payload, &envelope); err != nil || envelope == nil {
+			a.reportRuntimeError(
+				"upstream-cdp-payload",
+				generation,
+				fmt.Errorf("%w: expected a JSON object (%s)", ErrInvalidCDPPayload, logging.PayloadSummary(payload)),
+			)
+			return
+		}
 		var response struct {
 			ID     json.RawMessage `json:"id"`
 			Result map[string]any  `json:"result"`
 			Error  *cdp.Error      `json:"error"`
 		}
-		if json.Unmarshal([]byte(v.Payload), &response) == nil && len(response.ID) != 0 && string(response.ID) != "null" {
+		if json.Unmarshal(payload, &response) == nil && len(response.ID) != 0 && string(response.ID) != "null" {
 			if id, err := decodeExactJSONValue(response.ID); err == nil {
 				if fenced, controllerGeneration := a.consumeCDPResponseFenceLocked(id); fenced {
 					a.recordStaleDrop("cdp-response", controllerGeneration)
@@ -644,9 +654,9 @@ func (a *App) handleUnwrappedDebugForGeneration(u wmpf.Unwrapped, generation uin
 				a.resolveCDPResponse(id, response.Result, response.Error)
 			}
 		}
-		a.CDPHub.Broadcast([]byte(v.Payload))
+		a.CDPHub.Broadcast(payload)
 		if observer := a.observerSnapshot(); observer.OnCDP != nil {
-			observer.OnCDP([]byte(v.Payload))
+			observer.OnCDP(payload)
 		}
 	}
 }
@@ -782,14 +792,7 @@ func (a *App) SendCDPRoute(payload []byte, jscontextID string) error {
 }
 
 func (a *App) sendCDPLocked(payload string, c *wsClient) {
-	contextID, err := a.routeContextID("")
-	if err != nil {
-		if c != nil && c.network {
-			a.sendCDPErrorForPayloadLocked(c, payload, err)
-			return
-		}
-		contextID = ""
-	}
+	contextID, _ := a.routeContextID("")
 	a.sendCDPToContextLocked(payload, c, contextID)
 }
 
@@ -867,22 +870,6 @@ func (a *App) sendCDPToContextLocked(payload string, c *wsClient, contextID stri
 	frame := wmpf.EncodeOutgoingDebugMessage(wmpf.DebugMessage{Seq: a.seq.Add(1), Category: wmpf.CategoryChromeDevtools, Data: inner})
 	a.recordFrameLocked(capture.DirectionDownstream, frame)
 	a.DebugHub.Broadcast(frame)
-}
-
-func (a *App) sendCDPErrorForPayloadLocked(c *wsClient, payload string, err error) {
-	if c == nil {
-		return
-	}
-	var envelope struct {
-		ID json.RawMessage `json:"id"`
-	}
-	if json.Unmarshal([]byte(payload), &envelope) != nil || len(envelope.ID) == 0 || string(envelope.ID) == "null" {
-		return
-	}
-	// RawMessage came from a successful object unmarshal, so the ID is valid
-	// JSON here; decodeExactJSONValue is retained for UseNumber semantics.
-	id, _ := decodeExactJSONValue(envelope.ID)
-	a.sendCDPErrorLocked(c, id, cdpServerErrorCode, err.Error())
 }
 
 func (a *App) trackSubscriptionLocked(method string, c *wsClient) error {

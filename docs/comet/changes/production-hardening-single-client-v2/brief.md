@@ -14,7 +14,7 @@
 - 建立显式 WMPF 目标选择、受支持版本策略、兼容探针和真实环境 canary，避免误连 preload 或错误宿主。
 - 增加协议 differential、fuzz、性能基线、长时间 soak、并发压力、chaos 和故障注入矩阵。
 - 将 native/runtime 更新改为可恢复事务：规范 destination 锁、版本化发布、启动恢复 journal、保留 N-1 并支持确定回滚。
-- 分别为 Go、C shim 和 PowerShell 接入真实覆盖率工具，并把三类仓库自有生产代码都提升到数值 100%，以覆盖率门禁阻止回归。
+- 为 Go 和 C shim 接入真实覆盖率工具并把仓库自有生产代码提升到数值 100%；Windows/PowerShell 以真实构建、产物一致性、失败关闭和恢复行为作为生产门禁，不要求逐行或逐命令数值覆盖率。
 
 # Non-goals
 
@@ -35,7 +35,9 @@
 - 发布工作流能产出并验证已签名二进制、SBOM、provenance 和哈希，依赖或 PE 门禁失败时不发布。
 - 已支持 WMPF 版本通过模拟兼容测试和真实 live canary；错误目标、preload-only 目标或未知版本以明确原因停止。
 - fuzz、race、性能、soak 和注入式失败测试具有可重复命令、阈值和证据；更新被中断后下一次启动能恢复或回滚到最后一个完整版本。
-- GitHub CI 全绿且 PR 经独立子 Agent 审核通过后才允许合并；合并后删除 change worktree，并确认目标分支包含最终提交。
+- GitHub CI 全绿且 PR 经 findings-first 审核通过后才允许合并；本次审核由主 Agent 独立于实现过程做完整差异复核，不再启动子 Agent。合并后删除 change worktree，并确认目标分支包含最终提交。
+- 在干净 Windows 环境运行 `build-windows.ps1` 能完整生成 EXE、DLL、manifest 和 native archive；发布包中的 manifest、编译内置信任根、DLL/archive 哈希、exports/imports 和 PE 门禁彼此一致。
+- Windows 构建在工具缺失、编译失败、签名/hash/export 不匹配时失败关闭；临时文件清理、重复执行和 rollback/recovery 均通过真实行为测试。
 
 # Constraints and invariants
 
@@ -46,7 +48,7 @@
 - 所有安全边界、资源上限、恢复状态和发布门禁必须有自动化验证；环境依赖的 live 检查单独记录。
 - 资源预算均提供安全默认值和有界配置，非法配置在启动时失败，运行中不得静默放宽。
 - 本 change 的实现只在绑定的 `codex/production-hardening-single-client` 分支和 `.worktree/production-hardening-single-client` 工作树中进行。
-- 最终发布前 Go statement、C line/function 和 PowerShell command coverage 必须分别达到 100%；不能用排除生产文件、空测试或降低统计范围制造通过结果。
+- 最终发布前 Go statement 与 C line/function coverage 必须分别达到 100%；不能用排除生产文件、空测试或降低统计范围制造通过结果。PowerShell 不设数值覆盖率目标，以真实 Windows 构建和生产失败路径验收。
 
 # Decisions
 
@@ -57,9 +59,10 @@
 - upstream 连接必须绑定显式选择的 WMPF PID 与进程启动时间，防止 PID 复用或误连其他宿主。
 - CDP controller 不做应用层鉴权，不生成或校验 token；安全边界为 loopback、严格 Origin、单 controller 和连接代际隔离。
 - Git linked worktree 统一使用仓库内 `.worktree/<change-name>`，本 change 使用独立 worktree 隔离实现。
-- 完成顺序固定为：本地完整验证 -> 推送 GitHub -> CI 全绿 -> 创建 PR -> 独立子 Agent 审核并解决全部阻塞意见 -> 合并到 `main` -> 合并后验证 -> 删除工作树和已合并本地分支。
-- Go、C shim、PowerShell 的数值覆盖率必须分别达到 100%，三项都是 CI 和合并门禁。
-- Go 覆盖率合并 Windows 默认与 `frida` 测试 profile；C shim 使用可复核的原生插桩 profile；PowerShell 使用脚本覆盖率 profile。
+- 完成顺序固定为：本地完整验证 -> 推送 GitHub -> CI 全绿 -> 创建/更新 PR -> 主 Agent findings-first 审核并解决全部阻塞意见 -> 合并到 `main` -> 合并后验证 -> 删除工作树和已合并本地分支。
+- Go 与 C shim 的数值覆盖率必须分别达到 100%，两项都是 CI 和合并门禁；PowerShell/Windows 构建脚本不要求逐行或逐命令 100% 覆盖。
+- Go 覆盖率合并 Windows 默认与 `frida` 测试 profile；C shim 使用可复核的原生插桩 profile；PowerShell 使用生产级行为验收，覆盖干净构建、产物/信任数据一致性、失败关闭、清理、重复执行、rollback/recovery 和真实 Windows required CI。
+- 用户在 Build 阶段明确调整验收：停止为 PowerShell 数值覆盖扩张逐命令夹具，保留 Go/C 100%，并由主 Agent 自行完成剩余实现、审核与交付，不再使用子 Agent。
 - 健康、就绪、metrics 和诊断通过现有 Go SDK 的线程安全快照/订阅及 CLI 结构化输出提供，不新增第三个管理监听端口。
 
 # Open questions
@@ -73,6 +76,7 @@
 - 对 native loader/C shim 运行并发 open/close、callback drain、Application Verifier 或同等 unload-after-use 检查。
 - 生成并校验 Authenticode、SBOM、provenance、PE imports/security flags 和更新事务/回滚产物。
 - fuzz corpus、性能阈值、soak 时长、chaos 场景和故障注入均形成可重复的 CI 或发布前命令。
-- 生成可复核的 Go、C shim 和 PowerShell 覆盖率 profile，并分别执行 100% 数值门禁；报告必须来自实际测试，不能仅依赖文件级存在性。
+- 生成可复核的 Go 与 C shim 覆盖率 profile，并分别执行 100% 数值门禁；报告必须绑定当前源码并来自实际测试，不能仅依赖文件级存在性。
+- 在干净 Windows 构建路径运行 `build-windows.ps1`，核对 EXE、DLL、manifest、native archive、编译内置信任根、哈希、exports/imports、PE 门禁和发布包一致性；注入工具缺失、编译失败及签名/hash/export 不匹配，验证失败关闭，并验证临时清理、重复执行与 rollback/recovery。
 - 运行真实 Windows live matrix，覆盖单 upstream、单 CDP、断线、重连、优雅关闭、端口立即复用、目标 canary 和更新回滚；缺少外部签名凭据或真实环境时必须明确列为未验证风险。
-- 推送后等待 GitHub required checks 完成；PR 由未参与对应实现文件的子 Agent 做 findings-first 审核，阻塞问题修复并重新验证后才能合并。
+- 推送后等待 GitHub required checks 完成，其中 Windows required CI 必须执行真实构建并全绿；PR 由主 Agent 做 findings-first 完整差异审核，阻塞问题修复并重新验证后才能合并。

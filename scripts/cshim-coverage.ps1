@@ -71,6 +71,62 @@ function Invoke-NativeChecked([string]$Name, [string]$Command, [string[]]$Argume
     return $output
 }
 
+function Get-GitProvenance {
+    $headOutput = @(& git -C $repo rev-parse --verify HEAD 2>&1)
+    if ($LASTEXITCODE -ne 0 -or $headOutput.Count -ne 1 -or $headOutput[0] -notmatch '^[0-9a-fA-F]{40}$') {
+        throw "git HEAD probe failed: $($headOutput -join [Environment]::NewLine)"
+    }
+    $statusOutput = @(& git -C $repo status --porcelain --untracked-files=no 2>&1)
+    if ($LASTEXITCODE -ne 0) {
+        throw "git dirty-state probe failed: $($statusOutput -join [Environment]::NewLine)"
+    }
+    return [ordered]@{
+        head = ([string]$headOutput[0]).ToLowerInvariant()
+        dirty = [bool]($statusOutput.Count -gt 0)
+    }
+}
+
+function Get-SourceManifestEntry([string]$RelativePath) {
+    if ([string]::IsNullOrWhiteSpace($RelativePath) -or
+        [IO.Path]::IsPathRooted($RelativePath) -or
+        $RelativePath.Contains('\') -or
+        $RelativePath.Split('/') -contains '..' -or
+        $RelativePath.Split('/') -contains '.') {
+        throw "source manifest path is not canonical: $RelativePath"
+    }
+    $fullPath = [IO.Path]::GetFullPath((Join-Path $repo $RelativePath))
+    $repoPrefix = $repo.TrimEnd('\', '/') + [IO.Path]::DirectorySeparatorChar
+    if (-not $fullPath.StartsWith($repoPrefix, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "source manifest path escapes repository: $RelativePath"
+    }
+    $canonicalPath = [IO.Path]::GetRelativePath($repo, $fullPath).Replace('\', '/')
+    if ($canonicalPath -cne $RelativePath -or -not (Test-Path -LiteralPath $fullPath -PathType Leaf)) {
+        throw "source manifest path is missing or not canonical: $RelativePath"
+    }
+    return [ordered]@{
+        path = $canonicalPath
+        bytes = [int64](Get-Item -LiteralPath $fullPath).Length
+        sha256 = (Get-FileHash -LiteralPath $fullPath -Algorithm SHA256).Hash.ToUpperInvariant()
+    }
+}
+
+function Assert-SourceManifest([object[]]$Manifest) {
+    if ($null -eq $Manifest -or $Manifest.Count -eq 0) {
+        throw 'source manifest must not be empty'
+    }
+    $seen = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+    foreach ($entry in $Manifest) {
+        if (-not $seen.Add([string]$entry.path)) {
+            throw "source manifest contains duplicate path: $($entry.path)"
+        }
+        $current = Get-SourceManifestEntry ([string]$entry.path)
+        if ([int64]$entry.bytes -ne $current.bytes -or
+            [string]$entry.sha256 -cne $current.sha256) {
+            throw "source manifest no longer matches current file: $($entry.path)"
+        }
+    }
+}
+
 try {
     $coverageSourceDirectory = Join-Path $work 'internal\frida\shim'
     New-Item -ItemType Directory -Force -Path $coverageSourceDirectory | Out-Null
@@ -144,12 +200,21 @@ try {
         throw "C shim function coverage must be 100.00%; got $functionPercent% of $functionTotal functions (missed=$functionMissed)"
     }
 
+    $gitProvenance = Get-GitProvenance
+    $sourceManifest = @(
+        Get-SourceManifestEntry 'internal/frida/shim/miniapp_frida.c'
+        Get-SourceManifestEntry 'internal/frida/shim/miniapp_frida.h'
+    )
+    Assert-SourceManifest $sourceManifest
     $report = [ordered]@{
         schema = 'miniapp_bridge.coverage.v1'
         language = 'C'
         source = 'internal/frida/shim/miniapp_frida.c'
         tool = 'gcov'
         tool_version = $gcovVersion
+        git_head = $gitProvenance.head
+        git_dirty = $gitProvenance.dirty
+        source_manifest = $sourceManifest
         line_percent = [double]$linePercent
         line_total = $lineTotal
         branch_site_percent = [double]$branchSitePercent
@@ -161,6 +226,19 @@ try {
     }
     $json = $report | ConvertTo-Json -Compress
     [IO.File]::WriteAllText($ReportPath, $json, [Text.UTF8Encoding]::new($false))
+    $persistedReport = Get-Content -LiteralPath $ReportPath -Raw | ConvertFrom-Json
+    if ($persistedReport.schema -cne 'miniapp_bridge.coverage.v1' -or
+        $persistedReport.language -cne 'C' -or
+        $persistedReport.git_head -cne $gitProvenance.head -or
+        [bool]$persistedReport.git_dirty -ne $gitProvenance.dirty -or
+        [double]$persistedReport.line_percent -ne 100.0 -or
+        [double]$persistedReport.branch_site_percent -ne 100.0 -or
+        [double]$persistedReport.function_percent -ne 100.0 -or
+        [double]$persistedReport.threshold_percent -ne 100.0 -or
+        $persistedReport.result -cne 'passed') {
+        throw 'persisted C shim coverage report failed provenance or coverage validation'
+    }
+    Assert-SourceManifest @($persistedReport.source_manifest)
     Get-Content -LiteralPath $ReportPath | Write-Output
     Write-Output "c_shim_line_coverage=100.00%; c_shim_function_coverage=100.00%; c_shim_branch_sites_executed=100.00%; report=$ReportPath"
 } finally {

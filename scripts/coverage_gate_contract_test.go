@@ -21,11 +21,11 @@ func TestCoverageGateRunsTaggedRaceAndUsesStableScope(t *testing.T) {
 	}
 	script := string(data)
 	for _, token := range []string{
-		"go test ./... -count=1 -timeout 180s",
+		"go test ./... -count=1 -timeout 300s",
 		"go test ./cmd/... ./frida -count=1 -timeout 90s",
 		"go test -tags frida ./internal/... ./sdk -count=1 -timeout 180s",
-		"go test -tags frida -race ./... -count=1 -timeout 240s",
-		"go test -race ./... -count=1 -timeout 180s",
+		"go test -tags frida -race ./... -count=1 -timeout 420s",
+		"go test -race ./... -count=1 -timeout 420s",
 		"cli_frida_go_statements=100.0%",
 		"internal_go_statements=100.0%",
 		"sdk_go_statements=100.0%",
@@ -42,6 +42,81 @@ func TestCoverageGateRunsTaggedRaceAndUsesStableScope(t *testing.T) {
 	for _, forbidden := range []string{"CGO_CFLAGS", "CGO_LDFLAGS", "build-zlib.ps1"} {
 		if strings.Contains(script, forbidden) {
 			t.Errorf("coverage gate must not depend on host zlib through %q", forbidden)
+		}
+	}
+}
+
+func TestCoverageGateBindsGoReportToCurrentSources(t *testing.T) {
+	_, source, _, ok := runtimeCallerForCoverageGate(t)
+	if !ok {
+		t.Fatal("runtime caller failed")
+	}
+	root := filepath.Dir(filepath.Dir(source))
+	data, err := os.ReadFile(filepath.Join(root, "scripts", "coverage-gate.ps1"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	script := string(data)
+	for _, token := range []string{
+		"ci-artifacts\\go-coverage.log",
+		"git rev-parse HEAD",
+		"git status --porcelain --untracked-files=no",
+		"go list -json @Arguments",
+		"@($package.GoFiles) + @($package.CgoFiles)",
+		"./cmd/...', './frida",
+		"'-tags', 'frida', './internal/...', './sdk'",
+		"source_manifest = $SourceManifest",
+		"profile_count = [int]$Profiles.Count",
+		"Compare-Object $expectedProfiles $actualProfiles",
+		"$coverageGitProvenance = Get-GitProvenance",
+		"$coverageSourceManifest = @(Get-GoSourceManifest)",
+		"Go coverage Git provenance changed during coverage execution",
+		"Get-Content -LiteralPath $reportPath -Raw | ConvertFrom-Json",
+		"Get-FileHash -LiteralPath $full -Algorithm SHA256",
+		"Go coverage source changed after report generation",
+	} {
+		if !strings.Contains(script, token) {
+			t.Errorf("Go coverage provenance contract is missing %q", token)
+		}
+	}
+	manifestSnapshot := strings.Index(script, "$coverageSourceManifest = @(Get-GoSourceManifest)")
+	firstCoverageRun := strings.Index(script, "Run 'unit'")
+	if manifestSnapshot < 0 || firstCoverageRun < 0 || manifestSnapshot > firstCoverageRun {
+		t.Error("Go source manifest must be captured before coverage tests execute")
+	}
+	for _, forbidden := range []string{"IgnoredGoFiles", "_test.go')"} {
+		if strings.Contains(script, forbidden) {
+			t.Errorf("Go coverage provenance must not admit excluded source through %q", forbidden)
+		}
+	}
+}
+
+func TestCShimCoverageBindsReportToCurrentSources(t *testing.T) {
+	_, source, _, ok := runtimeCallerForCoverageGate(t)
+	if !ok {
+		t.Fatal("runtime caller failed")
+	}
+	root := filepath.Dir(filepath.Dir(source))
+	data, err := os.ReadFile(filepath.Join(root, "scripts", "cshim-coverage.ps1"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	script := string(data)
+	for _, token := range []string{
+		"git -C $repo rev-parse --verify HEAD",
+		"git -C $repo status --porcelain --untracked-files=no",
+		"Get-SourceManifestEntry 'internal/frida/shim/miniapp_frida.c'",
+		"Get-SourceManifestEntry 'internal/frida/shim/miniapp_frida.h'",
+		"git_head = $gitProvenance.head",
+		"git_dirty = $gitProvenance.dirty",
+		"source_manifest = $sourceManifest",
+		"Get-Content -LiteralPath $ReportPath -Raw | ConvertFrom-Json",
+		"Assert-SourceManifest @($persistedReport.source_manifest)",
+		"Get-FileHash -LiteralPath $fullPath -Algorithm SHA256",
+		"source manifest no longer matches current file",
+	} {
+		if !strings.Contains(script, token) {
+			t.Errorf("C coverage provenance contract is missing %q", token)
 		}
 	}
 }

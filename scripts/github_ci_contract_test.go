@@ -65,7 +65,8 @@ func TestGitHubCIWorkflowContract(t *testing.T) {
 		"8AF15423D6E534626F91A67FAA0582E42C67A07A95A190F4C622695105549C72",
 		"Frida devkit archive SHA-256 mismatch",
 		".\\scripts\\build-windows.ps1",
-		".\\scripts\\powershell-coverage.ps1",
+		"Windows build and release behavior gates",
+		"Test(BuildWindows|NativeRelease|PackageWindowsRelease|NativePrepare)",
 		".\\scripts\\coverage-gate.ps1",
 		"retention-days: 7",
 	} {
@@ -130,6 +131,18 @@ func TestGitHubCIWorkflowContract(t *testing.T) {
 	}
 	if removeSource < 0 || buildWindows < 0 || removeSource > buildWindows {
 		t.Fatal("Windows build must remove the cached zlib source tree before the verified archive build")
+	}
+	behaviorStep := workflowStep(t, workflow, "Windows build and release behavior gates")
+	for _, marker := range []string{
+		"Test(BuildWindows|NativeRelease|PackageWindowsRelease|NativePrepare)",
+		"windows-build-release-behavior.log",
+	} {
+		if !strings.Contains(behaviorStep, marker) {
+			t.Errorf("Windows behavior gate is missing %q", marker)
+		}
+	}
+	if strings.Contains(workflow, "PowerShell command coverage") || strings.Contains(workflow, ".\\scripts\\powershell-coverage.ps1") {
+		t.Fatal("Windows required CI must use production behavior gates instead of PowerShell numerical command coverage")
 	}
 
 	linuxLogs := workflowStep(t, workflow, "Upload Linux test logs")

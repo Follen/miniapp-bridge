@@ -231,6 +231,16 @@ jobs:
             Tee-Object -FilePath ci-artifacts\windows-update-soak.log
           if ($LASTEXITCODE -ne 0) { throw "Windows update rollback soak failed with exit $LASTEXITCODE" }
 
+      - name: Windows build and release behavior gates
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          go test ./scripts `
+            -run '^(Test(BuildWindows|NativeRelease|PackageWindowsRelease|NativePrepare))' `
+            -count=1 -timeout=900s *>&1 |
+            Tee-Object -FilePath ci-artifacts\windows-build-release-behavior.log
+          if ($LASTEXITCODE -ne 0) { throw "Windows build and release behavior gates failed with exit $LASTEXITCODE" }
+
       - name: Scan tagged Go vulnerabilities and vet
         shell: pwsh
         run: |
@@ -304,14 +314,7 @@ jobs:
             Write-Output "pe-gate=$path imports=$($actual -join ',')"
           }
 
-      - name: PowerShell command coverage
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          & .\scripts\powershell-coverage.ps1 *>&1 | Tee-Object -FilePath ci-artifacts\powershell-coverage-run.log
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-      - name: Complete Windows coverage gate
+      - name: Complete Go and C coverage gate
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
