@@ -84,6 +84,7 @@ func TestCDPOriginAllowlistAndSingleOwner(t *testing.T) {
 	owner := auditDial(t, a.CDPPort)
 	defer owner.Close()
 	auditRejectedDial(t, a.CDPPort, "owner_exists")
+	auditWaitForCDPClients(t, a, 1)
 	if got := a.CDPClientCount(); got != 1 {
 		t.Fatalf("CDP owners=%d want 1", got)
 	}
