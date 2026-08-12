@@ -38,15 +38,17 @@
 
 ## Commands and results
 
-关键报告：
+关键报告由 CI job `windows-verification-logs-<run-id>-<attempt>` 和
+`linux-test-logs-<run-id>` 作为 workflow artifacts 上传；本地 `ci-artifacts/`
+目录是可复现的临时输出，不纳入源代码提交。报告名称包括：
 
-- `ci-artifacts/powershell-coverage.log`
-- `ci-artifacts/powershell/build/coverage.json`
-- `ci-artifacts/powershell/native/coverage.json`
-- `ci-artifacts/powershell/smoke/coverage.json`
-- `ci-artifacts/c-shim-coverage.log`
-- `ci-artifacts/windows-native-build.log`
-- `ci-artifacts/linux-fuzz.log`
+- `powershell-coverage.log`（严格合并：`2491/2491`）
+- `powershell/build/coverage.json`
+- `powershell/native/coverage.json`
+- `powershell/smoke/coverage.json`
+- `c-shim-coverage.log`
+- `windows-native-build.log`
+- `linux-fuzz.log`
 
 严格合并报告的 literal summary 为：`commands_analyzed=2491`, `commands_executed=2491`, `commands_missed=0`, `failed_tests=0`, `result=passed`。
 
