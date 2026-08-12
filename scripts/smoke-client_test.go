@@ -327,6 +327,19 @@ func TestMatrixSemanticNegativeFixtures(t *testing.T) {
 	}
 }
 
+func TestMatrixSemanticNegativeFixturesRaceStable(t *testing.T) {
+	for attempt := 0; attempt < 50; attempt++ {
+		t.Run(fmt.Sprintf("attempt-%02d", attempt), func(t *testing.T) {
+			url, closeServer := fakeCDPServerMode(t, "bad-script-event")
+			defer closeServer()
+			err := runMatrix(url)
+			if err == nil || !strings.Contains(err.Error(), "Debugger.scriptParsed URL") {
+				t.Fatalf("runMatrix error=%v, want semantic script event error", err)
+			}
+		})
+	}
+}
+
 func TestExpectReceiveOrder(t *testing.T) {
 	c := &client{received: []receivedFrame{
 		{Sequence: 1, Kind: "event", Method: "Runtime.executionContextCreated"},

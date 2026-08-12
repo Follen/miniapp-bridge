@@ -86,10 +86,25 @@ Describe 'Focused build script command coverage' {
 
     It 'runs the deterministic build orchestrators' {
         $oldCoverageActive = $env:MINIAPP_BRIDGE_PS_COVERAGE_ACTIVE
+        $realGo = (Get-Command go.exe -CommandType Application | Select-Object -First 1 -ExpandProperty Source)
+        $existingGoFunction = Get-Command go -CommandType Function -ErrorAction SilentlyContinue
+        $oldCoverageGateGo = $env:MINIAPP_BRIDGE_COVERAGE_GATE_REAL_GO
         try {
             # Prevent a focused invocation from recursively starting the full
             # PowerShell coverage runner from inside coverage-gate.ps1.
             $env:MINIAPP_BRIDGE_PS_COVERAGE_ACTIVE = '1'
+            # The complete CI race gate runs independently. This focused
+            # orchestrator test keeps its command coverage deterministic while
+            # forwarding every non-race Go command to the real toolchain.
+            $env:MINIAPP_BRIDGE_COVERAGE_GATE_REAL_GO = $realGo
+            function script:go {
+                $arguments = @($args)
+                if (@($arguments | ForEach-Object { [string]$_ }) -contains '-race') {
+                    $global:LASTEXITCODE = 0
+                    return
+                }
+                & $env:MINIAPP_BRIDGE_COVERAGE_GATE_REAL_GO @arguments
+            }
             foreach ($name in @('build-frida-shim.ps1', 'coverage-gate.ps1', 'build-windows.ps1')) {
                 $result = Invoke-CoveredScript -Name $name
                 if ($result.ExitCode -ne 0) {
@@ -98,6 +113,12 @@ Describe 'Focused build script command coverage' {
             }
         } finally {
             $env:MINIAPP_BRIDGE_PS_COVERAGE_ACTIVE = $oldCoverageActive
+            if ($null -ne $existingGoFunction) {
+                Set-Item -Path Function:\go -Value $existingGoFunction.ScriptBlock
+            } else {
+                Remove-Item -Path Function:\go -ErrorAction SilentlyContinue
+            }
+            $env:MINIAPP_BRIDGE_COVERAGE_GATE_REAL_GO = $oldCoverageGateGo
         }
     }
 }

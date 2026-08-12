@@ -149,6 +149,18 @@ func (c *client) call(method string, params any, timeout time.Duration) (envelop
 	case <-time.After(timeout):
 		return envelope{}, fmt.Errorf("%s: response id %d timed out", method, id)
 	case <-c.done:
+		// The reader closes done after recording any frame already received. A
+		// response and connection-close notification can therefore become ready
+		// together; drain the buffered response first so callers observe the
+		// protocol error instead of a misleading transport EOF.
+		select {
+		case msg := <-response:
+			if msg.Error != nil {
+				return msg, fmt.Errorf("%s: CDP error %d: %s", method, msg.Error.Code, msg.Error.Message)
+			}
+			return msg, nil
+		default:
+		}
 		c.mu.Lock()
 		err := c.readError
 		c.mu.Unlock()
