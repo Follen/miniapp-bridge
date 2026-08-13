@@ -72,7 +72,7 @@ func TestBuildWindowsAllowsCIToDelegateTestsWithoutChangingTheDefault(t *testing
 	if err != nil {
 		t.Fatal(err)
 	}
-	script := string(data)
+	script := strings.ReplaceAll(string(data), "\r\n", "\n")
 	if !strings.Contains(script, "[switch]$SkipTests") ||
 		!strings.Contains(script, "if (-not $SkipTests) {\n    go test -tags frida -race ./... -count=1") {
 		t.Fatal("build-windows must run tagged race by default and only skip it through the explicit CI switch")

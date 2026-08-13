@@ -126,6 +126,16 @@ func TestGitHubCIWorkflowContract(t *testing.T) {
 			t.Errorf("Windows behavior gate is missing %q", marker)
 		}
 	}
+	goCoverageStep := workflowStep(t, workflow, "Enforce Go statement coverage race and vet")
+	if !strings.Contains(goCoverageStep, "New-Item -ItemType Directory -Force ci-artifacts") {
+		t.Fatal("Go coverage must create its log directory before Tee-Object")
+	}
+	peStep := workflowStep(t, workflow, "Enforce PE architecture imports and security flags")
+	for _, marker := range []string{"vswhere.exe", "Microsoft.VisualStudio.Component.VC.Tools.x86.x64", "Visual Studio C++ build tools were not found"} {
+		if !strings.Contains(peStep, marker) {
+			t.Errorf("PE gate must resolve Visual Studio tools dynamically; missing %q", marker)
+		}
+	}
 	if strings.Contains(workflow, "PowerShell command coverage") || strings.Contains(workflow, ".\\scripts\\powershell-coverage.ps1") {
 		t.Fatal("Windows required CI must use production behavior gates instead of PowerShell numerical command coverage")
 	}

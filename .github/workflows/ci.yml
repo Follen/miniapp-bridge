@@ -337,6 +337,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force ci-artifacts | Out-Null
           & .\scripts\coverage-gate.ps1 -Mode Go -UseExistingNative *>&1 | Tee-Object ci-artifacts\go-coverage-gate.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Upload Go coverage
@@ -401,7 +402,11 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $vsdev = 'C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\Tools\VsDevCmd.bat'
+          $vswhere = 'C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe'
+          if (-not (Test-Path -LiteralPath $vswhere -PathType Leaf)) { throw 'vswhere.exe was not found' }
+          $installation = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          $vsdev = if ($installation) { Join-Path $installation 'Common7\Tools\VsDevCmd.bat' } else { '' }
+          if (-not $vsdev -or -not (Test-Path -LiteralPath $vsdev -PathType Leaf)) { throw 'Visual Studio C++ build tools were not found' }
           $targets = [ordered]@{
             'dist\miniapp-bridge.exe' = @('kernel32.dll')
             'dist\miniapp-frida.dll' = @('advapi32.dll','bcrypt.dll','crypt32.dll','dnsapi.dll','gdi32.dll','iphlpapi.dll','kernel32.dll','ole32.dll','psapi.dll','setupapi.dll','shell32.dll','shlwapi.dll','user32.dll','ws2_32.dll')
