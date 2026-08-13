@@ -24,7 +24,7 @@ func TestCoverageGateRunsTaggedRaceAndUsesStableScope(t *testing.T) {
 		"go test ./... -count=1 -timeout 600s",
 		"go test ./cmd/... ./frida -count=1 -timeout 90s",
 		"go test -tags frida ./internal/... ./sdk -count=1 -timeout 180s",
-		"go test -tags frida -race ./... -count=1 -timeout 420s",
+		"go test -tags frida -race -p 1 ./... -count=1 -timeout 900s",
 		"go test -race ./... -count=1 -timeout 420s",
 		"cli_frida_go_statements=100.0%",
 		"internal_go_statements=100.0%",
@@ -43,6 +43,13 @@ func TestCoverageGateRunsTaggedRaceAndUsesStableScope(t *testing.T) {
 		if strings.Contains(script, forbidden) {
 			t.Errorf("coverage gate must not depend on host zlib through %q", forbidden)
 		}
+	}
+	allOnly := regexp.MustCompile(`(?s)if \(\$Mode -eq 'All'\) \{\s*Run 'unit'.*?if \(\$Mode -eq 'All'\) \{\s*Run 'race'.*?Run 'vet'`)
+	if !allOnly.MatchString(script) {
+		t.Error("Mode Go must delegate duplicate ordinary unit, race, and vet gates to Linux while Mode All retains them")
+	}
+	if !strings.Contains(script, "ordinary-unit/race/vet=delegated-to-linux") {
+		t.Error("Mode Go result must disclose delegated ordinary gates")
 	}
 }
 

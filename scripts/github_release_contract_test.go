@@ -21,9 +21,8 @@ func TestGitHubReleaseWorkflowSecurityContract(t *testing.T) {
 		"concurrency:",
 		"cancel-in-progress: false",
 		"runs-on: windows-2022",
-		"timeout-minutes: 90",
-		"verify:\n    name: Verify and package Windows amd64",
-		"verify:\n    name: Verify and package Windows amd64\n    runs-on: windows-2022\n    timeout-minutes: 90\n    permissions:\n      contents: read",
+		"prepare:\n    name: Promote verified main candidate",
+		"timeout-minutes: 10",
 		"release:\n    name: Publish GitHub Releases",
 		"permissions:\n      contents: write",
 		"persist-credentials: false",
@@ -58,9 +57,6 @@ func TestGitHubReleaseWorkflowSecurityContract(t *testing.T) {
 		"actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a": true,
 	}
 	uses := regexp.MustCompile(`(?m)^\s*-?\s*uses:\s*([^\s]+)(?:\s+#.*)?$`).FindAllStringSubmatch(workflow, -1)
-	if len(uses) != 6 {
-		t.Fatalf("release workflow actions=%d want 6", len(uses))
-	}
 	for _, match := range uses {
 		if !allowedActions[match[1]] {
 			t.Fatalf("release workflow uses non-approved action %q", match[1])
@@ -70,51 +66,38 @@ func TestGitHubReleaseWorkflowSecurityContract(t *testing.T) {
 
 func TestGitHubReleaseWorkflowBuildAndVersionContract(t *testing.T) {
 	workflow := readReleaseWorkflow(t)
+	jobs := releaseJobBodies(t, workflow)
+	if jobs["prepare"] == "" {
+		t.Fatal("release workflow must contain the candidate promotion job")
+	}
 	requireReleaseTokens(t, workflow, []string{
 		"ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.sha }}",
 		"REQUESTED_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}",
-		"EVENT_NAME: ${{ github.event_name }}",
 		"TRIGGER_SHA: ${{ github.sha }}",
-		"checked out commit $sourceCommit does not match trigger commit $env:TRIGGER_SHA",
-		"release tag must be a complete SemVer tag beginning with v",
+		"tag commit is not in main history",
 		"$env:REQUESTED_TAG -cnotmatch $semver",
-		"git show-ref --verify --quiet \"refs/tags/$env:REQUESTED_TAG\"",
 		"git rev-list -n 1 \"refs/tags/$env:REQUESTED_TAG\"",
-		"checked out commit $sourceCommit does not match tag",
-		"go mod verify",
-		"third_party/downloads/frida-core-devkit-17.3.2-windows-x86_64.tar.xz",
-		"GOVULNCHECK_VERSION: v1.6.0",
-		"CYCLONEDX_GOMOD_VERSION: v1.10.0",
-		"gcc.exe",
-		"ar.exe",
-		"Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
-		"go test ./... -count=1",
-		".\\scripts\\coverage-gate.ps1",
-		".\\scripts\\build-windows.ps1",
-		".\\scripts\\package-windows-release.ps1 -Version $env:RELEASE_TAG",
-		"if ($null -ne $LASTEXITCODE -and $LASTEXITCODE -ne 0) { throw \"release packaging failed with exit $LASTEXITCODE\" }",
+		"EVENT_NAME: ${{ github.event_name }}",
+		"$env:EVENT_NAME -eq 'push'",
 		"native_tag=native-v17.3.2-abi1.1",
-		"manifest.nativeVersion",
-		"native archive hash is missing or malformed",
-		"ZLIB_ARCHIVE_SHA256: 17E88863F3600672AB49182F217281B6FC4D3C762BDE361935E436A95214D05C",
-		"${{ env.ZLIB_ARCHIVE_SHA256 }}-${{ hashFiles('go.sum') }}",
-		"Populate Frida devkit archive cache",
-		"gh release download $env:FRIDA_CORE_VERSION --repo frida/frida --pattern $asset --output $archive --clobber",
+		"head_sha=$env:SOURCE_COMMIT&status=success",
+		"release-candidate-$env:SOURCE_COMMIT",
+		".\\scripts\\release-candidate.ps1 -Mode Verify",
+		".\\scripts\\promote-release.ps1 -ReleaseTag",
 		"sha256sum --check SHA256SUMS",
 		"if-no-files-found: error",
-		"Generate deterministic SBOM provenance and license set",
+		"Attest promoted release bundle",
 		"provenance.intoto.json",
-		"[IO.File]::WriteAllText($sumPath, (($lines -join \"`n\") + \"`n\"), [Text.UTF8Encoding]::new($false))",
-		"[IO.File]::WriteAllText($attestationSums, (($lines -join \"`r`n\") + \"`r`n\"), [Text.UTF8Encoding]::new($false))",
 		"subject-checksums: ${{ runner.temp }}\\release-attestation-SHA256SUMS",
-		"Remove-Item -LiteralPath (Join-Path $env:RUNNER_TEMP 'release-attestation-SHA256SUMS') -Force -ErrorAction SilentlyContinue",
 		"production-release",
-		"Validate unsigned release artifacts",
-		"release DLL does not match manifest size and SHA-256",
-		"native archive is missing: $nativePath",
 	})
-	if strings.Contains(workflow, "            third_party/zlib/src-1.3.1") {
-		t.Fatal("release workflow must not cache the extracted zlib source tree")
+	for _, forbidden := range []string{
+		"build-windows.ps1", "coverage-gate.ps1", "go test ", "go vet ", "govulncheck",
+		"go run ", "-race", "-fuzz", "soak", "dumpbin", "actions/cache", "actions/setup-go",
+	} {
+		if strings.Contains(workflow, forbidden) {
+			t.Fatalf("release workflow repeats a CI or build gate: %q", forbidden)
+		}
 	}
 	if strings.Contains(workflow, "subject-checksums: dist/release/SHA256SUMS") {
 		t.Fatal("Windows attestation action must not parse the LF release checksum manifest directly")
@@ -347,7 +330,7 @@ func releaseJobBodies(t *testing.T, workflow string) map[string]string {
 		}
 		jobs[jobsText[match[2]:match[3]]] = jobsText[match[0]:end]
 	}
-	if jobs["verify"] == "" || jobs["release"] == "" {
+	if jobs["prepare"] == "" || jobs["release"] == "" {
 		t.Fatalf("release workflow jobs=%v", jobs)
 	}
 	return jobs

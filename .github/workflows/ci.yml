@@ -1,34 +1,105 @@
 name: CI
 
 on:
-  push:
   pull_request:
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
   contents: read
+  actions: read
+  pull-requests: read
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.event.pull_request.head.sha || github.sha }}
+  group: ci-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 env:
   GO_VERSION: 1.26.x
   ACTIONLINT_VERSION: 1.7.7
   GOVULNCHECK_VERSION: v1.6.0
+  CYCLONEDX_GOMOD_VERSION: v1.10.0
   FRIDA_CORE_VERSION: 17.3.2
   ZLIB_VERSION: 1.3.1
   ZLIB_ARCHIVE_SHA256: 17E88863F3600672AB49182F217281B6FC4D3C762BDE361935E436A95214D05C
 
 jobs:
-  linux:
-    name: Linux untagged
+  classify:
+    name: Classify changes
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    outputs:
+      run_full: ${{ steps.paths.outputs.run_full }}
+      source_sha: ${{ steps.paths.outputs.source_sha }}
+      changed_paths: ${{ steps.paths.outputs.changed_paths }}
     steps:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Classify changed paths
+        id: paths
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BEFORE_SHA: ${{ github.event.before }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          source_sha="$GITHUB_SHA"
+          run_full=true
+          if [[ "$EVENT_NAME" == pull_request ]]; then
+            source_sha="$PR_HEAD_SHA"
+            mapfile -t changed < <(git diff --name-only "$PR_BASE_SHA"...HEAD)
+            run_full=false
+            for path in "${changed[@]}"; do
+              case "$path" in
+                README.md|README.zh.md|LICENSE|THIRD_PARTY_NOTICES.md|go.mod|go.sum|cmd/*|frida/*|internal/*|sdk/*|native/*|licenses/*|third_party/*|testdata/*)
+                  run_full=true ;;
+                scripts/*.go|scripts/*.ps1|scripts/*.c|scripts/*.h|scripts/testdata/*|scripts/test-support/*|scripts/cshim-coverage-fixtures/*)
+                  run_full=true ;;
+                .github/*|docs/*|AGENTS.md|*.md)
+                  ;;
+                *)
+                  run_full=true ;;
+              esac
+            done
+          elif [[ "$EVENT_NAME" == push ]]; then
+            # Main normally promotes the successful PR candidate. Direct main
+            # pushes fall back to the full gate if no associated PR exists.
+            count="$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" --jq "[.[] | select(.merged_at != null and .base.ref == \"main\" and .merge_commit_sha == \"$GITHUB_SHA\")] | length")"
+            if [[ "$count" == 0 ]]; then run_full=true; else run_full=false; fi
+            if [[ "$BEFORE_SHA" =~ ^[0-9a-f]{40}$ && "$BEFORE_SHA" != 0000000000000000000000000000000000000000 ]]; then
+              mapfile -t changed < <(git diff --name-only "$BEFORE_SHA" "$GITHUB_SHA")
+            else
+              changed=()
+            fi
+          else
+            changed=()
+          fi
+          printf 'run_full=%s\nsource_sha=%s\n' "$run_full" "$source_sha" >>"$GITHUB_OUTPUT"
+          {
+            echo 'changed_paths<<EOF'
+            printf '%s\n' "${changed[@]:-}"
+            echo EOF
+          } >>"$GITHUB_OUTPUT"
+          printf 'event=%s source=%s run_full=%s\n' "$EVENT_NAME" "$source_sha" "$run_full"
+          printf 'changed=%s\n' "${changed[*]:-}"
+  quick:
+    name: Workflow and documentation contracts
+    needs: classify
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.classify.outputs.source_sha }}
           persist-credentials: false
 
       - name: Set up Go
@@ -38,47 +109,50 @@ jobs:
           cache: true
           cache-dependency-path: go.sum
 
-      - name: Verify module graph
-        shell: bash
-        run: |
-          go mod download
-          go mod verify
-          go mod tidy
-          git diff --exit-code -- go.mod go.sum
-
-      - name: Check Go formatting
-        shell: bash
-        run: |
-          mapfile -d '' go_files < <(git ls-files -z -- '*.go')
-          unformatted="$(gofmt -l "${go_files[@]}")"
-          if [[ -n "$unformatted" ]]; then
-            printf 'The following tracked Go files require gofmt:\n%s\n' "$unformatted"
-            exit 1
-          fi
-
       - name: Lint GitHub Actions workflows
         shell: bash
         run: go run "github.com/rhysd/actionlint/cmd/actionlint@v${ACTIONLINT_VERSION}" -ignore 'unexpected key.*queue.*concurrency'
 
-      - name: Unit tests
+      - name: Run workflow documentation and release fixture contracts
+        shell: bash
+        run: go test ./scripts -run '^(TestGitHub|TestReadme|TestCoverageGateContract)' -count=1 -timeout=180s
+
+  linux:
+    name: Linux core gates
+    if: needs.classify.outputs.run_full == 'true'
+    needs: classify
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.classify.outputs.source_sha }}
+          persist-credentials: false
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: go.sum
+      - name: Verify module graph and formatting
         shell: bash
         run: |
+          set -euo pipefail
+          go mod download
+          go mod verify
+          go mod tidy
+          git diff --exit-code -- go.mod go.sum
+          mapfile -d '' go_files < <(git ls-files -z -- '*.go')
+          test -z "$(gofmt -l "${go_files[@]}")"
+      - name: Unit vet and vulnerability gates
+        shell: bash
+        run: |
+          set -o pipefail
           mkdir -p ci-artifacts
-          set -o pipefail
-          go test ./... -count=1 -timeout 120s 2>&1 | tee ci-artifacts/linux-unit.log
-
-      - name: Vet
-        shell: bash
-        run: |
-          set -o pipefail
+          go test ./... -count=1 -timeout=120s 2>&1 | tee ci-artifacts/linux-unit.log
           go vet ./... 2>&1 | tee ci-artifacts/linux-vet.log
-
-      - name: Scan reachable Go vulnerabilities
-        shell: bash
-        run: |
-          set -o pipefail
           go run "golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION}" ./... 2>&1 | tee ci-artifacts/linux-govulncheck.log
-
       - name: Fuzz decoder and boundary smoke matrix
         shell: bash
         run: |
@@ -98,58 +172,43 @@ jobs:
             './internal/wmpf:FuzzWMPFZlibBoundedRoundTrip'
             './internal/wmpf:FuzzWMPFZlibDecode'
           )
-          {
-            for spec in "${targets[@]}"; do
-              package="${spec%%:*}"
-              target="${spec#*:}"
-              printf '=== fuzz %s %s ===\n' "$package" "$target"
-              go test "$package" -run '^$' -fuzz "^${target}$" -fuzztime=1000x -parallel=1 -timeout=90s
-            done
-          } 2>&1 | tee ci-artifacts/linux-fuzz.log
-
-      - name: Deterministic soak and chaos matrix
+          for spec in "${targets[@]}"; do
+            go test "${spec%%:*}" -run '^$' -fuzz "^${spec#*:}$" -fuzztime=1000x -parallel=1 -timeout=90s
+          done 2>&1 | tee ci-artifacts/linux-fuzz.log
+      - name: Deterministic soak chaos and race
         shell: bash
         run: |
           set -euo pipefail
-          go test ./internal/app \
-            -run '^(TestSingleOwnerReconnectDeterministicSoak|TestWSClientQueueAccountingDeterministicSoak|TestWSClientWriterFaultAndConcurrentShutdownChaos)$' \
-            -count=20 -timeout=300s 2>&1 | tee ci-artifacts/linux-soak-chaos.log
-          go test ./internal/capture \
-            -run '^(TestSegmentedRecorderRotationRetentionAndReplay|TestSegmentedProductionReplayCompatibility|TestSegmentedRecorderDiskBackpressureAndDrainBudget)$' \
-            -count=10 -timeout=300s 2>&1 | tee ci-artifacts/linux-capture-soak.log
-
-      - name: Race tests
-        shell: bash
-        run: |
-          set -o pipefail
-          go test -race ./... -count=1 -timeout 240s 2>&1 | tee ci-artifacts/linux-race.log
-
-      - name: Upload Linux test logs
+          go test ./internal/app -run '^(TestSingleOwnerReconnectDeterministicSoak|TestWSClientQueueAccountingDeterministicSoak|TestWSClientWriterFaultAndConcurrentShutdownChaos)$' -count=20 -timeout=300s
+          go test ./internal/capture -run '^(TestSegmentedRecorderRotationRetentionAndReplay|TestSegmentedProductionReplayCompatibility|TestSegmentedRecorderDiskBackpressureAndDrainBudget)$' -count=10 -timeout=300s
+          go test -race ./... -count=1 -timeout=360s
+      - name: Upload Linux logs
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: linux-test-logs-${{ github.run_id }}
+          name: linux-logs-${{ github.run_id }}-${{ github.run_attempt }}
           path: ci-artifacts/**
           if-no-files-found: warn
           retention-days: 7
 
-  windows:
-    name: Windows native and coverage
+  windows-build:
+    name: Windows build
+    if: needs.classify.outputs.run_full == 'true'
+    needs: classify
     runs-on: windows-2022
-    timeout-minutes: 90
+    timeout-minutes: 25
     steps:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ needs.classify.outputs.source_sha }}
           persist-credentials: false
-
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: true
           cache-dependency-path: go.sum
-
       - name: Restore pinned native caches
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -157,7 +216,6 @@ jobs:
             third_party/downloads/frida-core-devkit-17.3.2-windows-x86_64.tar.xz
             third_party/downloads/cache/zlib-1.3.1.tar.gz
           key: native-${{ runner.os }}-${{ runner.arch }}-frida-${{ env.FRIDA_CORE_VERSION }}-zlib-${{ env.ZLIB_VERSION }}-${{ env.ZLIB_ARCHIVE_SHA256 }}-${{ hashFiles('go.sum') }}
-
       - name: Populate Frida devkit archive cache
         shell: pwsh
         env:
@@ -166,197 +224,337 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $archive = 'third_party\downloads\frida-core-devkit-17.3.2-windows-x86_64.tar.xz'
           $expected = '8AF15423D6E534626F91A67FAA0582E42C67A07A95A190F4C622695105549C72'
-          $archiveValid = (Test-Path -LiteralPath $archive) -and ((Get-FileHash -Algorithm SHA256 -LiteralPath $archive).Hash -eq $expected)
-          if ($archiveValid) {
-            Write-Host 'Pinned Frida archive cache is valid'
-            exit 0
+          if (-not ((Test-Path $archive) -and ((Get-FileHash $archive -Algorithm SHA256).Hash -eq $expected))) {
+            New-Item -ItemType Directory -Force -Path (Split-Path $archive) | Out-Null
+            gh release download $env:FRIDA_CORE_VERSION --repo frida/frida --pattern (Split-Path -Leaf $archive) --output $archive --clobber
+            if ($LASTEXITCODE -ne 0) { throw "Frida download failed with exit $LASTEXITCODE" }
           }
-          New-Item -ItemType Directory -Force -Path (Split-Path -Parent $archive) | Out-Null
-          $asset = Split-Path -Leaf $archive
-          Write-Host "Fetching pinned Frida asset with authenticated GitHub CLI: $asset"
-          gh release download $env:FRIDA_CORE_VERSION --repo frida/frida --pattern $asset --output $archive --clobber
-          if ($LASTEXITCODE -ne 0) { throw "gh release download failed with exit $LASTEXITCODE" }
-          $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $archive).Hash.ToUpperInvariant()
-          if ($actual -ne $expected) {
-            Remove-Item -LiteralPath $archive -Force -ErrorAction SilentlyContinue
-            throw "Frida devkit archive SHA-256 mismatch: expected $expected, got $actual"
-          }
-          Write-Host "Frida devkit archive verified: sha256=$actual"
-
+          if ((Get-FileHash $archive -Algorithm SHA256).Hash -ne $expected) { throw 'Frida archive SHA-256 mismatch' }
       - name: Configure Windows build tools
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $mingw = @(
-            'C:\mingw64\bin',
-            'C:\msys64\mingw64\bin',
-            'C:\ProgramData\mingw64\mingw64\bin'
-          ) | Where-Object {
-            (Test-Path (Join-Path $_ 'gcc.exe')) -and
-            (Test-Path (Join-Path $_ 'ar.exe'))
-          } | Select-Object -First 1
-          if (-not $mingw) { throw 'GitHub Windows runner does not provide gcc.exe and ar.exe' }
-          $mingw | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-
+          $mingw = @('C:\mingw64\bin','C:\msys64\mingw64\bin','C:\ProgramData\mingw64\mingw64\bin') |
+            Where-Object { (Test-Path (Join-Path $_ 'gcc.exe')) -and (Test-Path (Join-Path $_ 'ar.exe')) } |
+            Select-Object -First 1
+          if (-not $mingw) { throw 'gcc.exe and ar.exe were not found' }
+          $mingw | Out-File $env:GITHUB_PATH -Encoding utf8 -Append
           $expected = 'C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools'
           if (-not (Test-Path (Join-Path $expected 'Common7\Tools\VsDevCmd.bat'))) {
             $vswhere = 'C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe'
             $installation = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
-            if (-not $installation -or -not (Test-Path (Join-Path $installation 'Common7\Tools\VsDevCmd.bat'))) {
-              throw 'Visual Studio 2022 C++ build tools were not found'
-            }
+            if (-not $installation) { throw 'Visual Studio C++ build tools were not found' }
             New-Item -ItemType Directory -Force -Path (Split-Path $expected) | Out-Null
             New-Item -ItemType Junction -Path $expected -Target $installation | Out-Null
           }
-
-      - name: Windows native build
+      - name: Build Windows release payload once
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          New-Item -ItemType Directory -Force -Path ci-artifacts | Out-Null
-          $zlibSource = 'third_party\zlib\src-1.3.1'
-          if (Test-Path -LiteralPath $zlibSource) {
-            Remove-Item -LiteralPath $zlibSource -Recurse -Force
-          }
-          & .\scripts\build-windows.ps1 *>&1 | Tee-Object -FilePath ci-artifacts\windows-native-build.log
+          New-Item -ItemType Directory -Force ci-artifacts | Out-Null
+          & .\scripts\build-windows.ps1 -SkipTests *>&1 | Tee-Object ci-artifacts\windows-build.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Generate deterministic candidate SBOM
+        shell: pwsh
+        run: |
+          go run "github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@$env:CYCLONEDX_GOMOD_VERSION" mod -json -licenses -noserial -notimestamp -output dist\miniapp-bridge.cdx.json .
+          if ($LASTEXITCODE -ne 0) { throw 'candidate SBOM generation failed' }
+      - name: Upload single Windows build
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: windows-build-${{ needs.classify.outputs.source_sha }}
+          path: |
+            dist/**
+            third_party/frida/runtime-17.3.2/miniapp-frida.dll
+            third_party/zlib/src-1.3.1/LICENSE
+          if-no-files-found: error
+          retention-days: 7
 
-      - name: Windows update rollback soak
+  windows-behavior:
+    name: Windows behavior
+    if: needs.classify.outputs.run_full == 'true'
+    needs: [classify, windows-build]
+    runs-on: windows-2022
+    timeout-minutes: 25
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.classify.outputs.source_sha }}
+          persist-credentials: false
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: go.sum
+      - name: Download the single Windows build
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: windows-build-${{ needs.classify.outputs.source_sha }}
+          path: .
+      - name: Windows build release rollback and recovery behavior
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          go test ./scripts `
-            -run '^(TestNativePrepare(MultiRoundUpdateSoak|VersionedPublishRollbackAndRetention|CanaryFailureRollsBack|RecoversInterruptedPublishJournal))$' `
-            -count=3 -timeout=300s *>&1 |
-            Tee-Object -FilePath ci-artifacts\windows-update-soak.log
-          if ($LASTEXITCODE -ne 0) { throw "Windows update rollback soak failed with exit $LASTEXITCODE" }
-
-      - name: Windows build and release behavior gates
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          go test ./scripts `
-            -run '^(Test(BuildWindows|NativeRelease|PackageWindowsRelease|NativePrepare))' `
-            -count=1 -timeout=900s *>&1 |
-            Tee-Object -FilePath ci-artifacts\windows-build-release-behavior.log
-          if ($LASTEXITCODE -ne 0) { throw "Windows build and release behavior gates failed with exit $LASTEXITCODE" }
-
-      - name: Scan tagged Go vulnerabilities and vet
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $runtime = (Resolve-Path 'third_party\frida\runtime-17.3.2').Path
-          $env:PATH = "$runtime;$env:PATH"
-          $env:MINIAPP_BRIDGE_NATIVE_PATH = Join-Path $runtime 'miniapp-frida.dll'
-          go vet -tags=frida ./... *>&1 | Tee-Object -FilePath ci-artifacts\windows-tagged-vet.log
-          if ($LASTEXITCODE -ne 0) { throw "tagged go vet failed with exit $LASTEXITCODE" }
-          go run "golang.org/x/vuln/cmd/govulncheck@$env:GOVULNCHECK_VERSION" -tags=frida ./... *>&1 |
-            Tee-Object -FilePath ci-artifacts\windows-tagged-govulncheck.log
-          if ($LASTEXITCODE -ne 0) { throw "tagged govulncheck failed with exit $LASTEXITCODE" }
-
-      - name: Fuzz tagged native zlib smoke matrix
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $runtime = (Resolve-Path 'third_party\frida\runtime-17.3.2').Path
-          $env:PATH = "$runtime;$env:PATH"
-          $env:MINIAPP_BRIDGE_NATIVE_PATH = Join-Path $runtime 'miniapp-frida.dll'
-          foreach ($target in @('FuzzWMPFZlibBoundedRoundTrip', 'FuzzWMPFZlibDecode')) {
-            Write-Output "=== tagged fuzz ./internal/wmpf $target ===" |
-              Tee-Object -FilePath ci-artifacts\windows-tagged-fuzz.log -Append
-            go test -tags=frida ./internal/wmpf -run '^$' -fuzz "^${target}$" -fuzztime=1000x -parallel=1 -timeout=90s *>&1 |
-              Tee-Object -FilePath ci-artifacts\windows-tagged-fuzz.log -Append
-            if ($LASTEXITCODE -ne 0) { throw "tagged fuzz $target failed with exit $LASTEXITCODE" }
-          }
-
-      - name: Enforce PE architecture imports and security flags
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $vsdev = 'C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\Tools\VsDevCmd.bat'
-          $targets = [ordered]@{
-            'dist\miniapp-bridge.exe' = @('kernel32.dll')
-            'dist\miniapp-frida.dll' = @(
-              'advapi32.dll', 'bcrypt.dll', 'crypt32.dll', 'dnsapi.dll', 'gdi32.dll',
-              'iphlpapi.dll', 'kernel32.dll', 'ole32.dll', 'psapi.dll', 'setupapi.dll',
-              'shell32.dll', 'shlwapi.dll', 'user32.dll', 'ws2_32.dll'
-            )
-          }
-          foreach ($entry in $targets.GetEnumerator()) {
-            $path = (Resolve-Path $entry.Key).Path
-            $headers = cmd.exe /d /s /c ('call "{0}" -arch=x64 -host_arch=x64 >nul && dumpbin /headers "{1}"' -f $vsdev, $path)
-            if ($LASTEXITCODE -ne 0) { throw "dumpbin headers failed for $path" }
-            $headerText = $headers -join "`n"
-            foreach ($marker in @('8664 machine (x64)', '20B magic # (PE32+)', 'High Entropy Virtual Addresses', 'Dynamic base', 'NX compatible')) {
-              if ($headerText -cnotmatch [regex]::Escape($marker)) { throw "$path is missing PE marker: $marker" }
-            }
-            if ($headerText -notmatch '(?m)^\s*0 \[\s*0\] RVA \[size\] of Delay Import Directory\s*$') {
-              throw "$path contains delay imports"
-            }
-            foreach ($section in [regex]::Matches($headerText, '(?ms)^SECTION HEADER.*?(?=^SECTION HEADER|\z)')) {
-              if ($section.Value -match '(?m)^\s*Execute\s*$' -and $section.Value -match '(?m)^\s*Write\s*$') {
-                throw "$path contains a writable executable PE section"
-              }
-            }
-
-            $dependents = cmd.exe /d /s /c ('call "{0}" -arch=x64 -host_arch=x64 >nul && dumpbin /dependents "{1}"' -f $vsdev, $path)
-            if ($LASTEXITCODE -ne 0) { throw "dumpbin dependents failed for $path" }
-            $actual = @($dependents | ForEach-Object {
-              if ($_ -match '^\s+([A-Za-z0-9_.-]+\.dll)\s*$') { $Matches[1].ToLowerInvariant() }
-            } | Sort-Object -Unique)
-            $unexpected = @($actual | Where-Object {
-              $_ -notin $entry.Value -and $_ -notlike 'api-ms-win-crt-*.dll'
-            })
-            $missing = @($entry.Value | Where-Object { $_ -notin $actual })
-            if ($unexpected.Count -ne 0 -or $missing.Count -ne 0) {
-              throw "$path import allowlist mismatch; missing=$($missing -join ','); unexpected=$($unexpected -join ',')"
-            }
-            Write-Output "pe-gate=$path imports=$($actual -join ',')"
-          }
-
-      - name: Complete Go and C coverage gate
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          & .\scripts\coverage-gate.ps1 *>&1 | Tee-Object -FilePath ci-artifacts\windows-coverage-gate.log
+          New-Item -ItemType Directory -Force ci-artifacts | Out-Null
+          go test ./scripts -run '^(Test(BuildWindows|NativeRelease|PackageWindowsRelease|NativePrepare))' -count=1 -timeout=900s *>&1 |
+            Tee-Object ci-artifacts\windows-behavior.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-      - name: Package and verify Windows release layout
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          & .\scripts\package-windows-release.ps1 -Version v0.0.0-ci *>&1 |
-            Tee-Object -FilePath ci-artifacts\windows-package.log
-          if ($null -ne $LASTEXITCODE -and $LASTEXITCODE -ne 0) { throw "Windows packaging failed with exit $LASTEXITCODE" }
-          foreach ($sumFile in @('dist\release\SHA256SUMS', 'dist\release\native-compat\SHA256SUMS')) {
-            $directory = Split-Path -Parent $sumFile
-            foreach ($line in Get-Content -LiteralPath $sumFile) {
-              if ($line -notmatch '^([0-9A-Fa-f]{64})  ([^\\/]+)$') { throw "invalid checksum line in ${sumFile}: $line" }
-              $asset = Join-Path $directory $Matches[2]
-              $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $asset).Hash
-              if ($actual -cne $Matches[1].ToUpperInvariant()) { throw "checksum mismatch for $asset" }
-            }
-          }
-
-      - name: Upload Windows verification logs
+      - name: Upload Windows behavior logs
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: windows-verification-logs-${{ github.run_id }}-${{ github.run_attempt }}
+          name: windows-behavior-logs-${{ github.run_id }}-${{ github.run_attempt }}
           path: ci-artifacts/**
           if-no-files-found: warn
           retention-days: 7
 
-      - name: Upload trusted Windows binaries
-        if: success() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+  go-coverage:
+    name: Go 100% coverage
+    if: needs.classify.outputs.run_full == 'true'
+    needs: [classify, windows-build]
+    runs-on: windows-2022
+    timeout-minutes: 25
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.classify.outputs.source_sha }}
+          persist-credentials: false
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: go.sum
+      - name: Download the single Windows build
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: windows-build-${{ needs.classify.outputs.source_sha }}
+          path: .
+      - name: Enforce Go statement coverage race and vet
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force ci-artifacts | Out-Null
+          & .\scripts\coverage-gate.ps1 -Mode Go -UseExistingNative *>&1 | Tee-Object ci-artifacts\go-coverage-gate.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Upload Go coverage
+        if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: windows-binaries-${{ github.sha }}-${{ github.run_attempt }}
-          path: |
-            dist/miniapp-bridge.exe
-            dist/miniapp-frida.dll
-            dist/manifest.json
-            dist/native/miniapp-frida-native-17.3.2-abi1.1-windows-amd64.zip
-            dist/native/SHA256SUMS
+          name: go-coverage-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ci-artifacts/**
           if-no-files-found: error
           retention-days: 7
+
+  c-coverage:
+    name: C 100% coverage
+    if: needs.classify.outputs.run_full == 'true'
+    needs: classify
+    runs-on: windows-2022
+    timeout-minutes: 15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.classify.outputs.source_sha }}
+          persist-credentials: false
+      - name: Configure C coverage tools
+        shell: pwsh
+        run: |
+          $mingw = @('C:\mingw64\bin','C:\msys64\mingw64\bin','C:\ProgramData\mingw64\mingw64\bin') |
+            Where-Object { (Test-Path (Join-Path $_ 'gcc.exe')) -and (Test-Path (Join-Path $_ 'gcov.exe')) } |
+            Select-Object -First 1
+          if (-not $mingw) { throw 'matching gcc.exe and gcov.exe were not found' }
+          $mingw | Out-File $env:GITHUB_PATH -Encoding utf8 -Append
+      - name: Enforce C line and function coverage
+        shell: pwsh
+        run: .\scripts\coverage-gate.ps1 -Mode C
+      - name: Upload C coverage
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: c-coverage-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ci-artifacts/**
+          if-no-files-found: error
+          retention-days: 7
+
+  windows-pe-package:
+    name: Windows PE and package
+    if: needs.classify.outputs.run_full == 'true'
+    needs: [classify, windows-build]
+    runs-on: windows-2022
+    timeout-minutes: 15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.classify.outputs.source_sha }}
+          persist-credentials: false
+      - name: Download the single Windows build
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: windows-build-${{ needs.classify.outputs.source_sha }}
+          path: .
+      - name: Enforce PE architecture imports and security flags
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $vswhere = 'C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe'
+          if (-not (Test-Path -LiteralPath $vswhere -PathType Leaf)) { throw 'vswhere.exe was not found' }
+          $installation = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          $vsdev = if ($installation) { Join-Path $installation 'Common7\Tools\VsDevCmd.bat' } else { '' }
+          if (-not $vsdev -or -not (Test-Path -LiteralPath $vsdev -PathType Leaf)) { throw 'Visual Studio C++ build tools were not found' }
+          $targets = [ordered]@{
+            'dist\miniapp-bridge.exe' = @('kernel32.dll')
+            'dist\miniapp-frida.dll' = @('advapi32.dll','bcrypt.dll','crypt32.dll','dnsapi.dll','gdi32.dll','iphlpapi.dll','kernel32.dll','ole32.dll','psapi.dll','setupapi.dll','shell32.dll','shlwapi.dll','user32.dll','ws2_32.dll')
+          }
+          foreach ($entry in $targets.GetEnumerator()) {
+            $path = (Resolve-Path $entry.Key).Path
+            $headers = cmd.exe /d /s /c ('call "{0}" -arch=x64 -host_arch=x64 >nul && dumpbin /headers "{1}"' -f $vsdev,$path)
+            if ($LASTEXITCODE -ne 0) { throw "dumpbin headers failed: $path" }
+            $text = $headers -join "`n"
+            foreach ($marker in @('8664 machine (x64)','20B magic # (PE32+)','High Entropy Virtual Addresses','Dynamic base','NX compatible')) {
+              if ($text -cnotmatch [regex]::Escape($marker)) { throw "$path missing PE marker: $marker" }
+            }
+            if ($text -notmatch '(?m)^\s*0 \[\s*0\] RVA \[size\] of Delay Import Directory\s*$') { throw "$path contains delay imports" }
+            $dependents = cmd.exe /d /s /c ('call "{0}" -arch=x64 -host_arch=x64 >nul && dumpbin /dependents "{1}"' -f $vsdev,$path)
+            $actual = @($dependents | ForEach-Object { if ($_ -match '^\s+([A-Za-z0-9_.-]+\.dll)\s*$') { $Matches[1].ToLowerInvariant() } } | Sort-Object -Unique)
+            $unexpected = @($actual | Where-Object { $_ -notin $entry.Value -and $_ -notlike 'api-ms-win-crt-*.dll' })
+            $missing = @($entry.Value | Where-Object { $_ -notin $actual })
+            if ($unexpected.Count -or $missing.Count) { throw "$path import mismatch; missing=$missing unexpected=$unexpected" }
+          }
+      - name: Package and verify Windows release layout
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          .\scripts\package-windows-release.ps1 -Version v0.0.0-ci
+          foreach ($sumFile in @('dist\release\SHA256SUMS','dist\release\native-compat\SHA256SUMS')) {
+            $directory = Split-Path $sumFile
+            foreach ($line in Get-Content $sumFile) {
+              if ($line -notmatch '^([0-9A-Fa-f]{64})  ([^\\/]+)$') { throw "invalid checksum: $line" }
+              if ((Get-FileHash (Join-Path $directory $Matches[2]) -Algorithm SHA256).Hash -cne $Matches[1].ToUpperInvariant()) { throw 'package checksum mismatch' }
+            }
+          }
+
+  candidate:
+    name: Create verified candidate
+    if: needs.classify.outputs.run_full == 'true'
+    needs: [classify, quick, linux, windows-build, windows-behavior, go-coverage, c-coverage, windows-pe-package]
+    runs-on: windows-2022
+    timeout-minutes: 10
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.classify.outputs.source_sha }}
+          persist-credentials: false
+      - name: Download the single Windows build
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: windows-build-${{ needs.classify.outputs.source_sha }}
+          path: .
+      - name: Create and verify source-bound release candidate
+        shell: pwsh
+        run: .\scripts\release-candidate.ps1 -Mode Create -SourceCommit '${{ needs.classify.outputs.source_sha }}'
+      - name: Upload verified release candidate
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-candidate-${{ needs.classify.outputs.source_sha }}
+          path: dist/candidate/**
+          if-no-files-found: error
+          retention-days: 30
+
+  promote-main:
+    name: Promote candidate to main SHA
+    if: github.event_name == 'push' && needs.classify.outputs.run_full != 'true'
+    needs: [classify, quick]
+    runs-on: windows-2022
+    timeout-minutes: 10
+    steps:
+      - name: Check out main source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Download candidate from associated PR or previous main
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $prs = @(gh api "repos/$env:GITHUB_REPOSITORY/commits/$env:GITHUB_SHA/pulls" | ConvertFrom-Json |
+            Where-Object { $_.merged_at -and $_.base.ref -eq 'main' -and $_.merge_commit_sha -eq $env:GITHUB_SHA })
+          if ($prs.Count -gt 1) { throw "multiple merged PRs resolve to main commit $env:GITHUB_SHA" }
+          $candidateSHA = if ($prs.Count -eq 1) { [string]$prs[0].head.sha } else { '' }
+          $runs = if ($candidateSHA) {
+            @(gh api "repos/$env:GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?event=pull_request&head_sha=$candidateSHA&status=success&per_page=20" --jq '.workflow_runs[].id')
+          } else { @() }
+          $downloaded = $false
+          foreach ($run in $runs) {
+            gh run download $run --name "release-candidate-$candidateSHA" --dir dist\candidate 2>$null
+            if ($LASTEXITCODE -eq 0) { $downloaded = $true; break }
+          }
+          if (-not $downloaded) {
+            if ($env:BEFORE_SHA -notmatch '^[0-9a-f]{40}$') { throw 'no PR candidate and no previous main SHA are available' }
+            $runs = @(gh api "repos/$env:GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?event=push&branch=main&head_sha=$env:BEFORE_SHA&status=success&per_page=20" --jq '.workflow_runs[].id')
+            foreach ($run in $runs) {
+              gh run download $run --name "release-candidate-$env:BEFORE_SHA" --dir dist\candidate 2>$null
+              if ($LASTEXITCODE -eq 0) { $downloaded = $true; break }
+            }
+          }
+          if (-not $downloaded) { throw 'a verified candidate could not be resolved for this main commit' }
+      - name: Rebind only when production inputs are identical
+        shell: pwsh
+        run: .\scripts\release-candidate.ps1 -Mode Rebind -SourceCommit '${{ github.sha }}'
+      - name: Upload main release candidate
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-candidate-${{ github.sha }}
+          path: dist/candidate/**
+          if-no-files-found: error
+          retention-days: 30
+
+  ci-gate:
+    name: ci-gate
+    if: always()
+    needs: [classify, quick, linux, windows-build, windows-behavior, go-coverage, c-coverage, windows-pe-package, candidate, promote-main]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce classified job results
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          RUN_FULL: ${{ needs.classify.outputs.run_full }}
+          CLASSIFY: ${{ needs.classify.result }}
+          QUICK: ${{ needs.quick.result }}
+          LINUX: ${{ needs.linux.result }}
+          WINDOWS_BUILD: ${{ needs.windows-build.result }}
+          WINDOWS_BEHAVIOR: ${{ needs.windows-behavior.result }}
+          GO_COVERAGE: ${{ needs.go-coverage.result }}
+          C_COVERAGE: ${{ needs.c-coverage.result }}
+          WINDOWS_PE_PACKAGE: ${{ needs.windows-pe-package.result }}
+          CANDIDATE: ${{ needs.candidate.result }}
+          PROMOTE_MAIN: ${{ needs.promote-main.result }}
+        run: |
+          set -euo pipefail
+          printf 'run_full=%s classify=%s quick=%s linux=%s windows_build=%s windows_behavior=%s go_coverage=%s c_coverage=%s windows_pe_package=%s candidate=%s promote_main=%s\n' \
+            "$RUN_FULL" "$CLASSIFY" "$QUICK" "$LINUX" "$WINDOWS_BUILD" "$WINDOWS_BEHAVIOR" "$GO_COVERAGE" "$C_COVERAGE" "$WINDOWS_PE_PACKAGE" "$CANDIDATE" "$PROMOTE_MAIN"
+          [[ "$CLASSIFY" == success && "$QUICK" == success ]]
+          if [[ "$RUN_FULL" == true ]]; then
+            for result in "$LINUX" "$WINDOWS_BUILD" "$WINDOWS_BEHAVIOR" "$GO_COVERAGE" "$C_COVERAGE" "$WINDOWS_PE_PACKAGE" "$CANDIDATE"; do
+              [[ "$result" == success ]] || exit 1
+            done
+            [[ "$PROMOTE_MAIN" == skipped ]]
+          else
+            for result in "$LINUX" "$WINDOWS_BUILD" "$WINDOWS_BEHAVIOR" "$GO_COVERAGE" "$C_COVERAGE" "$WINDOWS_PE_PACKAGE" "$CANDIDATE"; do
+              [[ "$result" == skipped ]] || exit 1
+            done
+            if [[ "$EVENT_NAME" == push ]]; then
+              [[ "$PROMOTE_MAIN" == success ]]
+            else
+              [[ "$PROMOTE_MAIN" == skipped ]]
+            fi
+          fi

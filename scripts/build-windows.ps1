@@ -1,4 +1,7 @@
-param([switch]$CoverageExportMismatchFixture)
+param(
+    [switch]$CoverageExportMismatchFixture,
+    [switch]$SkipTests
+)
 
 $ErrorActionPreference = 'Stop'
 $env:CGO_ENABLED = '1'
@@ -25,8 +28,10 @@ New-Item -ItemType Directory -Force -Path dist | Out-Null
 $runtime = Resolve-Path third_party/frida/runtime-17.3.2
 $env:PATH = "$runtime;$env:PATH"
 $env:MINIAPP_BRIDGE_NATIVE_PATH = (Join-Path $runtime 'miniapp-frida.dll')
-go test -tags frida -race ./... -count=1
-if ($LASTEXITCODE -ne 0) { throw "native tests failed with exit $LASTEXITCODE" }
+if (-not $SkipTests) {
+    go test -tags frida -race ./... -count=1
+    if ($LASTEXITCODE -ne 0) { throw "native tests failed with exit $LASTEXITCODE" }
+}
 Copy-Item third_party/frida/runtime-17.3.2/miniapp-frida.dll dist/miniapp-frida.dll -Force
 & $PSScriptRoot\native-release.ps1 -RuntimeDirectory $runtime -OutputDirectory (Join-Path $repo 'dist\native') -ManifestOutputDirectory (Join-Path $repo 'dist')
 if ($LASTEXITCODE -ne 0) { throw "native release packaging failed with exit $LASTEXITCODE" }

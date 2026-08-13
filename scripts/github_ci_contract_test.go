@@ -24,71 +24,61 @@ func TestGitHubCIWorkflowContract(t *testing.T) {
 	if strings.Contains(workflow, "\t") {
 		t.Fatal("workflow YAML must use spaces for indentation")
 	}
-	assertBlockLines(t, workflow, "on", []string{"push:", "pull_request:", "workflow_dispatch:"})
-	assertBlockLines(t, workflow, "permissions", []string{"contents: read"})
+	assertBlockLines(t, workflow, "on", []string{"pull_request:", "push:", "branches:", "- main", "workflow_dispatch:"})
+	assertBlockLines(t, workflow, "permissions", []string{"contents: read", "actions: read", "pull-requests: read"})
 
-	for _, required := range []string{
-		"  group: ci-${{ github.workflow }}-${{ github.event.pull_request.head.sha || github.sha }}\n",
-		"  cancel-in-progress: true\n",
-		"GO_VERSION: 1.26.x",
-		"GOVULNCHECK_VERSION: v1.6.0",
-		"ACTIONLINT_VERSION: 1.7.7",
-		"FRIDA_CORE_VERSION: 17.3.2",
-		"ZLIB_VERSION: 1.3.1",
-		"ZLIB_ARCHIVE_SHA256: 17E88863F3600672AB49182F217281B6FC4D3C762BDE361935E436A95214D05C",
-		"runs-on: ubuntu-latest",
-		"timeout-minutes: 30",
-		"go mod download",
-		"go mod verify",
-		"go mod tidy",
-		"git diff --exit-code -- go.mod go.sum",
-		"git ls-files -z -- '*.go'",
-		"gofmt -l \"${go_files[@]}\"",
-		"go run \"github.com/rhysd/actionlint/cmd/actionlint@v${ACTIONLINT_VERSION}\" -ignore 'unexpected key.*queue.*concurrency'",
-		"go test ./... -count=1 -timeout 120s",
-		"go vet ./...",
-		"-fuzztime=1000x -parallel=1 -timeout=90s",
-		"go test -race ./... -count=1 -timeout 240s",
-		"runs-on: windows-2022",
-		"timeout-minutes: 90",
-		"Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
-		"gcc.exe",
-		"ar.exe",
-		"third_party/downloads/frida-core-devkit-17.3.2-windows-x86_64.tar.xz",
-		"third_party/downloads/cache/zlib-1.3.1.tar.gz",
-		"third_party/downloads/frida-core-devkit-17.3.2-windows-x86_64.tar.xz",
-		"hashFiles('go.sum')",
-		"frida-${{ env.FRIDA_CORE_VERSION }}-zlib-${{ env.ZLIB_VERSION }}",
-		"${{ env.ZLIB_ARCHIVE_SHA256 }}-${{ hashFiles('go.sum') }}",
-		"Populate Frida devkit archive cache",
-		"GH_TOKEN: ${{ github.token }}",
-		"gh release download $env:FRIDA_CORE_VERSION --repo frida/frida --pattern $asset --output $archive --clobber",
-		"8AF15423D6E534626F91A67FAA0582E42C67A07A95A190F4C622695105549C72",
-		"Frida devkit archive SHA-256 mismatch",
-		".\\scripts\\build-windows.ps1",
-		"Windows build and release behavior gates",
-		"Test(BuildWindows|NativeRelease|PackageWindowsRelease|NativePrepare)",
-		".\\scripts\\coverage-gate.ps1",
-		"retention-days: 7",
-	} {
-		if !strings.Contains(withoutYAMLComments(workflow), required) {
-			t.Errorf("workflow is missing contract marker %q", required)
+	required := []string{
+		"group: ci-${{ github.event.pull_request.number || github.ref }}",
+		"cancel-in-progress: true",
+		"classify:\n    name: Classify changes",
+		"run_full: ${{ steps.paths.outputs.run_full }}",
+		"git diff --name-only \"$PR_BASE_SHA\"...HEAD",
+		"run_full=true",
+		"quick:\n    name: Workflow and documentation contracts",
+		"linux:\n    name: Linux core gates",
+		"windows-build:\n    name: Windows build",
+		"windows-behavior:\n    name: Windows behavior",
+		"go-coverage:\n    name: Go 100% coverage",
+		"c-coverage:\n    name: C 100% coverage",
+		"windows-pe-package:\n    name: Windows PE and package",
+		"candidate:\n    name: Create verified candidate",
+		"promote-main:\n    name: Promote candidate to main SHA",
+		"ci-gate:\n    name: ci-gate\n    if: always()",
+		".\\scripts\\build-windows.ps1 -SkipTests",
+		".\\scripts\\coverage-gate.ps1 -Mode Go -UseExistingNative",
+		".\\scripts\\coverage-gate.ps1 -Mode C",
+		".\\scripts\\release-candidate.ps1 -Mode Create",
+		".\\scripts\\release-candidate.ps1 -Mode Rebind",
+		"$_.merge_commit_sha -eq $env:GITHUB_SHA",
+		"multiple merged PRs resolve to main commit",
+		"name: windows-build-${{ needs.classify.outputs.source_sha }}",
+		"name: release-candidate-${{ needs.classify.outputs.source_sha }}",
+		"name: release-candidate-${{ github.sha }}",
+		"retention-days: 30",
+		"[[ \"$CLASSIFY\" == success && \"$QUICK\" == success ]]",
+		"[[ \"$result\" == success ]] || exit 1",
+		"[[ \"$result\" == skipped ]] || exit 1",
+	}
+	for _, marker := range required {
+		if !strings.Contains(withoutYAMLComments(workflow), marker) {
+			t.Errorf("workflow is missing contract marker %q", marker)
 		}
+	}
+	if strings.Count(workflow, ".\\scripts\\build-windows.ps1") != 1 {
+		t.Fatal("the full Windows build must have exactly one producer")
+	}
+	if got := strings.Count(workflow, "Download the single Windows build"); got != 4 {
+		t.Fatalf("Windows build consumers=%d want 4", got)
 	}
 
 	usesPattern := regexp.MustCompile(`(?m)^\s*uses:\s+([^\s#]+)`)
 	uses := usesPattern.FindAllStringSubmatch(withoutYAMLComments(workflow), -1)
-	wantActionCounts := map[string]int{
-		"actions/checkout":        2,
-		"actions/setup-go":        2,
-		"actions/cache":           1,
-		"actions/upload-artifact": 3,
-	}
 	approvedActions := map[string]bool{
-		"actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1":        true,
-		"actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e":        true,
-		"actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9":           true,
-		"actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a": true,
+		"actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1":          true,
+		"actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e":          true,
+		"actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9":             true,
+		"actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a":   true,
+		"actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c": true,
 	}
 	gotActionCounts := make(map[string]int)
 	fullSHA := regexp.MustCompile(`^([^@]+)@[0-9a-f]{40}$`)
@@ -103,13 +93,8 @@ func TestGitHubCIWorkflowContract(t *testing.T) {
 		}
 		gotActionCounts[parts[1]]++
 	}
-	if len(gotActionCounts) != len(wantActionCounts) {
-		t.Errorf("workflow action set mismatch: got %v, want %v", gotActionCounts, wantActionCounts)
-	}
-	for action, want := range wantActionCounts {
-		if got := gotActionCounts[action]; got != want {
-			t.Errorf("workflow action count for %s = %d, want %d", action, got, want)
-		}
+	if gotActionCounts["actions/cache"] != 1 {
+		t.Fatalf("native cache action count=%d want 1", gotActionCounts["actions/cache"])
 	}
 	assertEveryCheckoutDisablesCredentials(t, workflow)
 
@@ -119,78 +104,83 @@ func TestGitHubCIWorkflowContract(t *testing.T) {
 		"third_party/downloads/cache/zlib-1.3.1.tar.gz",
 	})
 
-	buildStep := workflowStep(t, workflow, "Windows native build")
+	buildStep := workflowStep(t, workflow, "Build Windows release payload once")
 	populateStep := workflowStep(t, workflow, "Populate Frida devkit archive cache")
 	populate := strings.Index(workflow, "Populate Frida devkit archive cache")
-	removeSource := strings.Index(buildStep, "Remove-Item -LiteralPath $zlibSource -Recurse -Force")
-	buildWindows := strings.Index(buildStep, ".\\scripts\\build-windows.ps1")
-	if populate < 0 || strings.Index(workflow, "gh release download $env:FRIDA_CORE_VERSION") < populate || strings.Index(workflow, "Get-FileHash -Algorithm SHA256 -LiteralPath $archive") < populate {
+	buildWindows := strings.Index(buildStep, ".\\scripts\\build-windows.ps1 -SkipTests")
+	if populate < 0 || strings.Index(workflow, "gh release download $env:FRIDA_CORE_VERSION") < populate || strings.Index(workflow, "Get-FileHash $archive -Algorithm SHA256") < populate {
 		t.Fatal("Windows CI must populate and verify the pinned Frida archive before building")
 	}
 	if !strings.Contains(populateStep, "GH_TOKEN: ${{ github.token }}") {
 		t.Fatal("Frida cache population must use the workflow token for authenticated GitHub downloads")
 	}
-	if removeSource < 0 || buildWindows < 0 || removeSource > buildWindows {
-		t.Fatal("Windows build must remove the cached zlib source tree before the verified archive build")
+	if buildWindows < 0 {
+		t.Fatal("Windows build producer must call build-windows.ps1")
 	}
-	behaviorStep := workflowStep(t, workflow, "Windows build and release behavior gates")
+	behaviorStep := workflowStep(t, workflow, "Windows build release rollback and recovery behavior")
 	for _, marker := range []string{
 		"Test(BuildWindows|NativeRelease|PackageWindowsRelease|NativePrepare)",
-		"windows-build-release-behavior.log",
+		"windows-behavior.log",
 	} {
 		if !strings.Contains(behaviorStep, marker) {
 			t.Errorf("Windows behavior gate is missing %q", marker)
 		}
 	}
+	goCoverageStep := workflowStep(t, workflow, "Enforce Go statement coverage race and vet")
+	if !strings.Contains(goCoverageStep, "New-Item -ItemType Directory -Force ci-artifacts") {
+		t.Fatal("Go coverage must create its log directory before Tee-Object")
+	}
+	peStep := workflowStep(t, workflow, "Enforce PE architecture imports and security flags")
+	for _, marker := range []string{"vswhere.exe", "Microsoft.VisualStudio.Component.VC.Tools.x86.x64", "Visual Studio C++ build tools were not found"} {
+		if !strings.Contains(peStep, marker) {
+			t.Errorf("PE gate must resolve Visual Studio tools dynamically; missing %q", marker)
+		}
+	}
 	if strings.Contains(workflow, "PowerShell command coverage") || strings.Contains(workflow, ".\\scripts\\powershell-coverage.ps1") {
 		t.Fatal("Windows required CI must use production behavior gates instead of PowerShell numerical command coverage")
 	}
-	if got := strings.Count(workflow, "-fuzztime=1000x -parallel=1 -timeout=90s"); got != 2 {
-		t.Fatalf("Linux and tagged Windows fuzz smoke must use fixed execution budgets: got %d commands", got)
+	if got := strings.Count(workflow, "-fuzztime=1000x -parallel=1 -timeout=90s"); got != 1 {
+		t.Fatalf("Linux fuzz smoke must use one fixed execution budget: got %d commands", got)
 	}
 	if strings.Contains(workflow, "-fuzztime=2s") {
 		t.Fatal("fuzz smoke must not use wall-clock budgets that can fail during Go fuzz shutdown")
 	}
 
-	linuxLogs := workflowStep(t, workflow, "Upload Linux test logs")
+	linuxLogs := workflowStep(t, workflow, "Upload Linux logs")
 	assertStepLine(t, linuxLogs, "if: always()")
 	assertStepLine(t, linuxLogs, "path: ci-artifacts/**")
-	windowsLogs := workflowStep(t, workflow, "Upload Windows verification logs")
+	windowsLogs := workflowStep(t, workflow, "Upload Windows behavior logs")
 	assertStepLine(t, windowsLogs, "if: always()")
 	assertStepLine(t, windowsLogs, "path: ci-artifacts/**")
 	if strings.Contains(windowsLogs, "dist/") {
 		t.Fatal("always-run Windows log upload must not include build outputs")
 	}
-	windowsBinaries := workflowStep(t, workflow, "Upload trusted Windows binaries")
-	assertStepLine(t, windowsBinaries, "if: success() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')")
-	assertMultilineValues(t, windowsBinaries, "path", []string{
-		"dist/miniapp-bridge.exe",
-		"dist/miniapp-frida.dll",
-		"dist/manifest.json",
-		"dist/native/miniapp-frida-native-17.3.2-abi1.1-windows-amd64.zip",
-		"dist/native/SHA256SUMS",
-	})
-	assertStepLine(t, windowsBinaries, "if-no-files-found: error")
-	if strings.Contains(windowsBinaries, "ci-artifacts/") {
-		t.Fatal("trusted binary upload must remain separate from always-run logs")
-	}
 	moduleGate := strings.Index(workflow, "go mod download")
 	formatGate := strings.Index(workflow, "git ls-files -z -- '*.go'")
 	actionlintGate := strings.Index(workflow, "go run \"github.com/rhysd/actionlint/cmd/actionlint@v${ACTIONLINT_VERSION}\" -ignore 'unexpected key.*queue.*concurrency'")
-	unitTests := strings.Index(workflow, "go test ./... -count=1 -timeout 120s")
-	if moduleGate < 0 || formatGate < moduleGate || actionlintGate < formatGate || unitTests < actionlintGate {
-		t.Fatal("module, gofmt, and actionlint gates must run before Linux tests")
+	unitTests := strings.Index(workflow, "- name: Unit vet and vulnerability gates")
+	if moduleGate < 0 || formatGate < moduleGate || unitTests < formatGate || actionlintGate < 0 {
+		t.Fatalf("module and gofmt gates must run before Linux tests, and actionlint must remain present: module=%d format=%d unit=%d actionlint=%d", moduleGate, formatGate, unitTests, actionlintGate)
+	}
+	if !strings.Contains(workflow, "needs: [classify, quick, linux, windows-build, windows-behavior, go-coverage, c-coverage, windows-pe-package, candidate, promote-main]") {
+		t.Fatal("ci-gate must require both the quick contracts and every classified core job")
 	}
 
 	for _, forbidden := range []string{
 		"pull_request_target:",
 		"write-all",
 		"${{ secrets.",
-		"path: .\n",
 		"path: **",
+		"timeout-minutes: 90",
+		"  push:\n  pull_request:",
 	} {
 		if strings.Contains(withoutYAMLComments(workflow), forbidden) {
 			t.Errorf("workflow contains forbidden security or artifact marker %q", forbidden)
+		}
+	}
+	for _, step := range allWorkflowSteps(workflow) {
+		if strings.Contains(step, "actions/upload-artifact@") && strings.Contains(step, "path: .\n") {
+			t.Fatal("an upload-artifact step must not publish the checkout root")
 		}
 	}
 }
