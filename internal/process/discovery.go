@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type Process struct {
@@ -15,6 +16,16 @@ type Process struct {
 	Name      string
 	Path      string
 	Version   int
+	Identity  TargetIdentity
+}
+
+// TargetIdentity binds a discovered process to the exact instance being used.
+type TargetIdentity struct {
+	PID          uint32
+	StartTime    time.Time
+	AppID        string
+	RendererType string
+	DiscoveredAt time.Time
 }
 type Finder interface {
 	Find(context.Context) ([]Process, error)

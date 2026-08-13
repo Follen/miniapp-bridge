@@ -16,14 +16,27 @@ import (
 	"io"
 	"sort"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 )
 
 const (
-	DefaultDebugPort = 9421
-	DefaultCDPPort   = 62000
+	DefaultDebugPort           = 9421
+	DefaultCDPPort             = 62000
+	DefaultPendingRequestLimit = 1024
+	DefaultRequestTimeout      = 30 * time.Second
+	DefaultShutdownTimeout     = 15 * time.Second
+	DefaultRecoveryAttempts    = 6
+	DefaultRecoveryBaseDelay   = 100 * time.Millisecond
+	DefaultRecoveryMaxDelay    = 2 * time.Second
+	MaxSubscriberBuffer        = 4096
+	MaxPendingRequestLimit     = 65536
+	MaxRequestTimeout          = 5 * time.Minute
+	MaxShutdownTimeout         = 2 * time.Minute
+	MaxRecoveryAttempts        = 20
+	MaxRecoveryDelay           = time.Minute
 )
 
 var (
@@ -51,6 +64,8 @@ var (
 	ErrNativeABIMismatch     = errors.New("native runtime ABI mismatch")
 	ErrNativeExportMissing   = errors.New("native runtime export missing")
 	ErrNativeLoad            = errors.New("native runtime load failed")
+	ErrResourceExhausted     = errors.New("miniapp bridge resource budget exhausted")
+	ErrTooManyPending        = errors.New("too many pending CDP requests")
 )
 
 var structuredRequestSequence atomic.Uint64
@@ -86,6 +101,12 @@ type Options struct {
 	AddressConfigDir       string
 	DebugMain, DebugFrida  bool
 	SubscriberBuffer       int
+	PendingRequestLimit    int
+	RequestTimeout         time.Duration
+	ShutdownTimeout        time.Duration
+	RecoveryAttempts       int
+	RecoveryBaseDelay      time.Duration
+	RecoveryMaxDelay       time.Duration
 	Stdout, Stderr         io.Writer
 	Native                 NativeStarter
 }
@@ -132,6 +153,9 @@ type ConnectionStatus struct {
 
 type Status struct {
 	State                    State
+	Health                   HealthStatus
+	Ready                    bool
+	Metrics                  MetricsSnapshot
 	DebugPort, CDPPort       int
 	DebugClients, CDPClients int
 	Contexts                 []JSContext
@@ -191,32 +215,49 @@ type CDPError struct {
 }
 
 type Service struct {
-	mu             sync.Mutex
-	resourceMu     sync.Mutex
-	state          State
-	startDone      chan struct{}
-	startErr       error
-	closeDone      chan struct{}
-	closeErr       error
-	ctx            context.Context
-	cancel         context.CancelFunc
-	startCancel    context.CancelFunc
-	app            *app.App
-	nativeLog      *logging.Logger
-	native         NativeSession
-	nativePath     string
-	nativeAttached bool
-	nativeStarter  NativeStarter
-	recordPath     string
-	replayPath     string
-	upstreamOnline bool
-	status         Status
-	pending        map[string]chan pendingResult
-	pendingIDs     map[string]any
-	logs           eventBus[LogEvent]
-	statuses       eventBus[Status]
-	cdpEvents      eventBus[CDPEvent]
-	contexts       eventBus[ContextEvent]
+	mu                 sync.Mutex
+	resourceMu         sync.Mutex
+	state              State
+	startDone          chan struct{}
+	startErr           error
+	closeDone          chan struct{}
+	closeErr           error
+	ctx                context.Context
+	cancel             context.CancelFunc
+	startCancel        context.CancelFunc
+	app                *app.App
+	nativeLog          *logging.Logger
+	native             NativeSession
+	nativePath         string
+	nativeAttached     bool
+	nativeStarter      NativeStarter
+	recordPath         string
+	replayPath         string
+	upstreamOnline     bool
+	status             Status
+	pending            map[string]chan pendingResult
+	pendingIDs         map[string]any
+	logs               eventBus[LogEvent]
+	statuses           eventBus[Status]
+	cdpEvents          eventBus[CDPEvent]
+	contexts           eventBus[ContextEvent]
+	pendingLimit       int
+	requestTimeout     time.Duration
+	shutdownTimeout    time.Duration
+	recoveryAttempts   int
+	recoveryBaseDelay  time.Duration
+	recoveryMaxDelay   time.Duration
+	recoveryCancel     context.CancelFunc
+	recoveryGeneration uint64
+	recoveryActive     bool
+	recoveryWG         sync.WaitGroup
+	stopRequested      bool
+	listenersReady     bool
+	nativeReady        bool
+	listenerFailed     bool
+	upstreamSeen       bool
+	health             HealthStatus
+	metrics            MetricsSnapshot
 }
 
 type pendingResult struct {
@@ -234,8 +275,40 @@ func New(o Options) (*Service, error) {
 	if o.DebugPort < 1 || o.DebugPort > 65535 || o.CDPPort < 1 || o.CDPPort > 65535 {
 		return nil, &Error{Op: "new", Component: "options", Err: fmt.Errorf("%w: port must be between 1 and 65535", ErrInvalidOptions)}
 	}
-	if o.SubscriberBuffer <= 0 {
+	if o.SubscriberBuffer < 0 || o.PendingRequestLimit < 0 || o.RequestTimeout < 0 || o.ShutdownTimeout < 0 ||
+		o.RecoveryAttempts < 0 || o.RecoveryBaseDelay < 0 || o.RecoveryMaxDelay < 0 {
+		return nil, &Error{Op: "new", Component: "options", Err: fmt.Errorf("%w: resource limits and timeouts must not be negative", ErrInvalidOptions)}
+	}
+	if o.SubscriberBuffer > MaxSubscriberBuffer ||
+		o.PendingRequestLimit > MaxPendingRequestLimit ||
+		o.RequestTimeout > MaxRequestTimeout ||
+		o.ShutdownTimeout > MaxShutdownTimeout ||
+		o.RecoveryAttempts > MaxRecoveryAttempts || o.RecoveryBaseDelay > MaxRecoveryDelay || o.RecoveryMaxDelay > MaxRecoveryDelay {
+		return nil, &Error{Op: "new", Component: "options", Err: fmt.Errorf("%w: resource limits and timeouts exceed configured maximums", ErrInvalidOptions)}
+	}
+	if o.SubscriberBuffer == 0 {
 		o.SubscriberBuffer = 64
+	}
+	if o.PendingRequestLimit == 0 {
+		o.PendingRequestLimit = DefaultPendingRequestLimit
+	}
+	if o.RequestTimeout == 0 {
+		o.RequestTimeout = DefaultRequestTimeout
+	}
+	if o.ShutdownTimeout == 0 {
+		o.ShutdownTimeout = DefaultShutdownTimeout
+	}
+	if o.RecoveryAttempts == 0 {
+		o.RecoveryAttempts = DefaultRecoveryAttempts
+	}
+	if o.RecoveryBaseDelay == 0 {
+		o.RecoveryBaseDelay = DefaultRecoveryBaseDelay
+	}
+	if o.RecoveryMaxDelay == 0 {
+		o.RecoveryMaxDelay = DefaultRecoveryMaxDelay
+	}
+	if o.RecoveryMaxDelay < o.RecoveryBaseDelay {
+		return nil, &Error{Op: "new", Component: "options", Err: fmt.Errorf("%w: recovery maximum delay must not be smaller than base delay", ErrInvalidOptions)}
 	}
 	stdout, stderr := o.Stdout, o.Stderr
 	if stdout == nil {
@@ -247,6 +320,8 @@ func New(o Options) (*Service, error) {
 	stdout = &lockedWriter{dst: stdout}
 	stderr = &lockedWriter{dst: stderr}
 	s := &Service{state: StateNew, pending: make(map[string]chan pendingResult), pendingIDs: make(map[string]any)}
+	s.pendingLimit, s.requestTimeout, s.shutdownTimeout = o.PendingRequestLimit, o.RequestTimeout, o.ShutdownTimeout
+	s.recoveryAttempts, s.recoveryBaseDelay, s.recoveryMaxDelay = o.RecoveryAttempts, o.RecoveryBaseDelay, o.RecoveryMaxDelay
 	s.nativeStarter, s.recordPath, s.replayPath, s.nativePath = o.Native, o.RecordPath, o.ReplayPath, o.NativePath
 	if s.nativeStarter == nil {
 		s.nativeStarter = defaultNativeStarter(o.NativePath, o.AddressConfigDir)
@@ -258,8 +333,9 @@ func New(o Options) (*Service, error) {
 	// Native messages publish directly to the SDK bus. This second logger only
 	// preserves the CLI streams and Frida debug gate, avoiding duplicate events.
 	s.nativeLog = logging.NewWithWriters(false, o.DebugFrida, stdout, stderr)
-	s.app.SetObserver(app.Observer{OnCDP: s.observeCDP, OnContext: s.observeContext, OnConnection: s.observeConnection})
+	s.app.SetObserver(app.Observer{OnCDP: s.observeCDP, OnContext: s.observeContext, OnConnection: s.observeConnection, OnError: s.observeRuntimeError})
 	s.status = Status{State: StateNew, DebugPort: o.DebugPort, CDPPort: o.CDPPort}
+	s.health = HealthStatus{State: HealthStarting, Since: time.Now()}
 	if o.RecordPath != "" {
 		s.status.Recording.Path = o.RecordPath
 	}
@@ -295,6 +371,10 @@ func (s *Service) Start(ctx context.Context) error {
 		return ErrClosed
 	}
 	s.state, s.status.State, s.startDone = StateStarting, StateStarting, make(chan struct{})
+	s.stopRequested = false
+	s.listenersReady, s.nativeReady, s.listenerFailed = false, false, false
+	s.upstreamOnline, s.upstreamSeen = false, false
+	s.setHealthLocked(HealthStarting, "")
 	done := s.startDone
 	startupCtx, startupCancel := context.WithCancel(ctx)
 	s.startCancel = startupCancel
@@ -321,20 +401,22 @@ func (s *Service) Start(ctx context.Context) error {
 	}
 	s.mu.Lock()
 	s.startCancel = nil
-	closing := s.state == StateStopping || s.state == StateStopped
+	closing := s.stopRequested || s.state == StateStopping || s.state == StateStopped
 	if closing && err == nil {
 		err = ErrClosed
 	}
 	s.startErr = err
-	if err != nil {
-		if closing {
-			// Close owns the terminal transition; do not overwrite it with Failed.
-		} else {
-			s.state, s.status.State, s.status.Err = StateFailed, StateFailed, err
-		}
+	if closing {
+		s.state, s.status.State = StateStopped, StateStopped
+		s.status.StoppedAt = time.Now()
+		s.setHealthLocked(HealthStopped, "")
+	} else if err != nil {
+		s.state, s.status.State, s.status.Err = StateFailed, StateFailed, err
+		s.setHealthLocked(HealthFailed, "start")
 	} else {
 		s.ctx, s.cancel = context.WithCancel(ctx)
 		s.state, s.status.State, s.status.StartedAt = StateRunning, StateRunning, time.Now()
+		s.refreshRunningHealthLocked()
 		go func() { <-s.ctx.Done(); _ = s.Close(context.Background()) }()
 	}
 	close(done)
@@ -350,6 +432,9 @@ func (s *Service) start(ctx context.Context) error {
 	if err := s.app.Start(); err != nil {
 		return &Error{Op: "start", Component: "listeners", Err: err}
 	}
+	s.mu.Lock()
+	s.listenersReady = true
+	s.mu.Unlock()
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -361,7 +446,7 @@ func (s *Service) start(ctx context.Context) error {
 	recordPath := s.recordPath
 	s.mu.Unlock()
 	if needRecorder {
-		recorder, err := capture.Start(recordPath)
+		recorder, err := capture.StartSegmented(recordPath, capture.SegmentOptions{})
 		if err != nil {
 			return &Error{Op: "start", Component: "record", Err: err}
 		}
@@ -400,6 +485,9 @@ func (s *Service) start(ctx context.Context) error {
 		s.refreshTargetMetadataLocked(native)
 		s.mu.Unlock()
 	}
+	s.mu.Lock()
+	s.nativeReady = true
+	s.mu.Unlock()
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -442,7 +530,9 @@ func (s *Service) closeNative() error {
 	s.status.Target.Attached = false
 	s.mu.Unlock()
 	if native != nil {
-		return native.Close(context.Background())
+		ctx, cancel := context.WithTimeout(context.Background(), s.shutdownTimeout)
+		defer cancel()
+		return native.Close(ctx)
 	}
 	return nil
 }
@@ -450,7 +540,9 @@ func (s *Service) closeNative() error {
 func (s *Service) closeApp() error {
 	s.resourceMu.Lock()
 	defer s.resourceMu.Unlock()
-	err := s.app.Close(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), s.shutdownTimeout)
+	defer cancel()
+	err := s.app.Close(ctx)
 	s.mu.Lock()
 	if s.status.Recording.Active {
 		s.status.Recording.Active = false
@@ -471,6 +563,9 @@ func (s *Service) Close(ctx context.Context) error {
 		if done == nil {
 			return err
 		}
+		if ctx.Err() != nil {
+			return contextOperationError("close", ctx.Err())
+		}
 		select {
 		case <-done:
 			return err
@@ -481,9 +576,15 @@ func (s *Service) Close(ctx context.Context) error {
 	if s.state == StateStarting {
 		cancel := s.startCancel
 		done := s.startDone
+		s.stopRequested = true
+		s.setHealthLocked(HealthStopping, "")
 		s.mu.Unlock()
+		s.publishStatus()
 		if cancel != nil {
 			cancel()
+		}
+		if ctx.Err() != nil {
+			return contextOperationError("close", ctx.Err())
 		}
 		select {
 		case <-done:
@@ -495,6 +596,9 @@ func (s *Service) Close(ctx context.Context) error {
 	if s.state == StateStopping {
 		done := s.closeDone
 		s.mu.Unlock()
+		if ctx.Err() != nil {
+			return contextOperationError("close", ctx.Err())
+		}
 		select {
 		case <-done:
 			s.mu.Lock()
@@ -506,6 +610,8 @@ func (s *Service) Close(ctx context.Context) error {
 		}
 	}
 	s.state, s.status.State, s.closeDone = StateStopping, StateStopping, make(chan struct{})
+	s.stopRequested = true
+	s.setHealthLocked(HealthStopping, "")
 	done := s.closeDone
 	cancel := s.cancel
 	s.mu.Unlock()
@@ -514,6 +620,9 @@ func (s *Service) Close(ctx context.Context) error {
 		cancel()
 	}
 	go s.shutdown(done)
+	if ctx.Err() != nil {
+		return contextOperationError("close", ctx.Err())
+	}
 	select {
 	case <-done:
 		s.mu.Lock()
@@ -526,6 +635,10 @@ func (s *Service) Close(ctx context.Context) error {
 }
 
 func (s *Service) shutdown(done chan struct{}) {
+	started := time.Now()
+	shutdownCtx, cancelShutdown := context.WithTimeout(context.Background(), s.shutdownTimeout)
+	defer cancelShutdown()
+	s.recoveryWG.Wait()
 	s.resourceMu.Lock()
 	// Wake SDK callers before network/native teardown so no waiter can remain
 	// blocked while the close path is releasing resources.
@@ -540,7 +653,7 @@ func (s *Service) shutdown(done chan struct{}) {
 		delete(s.pendingIDs, key)
 	}
 	s.mu.Unlock()
-	err := s.app.Close(context.Background())
+	err := s.app.Close(shutdownCtx)
 	s.mu.Lock()
 	native := s.native
 	s.native = nil
@@ -551,7 +664,7 @@ func (s *Service) shutdown(done chan struct{}) {
 	s.status.Recording.Active = false
 	s.mu.Unlock()
 	if native != nil {
-		err = joinErrors(err, native.Close(context.Background()))
+		err = joinErrors(err, native.Close(shutdownCtx))
 	}
 	if err != nil {
 		err = &Error{Op: "close", Component: "resources", Err: err}
@@ -563,6 +676,12 @@ func (s *Service) shutdown(done chan struct{}) {
 	s.status.State = StateStopped
 	s.status.StoppedAt = time.Now()
 	s.state = StateStopped
+	duration := time.Since(started)
+	if duration <= 0 {
+		duration = time.Nanosecond
+	}
+	s.metrics.ShutdownDuration = duration
+	s.setHealthLocked(HealthStopped, "")
 	s.mu.Unlock()
 	// The terminal snapshot is observable before subscription channels close.
 	s.publishStatus()
@@ -577,16 +696,25 @@ func (s *Service) shutdown(done chan struct{}) {
 func (s *Service) Status() Status {
 	s.mu.Lock()
 	out := s.status
+	out.Health = s.health
+	out.Ready = s.health.Ready
+	out.Metrics = s.metrics
+	out.Metrics.PendingRequests = len(s.pending)
+	out.Metrics.RecoveryAttempts = s.health.RecoveryAttempts
 	out.NativeAttached = s.nativeAttached
 	out.Native.Attached = out.NativeAttached
 	s.mu.Unlock()
 	out.DebugClients, out.CDPClients = s.app.DebugClientCount(), s.app.CDPClientCount()
 	out.Connections = ConnectionStatus{DebugClients: out.DebugClients, CDPClients: out.CDPClients, Upstream: out.DebugClients > 0}
+	out.Metrics.CollectedAt = time.Now()
+	out.Metrics.DebugConnections = out.DebugClients
+	out.Metrics.CDPConnections = out.CDPClients
 	out.Contexts = nil
 	out.SelectedContext = ""
 	for _, c := range s.app.Contexts.List() {
 		out.Contexts = append(out.Contexts, JSContext{ID: c.ID, Target: c.Target})
 	}
+	out.Metrics.Contexts = len(out.Contexts)
 	sort.Slice(out.Contexts, func(i, j int) bool { return out.Contexts[i].ID < out.Contexts[j].ID })
 	if c, ok := s.app.Contexts.Selected(); ok {
 		out.SelectedContext = c.ID
@@ -671,7 +799,7 @@ func (s *Service) StartRecording(path string) error {
 		return ErrClosed
 	}
 	s.mu.Unlock()
-	r, err := capture.Start(path)
+	r, err := capture.StartSegmented(path, capture.SegmentOptions{})
 	if err != nil {
 		return err
 	}
@@ -742,6 +870,7 @@ func translateReplayError(err error) error {
 	} else if errors.Is(err, capture.ErrFrameTooLarge) ||
 		errors.Is(err, capture.ErrCaptureTooLarge) ||
 		errors.Is(err, capture.ErrTooManyFrames) ||
+		errors.Is(err, capture.ErrCorruptRecord) ||
 		errors.Is(err, io.ErrUnexpectedEOF) {
 		underlying = errors.Join(ErrCorruptFrame, err)
 	}
@@ -798,6 +927,10 @@ func (s *Service) sendPayload(ctx context.Context, payload []byte, route Route, 
 		s.mu.Unlock()
 		return Response{}, ErrDuplicateID
 	}
+	if len(s.pending) >= s.pendingLimit {
+		s.mu.Unlock()
+		return Response{}, &Error{Op: "send", Component: "pending", Err: errors.Join(ErrResourceExhausted, ErrTooManyPending)}
+	}
 	s.pending[key] = ch
 	s.pendingIDs[key] = id
 	s.mu.Unlock()
@@ -810,16 +943,22 @@ func (s *Service) sendPayload(ctx context.Context, payload []byte, route Route, 
 		s.mu.Unlock()
 		return Response{}, translateAppError(sendErr)
 	}
+	waitCtx := ctx
+	cancel := func() {}
+	if _, hasDeadline := ctx.Deadline(); !hasDeadline {
+		waitCtx, cancel = context.WithTimeout(ctx, s.requestTimeout)
+	}
+	defer cancel()
 	select {
 	case result := <-ch:
 		return result.response, result.err
-	case <-ctx.Done():
+	case <-waitCtx.Done():
 		s.mu.Lock()
 		delete(s.pending, key)
 		delete(s.pendingIDs, key)
 		s.cancelAppRequest(id)
 		s.mu.Unlock()
-		return Response{}, contextOperationError("send", ctx.Err())
+		return Response{}, contextOperationError("send", waitCtx.Err())
 	}
 }
 
@@ -928,6 +1067,16 @@ func (s *Service) observeConnection(e app.ConnectionEvent) {
 		online := e.Connected || s.app.DebugClientCount() > 0
 		s.mu.Lock()
 		s.upstreamOnline = online
+		if online {
+			s.upstreamSeen = true
+			s.stopUpstreamRecoveryLocked()
+		}
+		if s.state == StateRunning {
+			if !online && s.upstreamSeen {
+				s.startUpstreamRecoveryLocked()
+			}
+			s.refreshRunningHealthLocked()
+		}
 		pending := make([]chan pendingResult, 0, len(s.pending))
 		if !online && s.state == StateRunning {
 			for key, ch := range s.pending {
@@ -949,6 +1098,142 @@ func (s *Service) observeConnection(e app.ConnectionEvent) {
 	}
 	s.publishStatus()
 }
+
+func (s *Service) startUpstreamRecoveryLocked() {
+	if s.recoveryActive || s.state != StateRunning {
+		return
+	}
+	s.health.RecoveryAttempts++
+	if s.ctx == nil {
+		return
+	}
+	ctx, cancel := context.WithCancel(s.ctx)
+	s.recoveryGeneration++
+	generation := s.recoveryGeneration
+	s.recoveryActive = true
+	s.recoveryCancel = cancel
+	s.recoveryWG.Add(1)
+	go s.runUpstreamRecovery(ctx, generation)
+}
+
+func (s *Service) stopUpstreamRecoveryLocked() {
+	if s.recoveryCancel != nil {
+		s.recoveryCancel()
+	}
+	s.recoveryCancel = nil
+	s.recoveryActive = false
+	s.recoveryGeneration++
+}
+
+func (s *Service) runUpstreamRecovery(ctx context.Context, generation uint64) {
+	defer s.recoveryWG.Done()
+	if s.recoveryAttempts <= 1 {
+		s.finishUpstreamRecoveryAttempt(generation, true)
+		return
+	}
+	for attempt := 2; attempt <= s.recoveryAttempts; attempt++ {
+		timer := time.NewTimer(recoveryDelay(s.recoveryBaseDelay, s.recoveryMaxDelay, attempt-1))
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return
+		case <-timer.C:
+		}
+
+		if !s.finishUpstreamRecoveryAttempt(generation, attempt == s.recoveryAttempts) {
+			return
+		}
+		if attempt == s.recoveryAttempts {
+			return
+		}
+	}
+}
+
+func (s *Service) finishUpstreamRecoveryAttempt(generation uint64, exhausted bool) bool {
+	s.mu.Lock()
+	if generation != s.recoveryGeneration || s.state != StateRunning || s.upstreamOnline {
+		s.mu.Unlock()
+		return false
+	}
+	if s.health.RecoveryAttempts < uint64(s.recoveryAttempts) {
+		s.health.RecoveryAttempts++
+	}
+	if exhausted {
+		s.recoveryActive = false
+		s.recoveryCancel = nil
+		s.status.Err = &Error{Op: "recover", Component: "upstream", Err: ErrUpstreamDisconnected}
+		s.setHealthLocked(HealthFailed, "upstream-reconnect-exhausted")
+	} else {
+		s.setHealthLocked(HealthReconnecting, "upstream")
+	}
+	s.mu.Unlock()
+	s.publishStatus()
+	return true
+}
+
+func recoveryDelay(base, maximum time.Duration, attempt int) time.Duration {
+	if attempt < 1 {
+		attempt = 1
+	}
+	delay := base
+	for step := 1; step < attempt && delay < maximum; step++ {
+		if delay > maximum/2 {
+			delay = maximum
+		} else {
+			delay *= 2
+		}
+	}
+	jitter := delay / 10
+	if attempt%2 == 0 {
+		delay += jitter
+	} else {
+		delay -= jitter
+	}
+	if delay > maximum {
+		return maximum
+	}
+	return delay
+}
+
+func (s *Service) refreshRunningHealthLocked() {
+	if s.state != StateRunning {
+		return
+	}
+	switch {
+	case s.listenerFailed:
+		s.setHealthLocked(HealthFailed, "")
+	case !s.listenersReady || !s.nativeReady:
+		s.setHealthLocked(HealthStarting, "")
+	case !s.upstreamOnline && s.upstreamSeen:
+		s.setHealthLocked(HealthReconnecting, "upstream")
+	case !s.upstreamOnline:
+		s.setHealthLocked(HealthStarting, "")
+	default:
+		s.setHealthLocked(HealthReady, "")
+	}
+}
+
+func (s *Service) observeRuntimeError(event app.RuntimeError) {
+	failure := event.Component
+	if failure == "" {
+		failure = "runtime"
+	}
+	s.mu.Lock()
+	if s.state == StateStopping || s.state == StateStopped {
+		s.mu.Unlock()
+		return
+	}
+	if strings.HasSuffix(event.Component, "-listener") {
+		s.listenerFailed = true
+		s.stopUpstreamRecoveryLocked()
+		s.status.Err = &Error{Op: "serve", Component: failure, Err: errors.New(event.Message)}
+		s.setHealthLocked(HealthFailed, failure)
+	} else if s.state == StateRunning {
+		s.setHealthLocked(HealthDegraded, failure)
+	}
+	s.mu.Unlock()
+	s.publishStatus()
+}
 func (s *Service) publishStatus() { s.statuses.publish(s.Status()) }
 
 type SubscriptionOptions struct{ Buffer int }
@@ -968,6 +1253,9 @@ func (s *Service) SubscribeContexts(options ...SubscriptionOptions) *Subscriptio
 
 func subscriptionBuffer(options []SubscriptionOptions) int {
 	if len(options) > 0 && options[0].Buffer > 0 {
+		if options[0].Buffer > MaxSubscriberBuffer {
+			return MaxSubscriberBuffer
+		}
 		return options[0].Buffer
 	}
 	return 0
@@ -1121,6 +1409,9 @@ func (b *eventBus[T]) subscribe(buffer ...int) *Subscription[T] {
 	}
 	if size <= 0 {
 		size = 64
+	}
+	if size > MaxSubscriberBuffer {
+		size = MaxSubscriberBuffer
 	}
 	ch := make(chan T, size)
 	s := &Subscription[T]{C: ch, bus: b, ch: ch}

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/Follen/miniapp-bridge/internal/capture"
+	bridgecontext "github.com/Follen/miniapp-bridge/internal/context"
 	"github.com/Follen/miniapp-bridge/internal/logging"
 	"github.com/Follen/miniapp-bridge/internal/wmpf"
 	"github.com/gorilla/websocket"
@@ -170,6 +171,23 @@ func TestAuditCDPIDBoundaries(t *testing.T) {
 		defer cancel()
 		_ = a.Close(ctx)
 	}()
+	debug := auditDial(t, dp)
+	defer debug.Close()
+	ownerDeadline := time.Now().Add(time.Second)
+	for {
+		a.connMu.Lock()
+		ready := a.debugOwner != nil
+		a.connMu.Unlock()
+		if ready {
+			break
+		}
+		if time.Now().After(ownerDeadline) {
+			t.Fatal("upstream owner was not installed")
+		}
+		time.Sleep(time.Millisecond)
+	}
+	a.Contexts.Upsert(bridgecontext.Context{ID: "audit-context"})
+	a.Contexts.Select("audit-context")
 	conn := auditDial(t, cp)
 	defer conn.Close()
 	if err := conn.WriteMessage(websocket.TextMessage, []byte(`{"method":"Runtime.enable"}`)); err != nil {

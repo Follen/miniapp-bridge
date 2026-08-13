@@ -8,7 +8,9 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -20,7 +22,19 @@ func fakeCDPServer(t *testing.T) (string, func()) {
 func fakeCDPServerMode(t *testing.T, mode string) (string, func()) {
 	t.Helper()
 	upgrader := websocket.Upgrader{CheckOrigin: func(*http.Request) bool { return true }}
+	var owner atomic.Bool
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Origin") != "http://"+r.Host {
+			http.Error(w, `{"error":{"code":"origin_not_allowed"}}`, http.StatusForbidden)
+			return
+		}
+		if !owner.CompareAndSwap(false, true) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusConflict)
+			_, _ = w.Write([]byte(`{"error":{"code":"owner_exists"}}`))
+			return
+		}
+		defer owner.Store(false)
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			t.Errorf("upgrade: %v", err)
@@ -38,6 +52,7 @@ func fakeCDPServerMode(t *testing.T, mode string) (string, func()) {
 		pausedID := 0
 		breakpointID := "bp-1"
 		breakpointSet := false
+		runtimeEnableCalls := 0
 		interleaved := mode == "interleaved-events"
 		emptyBreakpointLocations := interleaved || mode == "resolved-breakpoint" || mode == "resolved-breakpoint-with-hits" || mode == "bad-breakpoint-resolved"
 		for {
@@ -57,6 +72,19 @@ func fakeCDPServerMode(t *testing.T, mode string) (string, func()) {
 			response := map[string]any{"id": request.ID, "result": map[string]any{}}
 			switch request.Method {
 			case "Runtime.enable":
+				runtimeEnableCalls++
+				if mode == "delayed-context" && runtimeEnableCalls == 1 {
+					response["error"] = map[string]any{"code": -32000, "message": "no JavaScript context is selected"}
+					break
+				}
+				if mode == "missing-context" {
+					response["error"] = map[string]any{"code": -32000, "message": "no JavaScript context is selected"}
+					break
+				}
+				if mode == "runtime-enable-error" {
+					response["error"] = map[string]any{"code": -32000, "message": "runtime unavailable"}
+					break
+				}
 				write(map[string]any{"method": "Runtime.executionContextCreated", "params": map[string]any{"context": map[string]any{"id": 1}}})
 			case "Runtime.evaluate":
 				expression, _ := request.Params["expression"].(string)
@@ -277,6 +305,48 @@ func TestLinkAndMatrixClients(t *testing.T) {
 	}
 }
 
+func TestClientsWaitForSelectedContext(t *testing.T) {
+	for _, run := range []struct {
+		name string
+		fn   func(string) error
+	}{
+		{name: "link", fn: runLink},
+		{name: "matrix", fn: runMatrix},
+		{name: "interaction", fn: runInteraction},
+	} {
+		t.Run(run.name, func(t *testing.T) {
+			url, closeServer := fakeCDPServerMode(t, "delayed-context")
+			defer closeServer()
+			if err := run.fn(url); err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+}
+
+func TestRuntimeEnableDoesNotRetryOtherErrors(t *testing.T) {
+	url, closeServer := fakeCDPServerMode(t, "runtime-enable-error")
+	defer closeServer()
+	err := runLink(url)
+	if err == nil || !strings.Contains(err.Error(), "runtime unavailable") {
+		t.Fatalf("runLink error=%v, want runtime unavailable", err)
+	}
+}
+
+func TestRuntimeEnableContextWaitIsBounded(t *testing.T) {
+	url, closeServer := fakeCDPServerMode(t, "missing-context")
+	defer closeServer()
+	c, err := dial(url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.close()
+	_, err = c.enableRuntimeWhenContextReady(10 * time.Millisecond)
+	if err == nil || !strings.Contains(err.Error(), "before timeout") {
+		t.Fatalf("enableRuntimeWhenContextReady error=%v, want bounded timeout", err)
+	}
+}
+
 func TestMatrixAcceptsHitBreakpoints(t *testing.T) {
 	for _, fixture := range []string{
 		"with-hit-breakpoints",
@@ -322,6 +392,19 @@ func TestMatrixSemanticNegativeFixtures(t *testing.T) {
 			err := runMatrix(url)
 			if err == nil || !strings.Contains(err.Error(), fixture.want) {
 				t.Fatalf("runMatrix error=%v, want substring %q", err, fixture.want)
+			}
+		})
+	}
+}
+
+func TestMatrixSemanticNegativeFixturesRaceStable(t *testing.T) {
+	for attempt := 0; attempt < 50; attempt++ {
+		t.Run(fmt.Sprintf("attempt-%02d", attempt), func(t *testing.T) {
+			url, closeServer := fakeCDPServerMode(t, "bad-script-event")
+			defer closeServer()
+			err := runMatrix(url)
+			if err == nil || !strings.Contains(err.Error(), "Debugger.scriptParsed URL") {
+				t.Fatalf("runMatrix error=%v, want semantic script event error", err)
 			}
 		})
 	}

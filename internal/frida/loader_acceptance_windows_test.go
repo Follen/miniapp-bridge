@@ -29,8 +29,14 @@ func TestWindowsLoaderFakeDLLAcceptance(t *testing.T) {
 static void loader_trace(const char *event) {
   char path[MAX_PATH]; DWORD size = GetEnvironmentVariableA("MB_LOADER_TRACE", path, MAX_PATH);
   if (size == 0 || size >= MAX_PATH) return;
-  FILE *file = fopen(path, "ab"); if (file != NULL) { fputs(event, file); fputc('\n', file); fclose(file); }
+ FILE *file = fopen(path, "ab"); if (file != NULL) { fputs(event, file); fputc('\n', file); fclose(file); }
+ }
+static void loader_active_delay(void) {
+  char name[256]; DWORD size = GetEnvironmentVariableA("MB_LOADER_ACTIVE_EVENT", name, sizeof(name));
+  if (size > 0 && size < sizeof(name)) { HANDLE event = OpenEventA(EVENT_MODIFY_STATE, FALSE, name); if (event != NULL) { SetEvent(event); CloseHandle(event); } }
+  Sleep(100);
 }
+#define MB_ZLIB_DELAY() loader_active_delay()
 BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved) {
   (void)instance; (void)reserved; if (reason == DLL_PROCESS_DETACH) loader_trace("unload"); return TRUE;
 }`,
@@ -71,6 +77,18 @@ BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved) {
 		runMSVCCommand(t, work, vsdev, command)
 	}
 	runMSVCCommandArch(t, work, vsdev, "x86", `cl /nologo /LD /MT /W3 /Fe:"wrong-arch.dll" "wrong-arch.c"`)
+	hardlinkSource := filepath.Join(work, "hardlink-source.dll")
+	hardlinkPath := filepath.Join(work, "hardlink.dll")
+	goodBytes, err := os.ReadFile(filepath.Join(work, "good.dll"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(hardlinkSource, goodBytes, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Link(hardlinkSource, hardlinkPath); err != nil {
+		t.Skipf("hard links unavailable: %v", err)
+	}
 	if err := os.Remove(filepath.Join(work, "fixture-dependency.dll")); err != nil {
 		t.Fatal(err)
 	}
@@ -85,7 +103,9 @@ BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved) {
 		filepath.Join(work, "null-version.dll"),
 		filepath.Join(work, "wrong-arch.dll"),
 		filepath.Join(work, "dependency.dll"),
+		hardlinkPath,
 		filepath.Join(work, "loader-trace.txt"),
+		`Local\miniapp-bridge-loader-active`,
 	)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -174,11 +194,14 @@ const loaderFixtureTemplate = `
 typedef struct mb_device mb_device; typedef struct mb_session mb_session; typedef struct mb_script mb_script;
 typedef struct { uint32_t pid; uint32_t ppid; char *name; char *path; } mb_process;
 typedef void (*mb_message_cb)(uintptr_t,char*,uint8_t*,size_t); typedef void (*mb_detached_cb)(uintptr_t,int);
+#ifndef MB_ZLIB_DELAY
+#define MB_ZLIB_DELAY() ((void)0)
+#endif
 __declspec(dllexport) uint32_t mb_abi_version(void){return 1;}
 __declspec(dllexport) const char *mb_native_version(void){return "17.3.2-abi1";}
 __declspec(dllexport) const char *mb_frida_core_version(void){return "17.3.2";}
 __declspec(dllexport) const char *mb_zlib_version(void){return "%s";}
-__declspec(dllexport) int mb_zlib_compress(const uint8_t*i,size_t n,uint8_t**o,size_t*s,char**e){(void)e;*o=(uint8_t*)malloc(n?n:1);if(!*o)return 0;if(n)memcpy(*o,i,n);*s=n;return 1;}
+__declspec(dllexport) int mb_zlib_compress(const uint8_t*i,size_t n,uint8_t**o,size_t*s,char**e){(void)e;MB_ZLIB_DELAY();*o=(uint8_t*)malloc(n?n:1);if(!*o)return 0;if(n)memcpy(*o,i,n);*s=n;return 1;}
 __declspec(dllexport) int mb_zlib_decompress(const uint8_t*i,size_t n,size_t x,size_t m,uint8_t**o,size_t*s,char**e){(void)x;(void)m;return mb_zlib_compress(i,n,o,s,e);}
 __declspec(dllexport) void mb_bytes_free(uint8_t*b){free(b);}
 __declspec(dllexport) mb_device *mb_device_open(char **e){(void)e;return (mb_device*)1;}
@@ -203,11 +226,14 @@ typedef struct mb_device mb_device; typedef struct mb_session mb_session; typede
 typedef struct { uint32_t pid; uint32_t ppid; char *name; char *path; } mb_process;
 typedef void (*mb_message_cb)(uintptr_t,char*,uint8_t*,size_t); typedef void (*mb_detached_cb)(uintptr_t,int);
 %s
+#ifndef MB_ZLIB_DELAY
+#define MB_ZLIB_DELAY() ((void)0)
+#endif
 __declspec(dllexport) uint32_t mb_abi_version(void){return %s;}
 __declspec(dllexport) const char *mb_native_version(void){return %s;}
 __declspec(dllexport) const char *mb_frida_core_version(void){return %s;}
 __declspec(dllexport) const char *mb_zlib_version(void){return %s;}
-__declspec(dllexport) int mb_zlib_compress(const uint8_t*i,size_t n,uint8_t**o,size_t*s,char**e){(void)e;*o=(uint8_t*)malloc(n?n:1);if(!*o)return 0;if(n)memcpy(*o,i,n);*s=n;return 1;}
+__declspec(dllexport) int mb_zlib_compress(const uint8_t*i,size_t n,uint8_t**o,size_t*s,char**e){(void)e;MB_ZLIB_DELAY();*o=(uint8_t*)malloc(n?n:1);if(!*o)return 0;if(n)memcpy(*o,i,n);*s=n;return 1;}
 __declspec(dllexport) int mb_zlib_decompress(const uint8_t*i,size_t n,size_t x,size_t m,uint8_t**o,size_t*s,char**e){(void)x;(void)m;return mb_zlib_compress(i,n,o,s,e);}
 __declspec(dllexport) void mb_bytes_free(uint8_t*b){free(b);}
 __declspec(dllexport) mb_device *mb_device_open(char **e){(void)e;return (mb_device*)1;}
@@ -255,13 +281,22 @@ static DWORD WINAPI load_release_worker(LPVOID parameter) {
   }
   return 0;
 }
+static DWORD WINAPI active_call_worker(LPVOID parameter) {
+  (void)parameter;
+  uint8_t input[1] = {7}; uint8_t *output = NULL; size_t output_size = 0; char *error = NULL;
+  int ok = mb_zlib_compress(input, 1, &output, &output_size, &error);
+  if (error != NULL) mb_error_free(error);
+  if (output != NULL) mb_bytes_free(output);
+  return ok && output_size == 1 ? 0 : 1;
+}
 int wmain(int argc, wchar_t **argv) {
   char *error = NULL;
   int code = MB_NATIVE_LOAD_OK;
   uint8_t input[3] = {1,2,3}; uint8_t *output = NULL; size_t output_size = 0;
   HANDLE workers[8];
-  if (argc != 11) return 2;
-  if (_wputenv_s(L"MB_LOADER_TRACE", argv[10]) != 0) return 26;
+  if (argc != 13) return 2;
+  if (_wputenv_s(L"MB_LOADER_TRACE", argv[11]) != 0) return 26;
+  if (_wputenv_s(L"MB_LOADER_ACTIVE_EVENT", argv[12]) != 0) return 27;
   if (!mb_native_load(argv[1], &error, &code) || code != MB_NATIVE_LOAD_OK || !mb_native_load(argv[1], &error, &code) || code != MB_NATIVE_LOAD_OK) return 3;
   if (!mb_native_loaded()) return 4;
   if (!mb_native_retain_loaded()) return 13;
@@ -275,6 +310,25 @@ int wmain(int argc, wchar_t **argv) {
   if (error == NULL || strstr(error,"different native runtime") == NULL || code != MB_NATIVE_LOAD_ERROR_CONFLICT) return 7;
   mb_error_free(error); error = NULL;
   mb_native_release(); if (mb_native_loaded()) return 8;
+  HANDLE active_event = CreateEventW(NULL, TRUE, FALSE, argv[12]); if (active_event == NULL) return 28;
+  if (!mb_native_load(argv[1], &error, &code)) return 29;
+  HANDLE active_thread = CreateThread(NULL, 0, active_call_worker, NULL, 0, NULL); if (active_thread == NULL) return 30;
+  if (WaitForSingleObject(active_event, 2000) != WAIT_OBJECT_0) return 31;
+  mb_native_release(); if (!mb_native_loaded()) return 32;
+  if (WaitForSingleObject(active_thread, INFINITE) != WAIT_OBJECT_0) return 33;
+  DWORD active_result = 1; GetExitCodeThread(active_thread, &active_result); CloseHandle(active_thread); CloseHandle(active_event);
+  if (active_result != 0 || mb_native_loaded()) return 34;
+  if (!mb_native_load(argv[1], &error, &code)) return 35;
+  mb_device *device = mb_device_open(&error); if (device == NULL) return 36;
+  mb_session *session = mb_device_attach(device, 1, 0, NULL, &error); if (session == NULL) return 37;
+  mb_script *script = mb_session_load_script(session, "send(1)", 0, NULL, &error); if (script == NULL) return 38;
+  mb_native_release(); if (!mb_native_loaded()) return 39;
+  HANDLE blocked = CreateFileW(argv[1], GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, 0, NULL);
+  if (blocked != INVALID_HANDLE_VALUE) { CloseHandle(blocked); return 40; }
+  if (GetLastError() != ERROR_SHARING_VIOLATION) return 41;
+  if (!mb_script_unload(script, &error) || !mb_native_loaded()) return 42;
+  if (!mb_session_detach(session, &error) || !mb_native_loaded()) return 43;
+  mb_device_close(device); if (mb_native_loaded()) return 44;
   if (!expect_failure(argv[2],"zlib version mismatch",MB_NATIVE_LOAD_ERROR_VERSION)) return 9;
   if (!expect_failure(argv[3],"missing export: mb_script_post",MB_NATIVE_LOAD_ERROR_EXPORT)) return 10;
   if (!expect_failure(argv[4],"native runtime version mismatch",MB_NATIVE_LOAD_ERROR_VERSION)) return 17;
@@ -285,6 +339,7 @@ int wmain(int argc, wchar_t **argv) {
   if (!expect_failure(argv[9],"win32=126",MB_NATIVE_LOAD_ERROR_LOAD)) return 22;
   if (!expect_failure(L"","native runtime path is empty",MB_NATIVE_LOAD_ERROR_LOAD)) return 11;
   if (!expect_failure(L"Z:\\miniapp-bridge-does-not-exist\\missing.dll","LoadLibraryExW failed (win32=",MB_NATIVE_LOAD_ERROR_LOAD)) return 12;
+  if (!expect_failure(argv[10],"exactly one hard link",MB_NATIVE_LOAD_ERROR_LOAD)) return 45;
   for (int i = 0; i < 8; i++) workers[i] = CreateThread(NULL,0,load_release_worker,argv[1],0,NULL);
   if (WaitForMultipleObjects(8,workers,TRUE,INFINITE) != WAIT_OBJECT_0) return 23;
   for (int i = 0; i < 8; i++) { DWORD result = 1; GetExitCodeThread(workers[i],&result); CloseHandle(workers[i]); if (result != 0) return 24; }

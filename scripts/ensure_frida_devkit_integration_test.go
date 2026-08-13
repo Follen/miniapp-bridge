@@ -342,13 +342,117 @@ func TestFridaBootstrapRetriesTimedOutDownload(t *testing.T) {
 	assertNoFridaBootstrapTemps(t, cache)
 }
 
+func TestFridaBootstrapUsesHttpClientAndTarFallbacks(t *testing.T) {
+	fixture := makeFridaArchiveFixture(t)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write(fixture.data)
+	}))
+	defer server.Close()
+	root := t.TempDir()
+	programFiles := filepath.Join(root, "program-files")
+	if err := os.MkdirAll(filepath.Join(programFiles, "7-Zip"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(programFiles, "7-Zip", "7z.exe"), []byte("candidate"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	oldProgramFiles := os.Getenv("ProgramFiles")
+	if err := os.Setenv("ProgramFiles", programFiles); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Setenv("ProgramFiles", oldProgramFiles)
+	args := append(fridaBootstrapArgs(filepath.Join(root, "cache"), filepath.Join(root, "devkit"), server.URL, fixture),
+		"-ForceHttpClient", "-ForceTar")
+	output, err := runFridaBootstrap(args...)
+	if err != nil {
+		t.Fatalf("HttpClient/tar fallback failed: %v\n%s", err, output)
+	}
+	assertFridaFixtureInstalled(t, filepath.Join(root, "devkit"), fixture)
+}
+
+func TestFridaBootstrapLegacyProcessArgumentsAndCurlFailure(t *testing.T) {
+	fixture := makeFridaArchiveFixture(t)
+	fakeBin := filepath.Join(t.TempDir(), "bin")
+	if err := os.MkdirAll(fakeBin, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	buildFailingCurlFixture(t, filepath.Join(fakeBin, "curl.exe"))
+	oldPath := os.Getenv("PATH")
+	if err := os.Setenv("PATH", fakeBin+string(os.PathListSeparator)+oldPath); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Setenv("PATH", oldPath)
+	root := t.TempDir()
+	args := append(fridaBootstrapArgs(filepath.Join(root, "cache with spaces"), filepath.Join(root, "devkit with spaces"), "https://fixture.invalid/fail", fixture),
+		"-ForceLegacyProcessArguments", "-DownloadAttempts", "1", "-DownloadRetrySeconds", "0")
+	output, err := runFridaBootstrap(args...)
+	if err == nil || !strings.Contains(output, "curl.exe exited with code 23") {
+		t.Fatalf("curl failure was not reported: err=%v\n%s", err, output)
+	}
+}
+
+func TestFridaBootstrapCurlStderrDiagnostic(t *testing.T) {
+	fixture := makeFridaArchiveFixture(t)
+	fakeBin := filepath.Join(t.TempDir(), "bin")
+	if err := os.MkdirAll(fakeBin, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	buildFailingCurlStderrFixture(t, filepath.Join(fakeBin, "curl.exe"))
+	oldPath := os.Getenv("PATH")
+	if err := os.Setenv("PATH", fakeBin+string(os.PathListSeparator)+oldPath); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Setenv("PATH", oldPath)
+	root := t.TempDir()
+	args := append(fridaBootstrapArgs(filepath.Join(root, "cache"), filepath.Join(root, "devkit"), "https://fixture.invalid/fail", fixture),
+		"-DownloadAttempts", "1", "-DownloadRetrySeconds", "0")
+	output, err := runFridaBootstrap(args...)
+	if err == nil || !strings.Contains(output, "fixture curl stderr") {
+		t.Fatalf("curl stderr failure was not reported: err=%v\n%s", err, output)
+	}
+}
+
+func buildFailingCurlFixture(t *testing.T, output string) {
+	t.Helper()
+	source := filepath.Join(t.TempDir(), "main.go")
+	program := `package main
+import ("fmt"; "os")
+func main() { fmt.Println("fixture curl stdout"); os.Exit(23) }
+`
+	if err := os.WriteFile(source, []byte(program), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	// The stdout-only failure exercises the fallback diagnostic path.
+	command := exec.Command("go", "build", "-trimpath", "-o", output, source)
+	if buildOutput, err := command.CombinedOutput(); err != nil {
+		t.Fatalf("build failing curl fixture: %v\n%s", err, buildOutput)
+	}
+}
+
+func buildFailingCurlStderrFixture(t *testing.T, output string) {
+	t.Helper()
+	source := filepath.Join(t.TempDir(), "main.go")
+	program := `package main
+import ("fmt"; "os")
+func main() { fmt.Fprintln(os.Stderr, "fixture curl stderr"); os.Exit(23) }
+`
+	if err := os.WriteFile(source, []byte(program), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	command := exec.Command("go", "build", "-trimpath", "-o", output, source)
+	if buildOutput, err := command.CombinedOutput(); err != nil {
+		t.Fatalf("build failing stderr curl fixture: %v\n%s", err, buildOutput)
+	}
+}
+
 func TestFridaBootstrapHardTimeoutTerminatesHungCurl(t *testing.T) {
 	fixture := makeFridaArchiveFixture(t)
 	fakeBin := filepath.Join(t.TempDir(), "bin")
 	if err := os.MkdirAll(fakeBin, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	buildHangingCurlFixture(t, filepath.Join(fakeBin, "curl.exe"))
+	curlFixture := filepath.Join(fakeBin, "curl.exe")
+	buildHangingCurlFixture(t, curlFixture)
 	script := fridaBootstrapScriptPath()
 	for _, shell := range []string{"pwsh.exe", "powershell.exe"} {
 		shellPath, err := exec.LookPath(shell)
@@ -356,45 +460,79 @@ func TestFridaBootstrapHardTimeoutTerminatesHungCurl(t *testing.T) {
 			t.Logf("skipping unavailable shell %s", shell)
 			continue
 		}
-		t.Run(shell, func(t *testing.T) {
-			root := t.TempDir()
-			curlLog := filepath.Join(root, "curl-pids.log")
-			t.Setenv("FAKE_CURL_LOG", curlLog)
-			t.Setenv("PATH", fakeBin+string(os.PathListSeparator)+os.Getenv("PATH"))
-			cache := filepath.Join(root, "cache")
-			devkit := filepath.Join(root, "devkit")
-			args := append(fridaBootstrapArgs(cache, devkit, "https://fixture.invalid/hang", fixture),
-				"-DownloadAttempts", "2",
-				"-DownloadTimeoutSeconds", "1",
-				"-DownloadRetrySeconds", "0",
-			)
-			started := time.Now()
-			output, err := runFridaBootstrapScriptWithShell(shellPath, script, args...)
-			elapsed := time.Since(started)
-			if err == nil {
-				t.Fatalf("hung curl unexpectedly succeeded:\n%s", output)
-			}
-			if elapsed > 12*time.Second {
-				t.Fatalf("hung curl exceeded bounded runtime: %s\n%s", elapsed, output)
-			}
-			if !strings.Contains(output, "curl.exe exceeded hard timeout of 1s") ||
-				!strings.Contains(output, "Downloading fixture.tar.xz attempt=2/2") {
-				t.Fatalf("hard-timeout diagnostics are incomplete: err=%v elapsed=%s\n%s", err, elapsed, output)
-			}
-			pids, readErr := os.ReadFile(curlLog)
-			if readErr != nil {
-				t.Fatal(readErr)
-			}
-			lines := strings.Fields(string(pids))
-			if len(lines) != 4 {
-				t.Fatalf("hung curl process tree entries=%d want=4; log=%q", len(lines), pids)
-			}
-			for _, pid := range lines {
-				assertProcessAbsent(t, pid)
-			}
-			assertNoFridaBootstrapTemps(t, cache)
-		})
+		for _, scenario := range []struct {
+			name         string
+			extra        []string
+			fakeTaskkill bool
+			noChild      bool
+		}{
+			{name: "default"},
+			{name: "direct", extra: []string{"-ForceDirectProcessKill"}, noChild: true},
+			{name: "legacy-taskkill-timeout", extra: []string{"-ForceLegacyProcessTermination", "-TaskkillTimeoutMilliseconds", "1"}, fakeTaskkill: true, noChild: true},
+		} {
+			t.Run(shell+"/"+scenario.name, func(t *testing.T) {
+				taskkillFixture := filepath.Join(fakeBin, "taskkill.exe")
+				if scenario.fakeTaskkill {
+					if err := copyFridaFixture(curlFixture, taskkillFixture); err != nil {
+						t.Fatal(err)
+					}
+					defer os.Remove(taskkillFixture)
+				}
+				root := t.TempDir()
+				curlLog := filepath.Join(root, "curl-pids.log")
+				t.Setenv("FAKE_CURL_LOG", curlLog)
+				if scenario.noChild {
+					t.Setenv("FAKE_CURL_NO_CHILD", "1")
+				}
+				t.Setenv("PATH", fakeBin+string(os.PathListSeparator)+os.Getenv("PATH"))
+				cache := filepath.Join(root, "cache")
+				devkit := filepath.Join(root, "devkit")
+				args := append(fridaBootstrapArgs(cache, devkit, "https://fixture.invalid/hang", fixture),
+					"-DownloadAttempts", "2",
+					"-DownloadTimeoutSeconds", "1",
+					"-DownloadRetrySeconds", "0",
+				)
+				args = append(args, scenario.extra...)
+				started := time.Now()
+				output, err := runFridaBootstrapScriptWithShell(shellPath, script, args...)
+				elapsed := time.Since(started)
+				if err == nil {
+					t.Fatalf("hung curl unexpectedly succeeded:\n%s", output)
+				}
+				if elapsed > 12*time.Second {
+					t.Fatalf("hung curl exceeded bounded runtime: %s\n%s", elapsed, output)
+				}
+				if !strings.Contains(output, "curl.exe exceeded hard timeout of 1s") ||
+					!strings.Contains(output, "Downloading fixture.tar.xz attempt=2/2") {
+					t.Fatalf("hard-timeout diagnostics are incomplete: err=%v elapsed=%s\n%s", err, elapsed, output)
+				}
+				pids, readErr := os.ReadFile(curlLog)
+				if readErr != nil {
+					t.Fatal(readErr)
+				}
+				lines := strings.Fields(string(pids))
+				expectedEntries := 4
+				if scenario.noChild {
+					expectedEntries = 2
+				}
+				if len(lines) != expectedEntries {
+					t.Fatalf("hung curl process tree entries=%d want=%d; log=%q", len(lines), expectedEntries, pids)
+				}
+				for _, pid := range lines {
+					assertProcessAbsent(t, pid)
+				}
+				assertNoFridaBootstrapTemps(t, cache)
+			})
+		}
 	}
+}
+
+func copyFridaFixture(source, destination string) error {
+	data, err := os.ReadFile(source)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(destination, data, 0o755)
 }
 
 func buildHangingCurlFixture(t *testing.T, output string) {
@@ -410,11 +548,20 @@ import (
 )
 
 func main() {
-	child := exec.Command("ping.exe", "-n", "600", "127.0.0.1")
-	if err := child.Start(); err != nil { panic(err) }
+	if len(os.Args) > 1 && os.Args[1] == "/PID" {
+		command := exec.Command("C:\\Windows\\System32\\taskkill.exe", os.Args[1:]...)
+		_ = command.Run()
+		for { time.Sleep(time.Hour) }
+	}
 	file, err := os.OpenFile(os.Getenv("FAKE_CURL_LOG"), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
 	if err != nil { panic(err) }
 	_, _ = fmt.Fprintln(file, os.Getpid())
+	if os.Getenv("FAKE_CURL_NO_CHILD") == "1" {
+		_ = file.Close()
+		for { time.Sleep(time.Hour) }
+	}
+	child := exec.Command("ping.exe", "-n", "600", "127.0.0.1")
+	if err := child.Start(); err != nil { panic(err) }
 	_, _ = fmt.Fprintln(file, child.Process.Pid)
 	_ = file.Close()
 	for { time.Sleep(time.Hour) }

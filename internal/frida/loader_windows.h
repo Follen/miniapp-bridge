@@ -23,6 +23,7 @@ typedef void (*mb_detached_cb)(uintptr_t handle, int reason);
 #define MB_NATIVE_VERSION "17.3.2-abi1"
 #define MB_FRIDA_CORE_VERSION "17.3.2"
 #define MB_ZLIB_VERSION "1.3.1"
+#define MB_MAX_ZLIB_OUTPUT ((size_t)(256u * 1024u * 1024u))
 
 #define MB_NATIVE_LOAD_OK 0
 #define MB_NATIVE_LOAD_ERROR_LOAD 1

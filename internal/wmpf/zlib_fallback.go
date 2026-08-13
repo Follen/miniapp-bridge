@@ -24,13 +24,25 @@ func zlibCompress(data []byte) ([]byte, error) {
 	return output.Bytes(), nil
 }
 
-func zlibDecompress(data []byte) ([]byte, error) {
+func zlibDecompressPlatform(data []byte, _ int, maxOutput int) ([]byte, error) {
 	reader, err := zlib.NewReader(bytes.NewReader(data))
 	if err != nil {
 		return nil, err
 	}
 	defer reader.Close()
-	return io.ReadAll(reader)
+	output, err := io.ReadAll(io.LimitReader(reader, int64(maxOutput)))
+	if err != nil || len(output) < maxOutput {
+		return output, err
+	}
+	var extra [1]byte
+	n, err := reader.Read(extra[:])
+	if n != 0 {
+		output = append(output, extra[0])
+	}
+	if err == io.EOF {
+		err = nil
+	}
+	return output, err
 }
 
 func ZlibVersion() string { return "go-compress/zlib" }

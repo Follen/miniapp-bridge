@@ -5,9 +5,20 @@ import (
 	"errors"
 	"net"
 	"sync"
+	"time"
 )
 
-var ErrClientBackpressure = errors.New("client outbound queue is full")
+var (
+	ErrClientBackpressure     = errors.New("client outbound queue is full")
+	ErrListenerAlreadyStarted = errors.New("listener already started")
+	ErrListenerClosed         = errors.New("listener is closed")
+)
+
+const (
+	listenerErrorBuffer     = 8
+	initialAcceptRetryDelay = 5 * time.Millisecond
+	maximumAcceptRetryDelay = time.Second
+)
 
 type Client interface {
 	Send([]byte) error
@@ -89,57 +100,200 @@ type Listener struct {
 	Addr    string
 	ln      net.Listener
 	stop    chan struct{}
-	wg      sync.WaitGroup
 	Handler func(net.Conn)
 	listen  func(string, string) (net.Listener, error)
+
+	stateMu        sync.Mutex
+	started        bool
+	closed         bool
+	acceptErr      error
+	closeErr       error
+	acceptWG       sync.WaitGroup
+	handlerWG      sync.WaitGroup
+	connMu         sync.Mutex
+	conns          map[net.Conn]struct{}
+	closeOnce      sync.Once
+	errorCloseOnce sync.Once
+	errors         chan error
 }
 
 func NewListener(addr string, h func(net.Conn)) *Listener {
-	return &Listener{Addr: addr, stop: make(chan struct{}), Handler: h, listen: net.Listen}
+	return &Listener{
+		Addr:    addr,
+		stop:    make(chan struct{}),
+		Handler: h,
+		listen:  net.Listen,
+		errors:  make(chan error, listenerErrorBuffer),
+		conns:   make(map[net.Conn]struct{}),
+	}
 }
+
+// Errors reports accept failures that happen after Start succeeds. The stream
+// is bounded; when a consumer falls behind, the oldest pending error is
+// replaced so the latest listener failure remains observable.
+func (s *Listener) Errors() <-chan error { return s.errors }
+
 func (s *Listener) Start() error {
-	if s.ln != nil {
-		return errors.New("listener already started")
+	s.stateMu.Lock()
+	defer s.stateMu.Unlock()
+	if s.closed {
+		return ErrListenerClosed
+	}
+	if s.started {
+		return ErrListenerAlreadyStarted
 	}
 	ln, err := s.listen("tcp", s.Addr)
 	if err != nil {
 		return err
 	}
 	s.ln = ln
-	s.wg.Add(1)
-	go s.accept()
+	s.started = true
+	s.acceptWG.Add(1)
+	go s.accept(ln, s.Handler)
 	return nil
 }
-func (s *Listener) accept() {
-	defer s.wg.Done()
+
+func (s *Listener) accept(ln net.Listener, handler func(net.Conn)) {
+	defer s.acceptWG.Done()
+	defer s.closeErrorStream()
+	var retryDelay time.Duration
 	for {
-		c, err := s.ln.Accept()
+		c, err := ln.Accept()
 		if err != nil {
+			if s.stopping() {
+				return
+			}
+			s.reportAcceptError(err)
+			if !retryableAcceptError(err) {
+				s.stateMu.Lock()
+				s.acceptErr = err
+				s.stateMu.Unlock()
+				return
+			}
+			retryDelay = nextAcceptRetryDelay(retryDelay)
 			select {
+			case <-time.After(retryDelay):
 			case <-s.stop:
 				return
-			default:
-				continue
 			}
+			continue
 		}
-		if s.Handler != nil {
-			go s.Handler(c)
-		} else {
-			go func() { _, _ = bufio.NewReader(c).ReadBytes('\n'); _ = c.Close() }()
-		}
+		retryDelay = 0
+		s.connMu.Lock()
+		s.conns[c] = struct{}{}
+		s.connMu.Unlock()
+		s.handlerWG.Add(1)
+		go s.handle(c, handler)
 	}
 }
-func (s *Listener) Close() error {
+
+func (s *Listener) handle(c net.Conn, handler func(net.Conn)) {
+	defer s.handlerWG.Done()
+	defer func() {
+		s.connMu.Lock()
+		delete(s.conns, c)
+		s.connMu.Unlock()
+	}()
+	if handler != nil {
+		handler(c)
+		return
+	}
+	_, _ = bufio.NewReader(c).ReadBytes('\n')
+	_ = c.Close()
+}
+
+func (s *Listener) closeConnections() {
+	s.connMu.Lock()
+	conns := make([]net.Conn, 0, len(s.conns))
+	for c := range s.conns {
+		conns = append(conns, c)
+	}
+	s.connMu.Unlock()
+	for _, c := range conns {
+		_ = c.Close()
+	}
+}
+
+func (s *Listener) stopping() bool {
 	select {
 	case <-s.stop:
+		return true
 	default:
+		return false
+	}
+}
+
+func retryableAcceptError(err error) bool {
+	if errors.Is(err, net.ErrClosed) {
+		return false
+	}
+	var netErr net.Error
+	if !errors.As(err, &netErr) {
+		// Preserve the previous retry behavior for custom listeners whose errors
+		// do not expose net.Error's transient classification.
+		return true
+	}
+	return netErr.Timeout() || netErr.Temporary()
+}
+
+func nextAcceptRetryDelay(current time.Duration) time.Duration {
+	if current == 0 {
+		return initialAcceptRetryDelay
+	}
+	next := current * 2
+	if next > maximumAcceptRetryDelay {
+		return maximumAcceptRetryDelay
+	}
+	return next
+}
+
+func (s *Listener) reportAcceptError(err error) {
+	select {
+	case s.errors <- err:
+		return
+	default:
+	}
+	select {
+	case <-s.errors:
+	default:
+	}
+	select {
+	case s.errors <- err:
+	default:
+	}
+}
+
+func (s *Listener) closeErrorStream() {
+	s.errorCloseOnce.Do(func() { close(s.errors) })
+}
+
+func (s *Listener) Close() error {
+	s.closeOnce.Do(func() {
+		s.stateMu.Lock()
+		s.closed = true
 		close(s.stop)
-	}
-	if s.ln != nil {
-		_ = s.ln.Close()
-	}
-	s.wg.Wait()
-	return nil
+		ln := s.ln
+		s.stateMu.Unlock()
+
+		var listenerErr error
+		if ln != nil {
+			listenerErr = ln.Close()
+			if errors.Is(listenerErr, net.ErrClosed) {
+				listenerErr = nil
+			}
+		}
+		s.acceptWG.Wait()
+		s.closeConnections()
+		s.handlerWG.Wait()
+		s.closeErrorStream()
+
+		s.stateMu.Lock()
+		s.closeErr = errors.Join(listenerErr, s.acceptErr)
+		s.stateMu.Unlock()
+	})
+	s.stateMu.Lock()
+	defer s.stateMu.Unlock()
+	return s.closeErr
 }
 func StartDefaultListeners(debug, cdp func(net.Conn)) (*Listener, *Listener, error) {
 	return startListeners("127.0.0.1:9421", "127.0.0.1:62000", debug, cdp)

@@ -50,15 +50,16 @@ func TestGitHubReleaseWorkflowSecurityContract(t *testing.T) {
 	}
 
 	allowedActions := map[string]bool{
-		"actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1":          true,
-		"actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e":          true,
-		"actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9":             true,
-		"actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a":   true,
-		"actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c": true,
+		"actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1":                true,
+		"actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e":                true,
+		"actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9":                   true,
+		"actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a":         true,
+		"actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c":       true,
+		"actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a": true,
 	}
 	uses := regexp.MustCompile(`(?m)^\s*-?\s*uses:\s*([^\s]+)(?:\s+#.*)?$`).FindAllStringSubmatch(workflow, -1)
-	if len(uses) != 5 {
-		t.Fatalf("release workflow actions=%d want 5", len(uses))
+	if len(uses) != 6 {
+		t.Fatalf("release workflow actions=%d want 6", len(uses))
 	}
 	for _, match := range uses {
 		if !allowedActions[match[1]] {
@@ -81,7 +82,9 @@ func TestGitHubReleaseWorkflowBuildAndVersionContract(t *testing.T) {
 		"git rev-list -n 1 \"refs/tags/$env:REQUESTED_TAG\"",
 		"checked out commit $sourceCommit does not match tag",
 		"go mod verify",
-		"third_party/frida/devkit-17.3.2",
+		"third_party/downloads/frida-core-devkit-17.3.2-windows-x86_64.tar.xz",
+		"GOVULNCHECK_VERSION: v1.6.0",
+		"CYCLONEDX_GOMOD_VERSION: v1.10.0",
 		"gcc.exe",
 		"ar.exe",
 		"Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
@@ -92,13 +95,27 @@ func TestGitHubReleaseWorkflowBuildAndVersionContract(t *testing.T) {
 		"if ($null -ne $LASTEXITCODE -and $LASTEXITCODE -ne 0) { throw \"release packaging failed with exit $LASTEXITCODE\" }",
 		"native_tag=native-v17.3.2-abi1",
 		"manifest.nativeVersion",
-		"native archive hash $nativeHash does not match SDK pin $env:NATIVE_ARCHIVE_SHA256",
+		"native archive hash $nativeHash does not match signed SDK pin $env:SIGNED_NATIVE_ARCHIVE_SHA256",
 		"ZLIB_ARCHIVE_SHA256: 17E88863F3600672AB49182F217281B6FC4D3C762BDE361935E436A95214D05C",
 		"${{ env.ZLIB_ARCHIVE_SHA256 }}-${{ hashFiles('go.sum') }}",
 		"Populate Frida devkit archive cache",
 		"gh release download $env:FRIDA_CORE_VERSION --repo frida/frida --pattern $asset --output $archive --clobber",
 		"sha256sum --check SHA256SUMS",
 		"if-no-files-found: error",
+		"Generate deterministic SBOM provenance and license set",
+		"provenance.intoto.json",
+		"production-release",
+		"Sign Windows artifacts and bind the signed native trust root",
+		"WINDOWS_SIGNING_PFX_BASE64: ${{ secrets.WINDOWS_SIGNING_PFX_BASE64 }}",
+		"WINDOWS_SIGNING_PFX_PASSWORD: ${{ secrets.WINDOWS_SIGNING_PFX_PASSWORD }}",
+		"WINDOWS_SIGNING_TIMESTAMP_URL: ${{ vars.WINDOWS_SIGNING_TIMESTAMP_URL }}",
+		"trust_release_signed.go",
+		"go build -tags 'frida,release_signed'",
+		"NativeArchiveSHA256 = \"$archiveHash\"",
+		"SIGNED_NATIVE_ARCHIVE_SHA256=$archiveHash",
+		"$env:SIGNED_NATIVE_ARCHIVE_SHA256",
+		"Get-AuthenticodeSignature -LiteralPath $path",
+		"TimeStamperCertificate",
 	})
 	if strings.Contains(workflow, "            third_party/zlib/src-1.3.1") {
 		t.Fatal("release workflow must not cache the extracted zlib source tree")
@@ -133,18 +150,18 @@ func TestGitHubReleaseWorkflowNativeArchiveHashMatchesSDK(t *testing.T) {
 	if len(workflowMatch) != 2 {
 		t.Fatal("release workflow lacks a pinned NATIVE_ARCHIVE_SHA256")
 	}
-	runtimeSource, err := os.ReadFile(filepath.Join("..", "internal", "native", "runtime.go"))
+	runtimeSource, err := os.ReadFile(filepath.Join("..", "internal", "native", "trust_default.go"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	runtimeMatch := regexp.MustCompile(`NativeArchiveSHA256\s*=\s*"([0-9A-F]{64})"`).FindSubmatch(runtimeSource)
 	if len(runtimeMatch) != 2 {
-		t.Fatal("internal/native/runtime.go lacks a pinned NativeArchiveSHA256")
+		t.Fatal("internal/native/trust_default.go lacks a pinned NativeArchiveSHA256")
 	}
 	if workflowMatch[1] != string(runtimeMatch[1]) {
 		t.Fatalf("release native archive SHA=%s, SDK pin=%s", workflowMatch[1], runtimeMatch[1])
 	}
-	const expected = "D7896B281026822E3B4A8CDCEFB5023285DFE4E82927D3EA2CE3082D46449230"
+	const expected = "A2F2BA223FA3803A90D1F16E5145C1D61FE2953EFEEB6AFBC6D912934F728EE6"
 	if workflowMatch[1] != expected {
 		t.Fatalf("release native archive SHA=%s, want pinned artifact %s", workflowMatch[1], expected)
 	}

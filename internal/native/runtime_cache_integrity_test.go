@@ -24,13 +24,13 @@ func TestDefaultManifestPinsOfficialDLL(t *testing.T) {
 	if manifest.Size != NativeDLLSize {
 		t.Fatalf("default size=%d constant=%d", manifest.Size, NativeDLLSize)
 	}
-	if NativeDLLSize != 67788800 {
+	if NativeDLLSize != 67789312 {
 		t.Fatalf("default size=%d", manifest.Size)
 	}
 	if manifest.SHA256 != NativeDLLSHA256 {
 		t.Fatalf("default sha256=%q constant=%q", manifest.SHA256, NativeDLLSHA256)
 	}
-	if NativeDLLSHA256 != "700D4DACD175D3E8B212EAD6C38FE151CB80B855660CAB24DD87C5AEDB13EBBD" {
+	if NativeDLLSHA256 != "8C2C32BC5AC4F5D2E96AF10BFD2A6C1450D688DA91157B065E497B102945812C" {
 		t.Fatalf("default sha256=%q", manifest.SHA256)
 	}
 }

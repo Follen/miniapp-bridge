@@ -7,6 +7,7 @@ import (
 	"github.com/Follen/miniapp-bridge/internal/process"
 	"github.com/Follen/miniapp-bridge/internal/version"
 	"path/filepath"
+	"time"
 )
 
 type MetadataDevice interface {
@@ -20,6 +21,9 @@ type Bootstrap struct {
 	Configs   map[int]version.AddressConfig
 	Agent     func(version.AddressConfig) string
 	OnMessage func(Message)
+	// BindTarget is injected by production callers so target selection is
+	// checked against the exact process instance before Frida attaches.
+	BindTarget func(context.Context, process.Process) (process.Process, error)
 }
 
 func (b Bootstrap) Attach(ctx context.Context) (Session, Script, process.Process, error) {
@@ -43,6 +47,17 @@ func (b Bootstrap) Attach(ctx context.Context) (Session, Script, process.Process
 	}
 	if target.Version == 0 {
 		return nil, nil, target, fmt.Errorf("[frida] error in find wmpf version")
+	}
+	if b.BindTarget != nil {
+		bound, bindErr := b.BindTarget(ctx, target)
+		if bindErr != nil {
+			return nil, nil, target, fmt.Errorf("[frida] target identity rejected: %w", bindErr)
+		}
+		target = bound
+	} else {
+		// Keep the core package usable with synthetic/in-memory devices while
+		// production SDK callers opt into the platform identity binder.
+		target.Identity.DiscoveredAt = time.Now().UTC()
 	}
 	var cfg version.AddressConfig
 	if b.ConfigDir != "" {

@@ -30,3 +30,39 @@ func TestBuildWindowsExportCheckUsesStructuredSetComparison(t *testing.T) {
 		t.Fatal("build script must not apply -notmatch directly to the output array")
 	}
 }
+
+func TestBuildWindowsCompilesExecutableAgainstGeneratedNativeTrustRoot(t *testing.T) {
+	root := filepath.Clean("..")
+	data, err := os.ReadFile(filepath.Join(root, "scripts", "build-windows.ps1"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	script := string(data)
+	markers := []string{
+		"& $PSScriptRoot\\native-release.ps1",
+		"internal\\native\\trust_native_generated.go",
+		"//go:build native_generated && !release_signed",
+		"go test -tags 'frida,native_generated' ./internal/native ./sdk -run '^$'",
+		"go build -tags 'frida,native_generated' -trimpath -o dist/miniapp-bridge.exe",
+		"Remove-Item -LiteralPath $generatedTrust -Force -ErrorAction SilentlyContinue",
+	}
+	previous := -1
+	for _, marker := range markers {
+		index := strings.Index(script, marker)
+		if index < 0 {
+			t.Fatalf("build script is missing generated trust-root contract %q", marker)
+		}
+		if index <= previous {
+			t.Fatalf("build script trust-root step %q is out of order", marker)
+		}
+		previous = index
+	}
+
+	defaultTrust, err := os.ReadFile(filepath.Join(root, "internal", "native", "trust_default.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(defaultTrust), "//go:build !release_signed && !native_generated") {
+		t.Fatal("default and generated native trust roots must have mutually exclusive build constraints")
+	}
+}

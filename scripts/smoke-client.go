@@ -5,6 +5,9 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
+	"net/http"
+	"net/url"
 	"os"
 	"sort"
 	"strings"
@@ -46,6 +49,8 @@ type receiveExpectation struct {
 	Method string
 }
 
+const contextReadyTimeout = 60 * time.Second
+
 type client struct {
 	conn      *websocket.Conn
 	nextID    atomic.Int64
@@ -59,13 +64,93 @@ type client struct {
 }
 
 func dial(url string) (*client, error) {
-	conn, _, err := websocket.DefaultDialer.Dial(url, nil)
+	conn, response, err := openWebSocket(url)
 	if err != nil {
-		return nil, err
+		return nil, handshakeError(err, response)
 	}
+	return newClient(conn), nil
+}
+
+func newClient(conn *websocket.Conn) *client {
 	c := &client{conn: conn, pending: make(map[int]pendingCall), done: make(chan struct{})}
 	go c.readLoop()
-	return c, nil
+	return c
+}
+
+func openWebSocket(endpoint string) (*websocket.Conn, *http.Response, error) {
+	parsed, err := url.Parse(endpoint)
+	if err != nil {
+		return nil, nil, fmt.Errorf("parse CDP WebSocket URL: %w", err)
+	}
+	scheme := "http"
+	if parsed.Scheme == "wss" {
+		scheme = "https"
+	}
+	headers := http.Header{"Origin": []string{scheme + "://" + parsed.Host}}
+	return websocket.DefaultDialer.Dial(endpoint, headers)
+}
+
+func handshakeError(err error, response *http.Response) error {
+	if response == nil {
+		return err
+	}
+	defer response.Body.Close()
+	body, _ := io.ReadAll(io.LimitReader(response.Body, 4096))
+	return fmt.Errorf("%w: HTTP %d: %s", err, response.StatusCode, strings.TrimSpace(string(body)))
+}
+
+func expectOwnerRejected(endpoint string) error {
+	conn, response, err := openWebSocket(endpoint)
+	if conn != nil {
+		_ = conn.Close()
+		return errors.New("second CDP controller unexpectedly connected")
+	}
+	if err == nil || response == nil {
+		return fmt.Errorf("second CDP controller rejection err=%v response=%v", err, response)
+	}
+	defer response.Body.Close()
+	var body struct {
+		Error struct {
+			Code string `json:"code"`
+		} `json:"error"`
+	}
+	if response.StatusCode != http.StatusConflict {
+		return handshakeError(err, response)
+	}
+	if decodeErr := json.NewDecoder(response.Body).Decode(&body); decodeErr != nil {
+		return fmt.Errorf("decode second-controller rejection: %w", decodeErr)
+	}
+	if body.Error.Code != "owner_exists" {
+		return fmt.Errorf("second-controller rejection code=%q want owner_exists", body.Error.Code)
+	}
+	return nil
+}
+
+func dialAfterOwnerRelease(endpoint string, timeout time.Duration) (*client, error) {
+	deadline := time.Now().Add(timeout)
+	for {
+		conn, response, err := openWebSocket(endpoint)
+		if err == nil {
+			return newClient(conn), nil
+		}
+		if response == nil {
+			return nil, err
+		}
+		var body struct {
+			Error struct {
+				Code string `json:"code"`
+			} `json:"error"`
+		}
+		decodeErr := json.NewDecoder(io.LimitReader(response.Body, 4096)).Decode(&body)
+		_ = response.Body.Close()
+		if response.StatusCode != http.StatusConflict || decodeErr != nil || body.Error.Code != "owner_exists" {
+			return nil, fmt.Errorf("CDP reconnect handshake: %w: HTTP %d code=%q decode=%v", err, response.StatusCode, body.Error.Code, decodeErr)
+		}
+		if time.Now().After(deadline) {
+			return nil, errors.New("CDP owner was not released before reconnect timeout")
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
 }
 
 func (c *client) readLoop() {
@@ -149,10 +234,40 @@ func (c *client) call(method string, params any, timeout time.Duration) (envelop
 	case <-time.After(timeout):
 		return envelope{}, fmt.Errorf("%s: response id %d timed out", method, id)
 	case <-c.done:
+		// The reader closes done after recording any frame already received. A
+		// response and connection-close notification can therefore become ready
+		// together; drain the buffered response first so callers observe the
+		// protocol error instead of a misleading transport EOF.
+		select {
+		case msg := <-response:
+			if msg.Error != nil {
+				return msg, fmt.Errorf("%s: CDP error %d: %s", method, msg.Error.Code, msg.Error.Message)
+			}
+			return msg, nil
+		default:
+		}
 		c.mu.Lock()
 		err := c.readError
 		c.mu.Unlock()
 		return envelope{}, fmt.Errorf("%s: connection closed: %w", method, err)
+	}
+}
+
+func (c *client) enableRuntimeWhenContextReady(timeout time.Duration) (envelope, error) {
+	deadline := time.Now().Add(timeout)
+	for {
+		remaining := time.Until(deadline)
+		if remaining <= 0 {
+			return envelope{}, errors.New("Runtime.enable: JavaScript context was not selected before timeout")
+		}
+		response, err := c.call("Runtime.enable", map[string]any{}, remaining)
+		if err == nil {
+			return response, nil
+		}
+		if response.Error == nil || response.Error.Code != -32000 || response.Error.Message != "no JavaScript context is selected" {
+			return response, err
+		}
+		time.Sleep(min(50*time.Millisecond, remaining))
 	}
 }
 
@@ -258,7 +373,10 @@ func runLink(url string) error {
 		return err
 	}
 	defer c.close()
-	for _, method := range []string{"Runtime.enable", "Debugger.enable"} {
+	if _, err := c.enableRuntimeWhenContextReady(contextReadyTimeout); err != nil {
+		return err
+	}
+	for _, method := range []string{"Debugger.enable"} {
 		if _, err := c.call(method, map[string]any{}, 15*time.Second); err != nil {
 			return err
 		}
@@ -306,7 +424,13 @@ func runMatrix(url string) error {
 	initializerCheckpoint := c.receiveCount()
 	initializerOrder := make([]receiveExpectation, 0, len(initializers))
 	for _, init := range initializers {
-		response, err := c.call(init.method, init.params, 15*time.Second)
+		var response envelope
+		var err error
+		if init.method == "Runtime.enable" {
+			response, err = c.enableRuntimeWhenContextReady(contextReadyTimeout)
+		} else {
+			response, err = c.call(init.method, init.params, 15*time.Second)
+		}
 		if err != nil {
 			return err
 		}
@@ -778,6 +902,9 @@ func runMatrix(url string) error {
 	if _, _, err := c.event("Runtime.executionContextCreated", 0, 10*time.Second); err != nil {
 		return err
 	}
+	if err := expectOwnerRejected(url); err != nil {
+		return err
+	}
 	sort.Strings(methods)
 	firstEventCount := c.eventCount()
 	c.close()
@@ -787,13 +914,13 @@ func runMatrix(url string) error {
 		return errors.New("first CDP connection did not close")
 	}
 
-	reconnected, err := dial(url)
+	reconnected, err := dialAfterOwnerRelease(url, 5*time.Second)
 	if err != nil {
 		return fmt.Errorf("CDP reconnect: %w", err)
 	}
 	defer reconnected.close()
 	reconnectCheckpoint := reconnected.receiveCount()
-	reconnectEnable, err := reconnected.call("Runtime.enable", map[string]any{}, 15*time.Second)
+	reconnectEnable, err := reconnected.enableRuntimeWhenContextReady(contextReadyTimeout)
 	if err != nil {
 		return fmt.Errorf("CDP reconnect Runtime.enable: %w", err)
 	}
@@ -819,7 +946,7 @@ func runMatrix(url string) error {
 	}
 	correlationAssertions += 2
 
-	fmt.Printf("live-cdp-matrix: domains=Runtime,Debugger,Page,DOM,Network,Console,Performance init=%d objects=true exceptions=true console=Runtime.consoleAPICalled scripts=true pause-resume=true callframes=true long-bytes=%d concurrent=%d error-response=true contexts=true reconnect=true events=%d correlation=true correlation-assertions=%d received=%d reconnect-received=%d\n",
+	fmt.Printf("live-cdp-matrix: domains=Runtime,Debugger,Page,DOM,Network,Console,Performance init=%d objects=true exceptions=true console=Runtime.consoleAPICalled scripts=true pause-resume=true callframes=true long-bytes=%d concurrent=%d error-response=true contexts=true second-owner-rejected=true reconnect=true events=%d correlation=true correlation-assertions=%d received=%d reconnect-received=%d\n",
 		len(initializers), len(longValue), concurrent, firstEventCount, correlationAssertions,
 		c.receiveCount(), reconnected.receiveCount())
 	return nil
@@ -831,7 +958,10 @@ func runInteraction(url string) error {
 		return err
 	}
 	defer c.close()
-	for _, method := range []string{"Runtime.enable", "DOM.enable"} {
+	if _, err := c.enableRuntimeWhenContextReady(contextReadyTimeout); err != nil {
+		return err
+	}
+	for _, method := range []string{"DOM.enable"} {
 		if _, err := c.call(method, map[string]any{}, 15*time.Second); err != nil {
 			return err
 		}

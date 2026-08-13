@@ -15,6 +15,11 @@
 - 不能只因为存在 active change 就把无关任务挂到该 change。Native 的未提交改动由 Native 入口检查，不由探针自动归因。
 </comet-ambient-resume>
 
+## Git Worktree 目录约定
+
+- 所有新建的 Git linked worktree 统一放在仓库根目录的 `.worktree/<change-name>` 下，不使用仓库外目录或 `.worktrees/`。
+- `.worktree/` 必须写入 Git common-dir 的 `info/exclude`，不得提交其中的工作树内容。
+
 ## Windows Live Smoke：自动打开小程序
 
 执行 `scripts/smoke-windows.ps1` 时，Agent 应自行触发小程序加载。仅在 UIAutomation 无法唯一定位目标时再请用户操作。

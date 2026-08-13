@@ -183,6 +183,27 @@ func TestNativeReleaseArchiveContract(t *testing.T) {
 	}
 }
 
+func TestNativeReleaseSerializesOutputDirectory(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("scripts", "native-release.ps1"))
+	if err != nil {
+		data, err = os.ReadFile("native-release.ps1")
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(data)
+	for _, marker := range []string{
+		"$lockPath = Join-Path $out '.native-release.lock'",
+		"[IO.FileShare]::None",
+		"native release output lock timeout:",
+		"$releaseLock.Dispose()",
+	} {
+		if !strings.Contains(text, marker) {
+			t.Fatalf("native release lock contract missing %q", marker)
+		}
+	}
+}
+
 func verifySumFile(t *testing.T, path string, want map[string]string) {
 	t.Helper()
 	data, err := os.ReadFile(path)

@@ -31,7 +31,7 @@ func TestAuditNativeOwnershipDisconnectsCallbacksAndDeinitializesFrida(t *testin
 		"frida_unref(session->session)",
 		"g_signal_handlers_disconnect_by_data(script->script,script)",
 		"frida_unref(script->script)",
-		"frida_device_manager_close_sync(device->manager,NULL,NULL)",
+		"frida_device_manager_close_sync(device->manager,deadline.cancellable,NULL)",
 		"frida_unref(device->manager)",
 		"frida_deinit()",
 	}
@@ -48,6 +48,23 @@ func TestAuditNativeOwnershipDisconnectsCallbacksAndDeinitializesFrida(t *testin
 			t.Errorf("callback drain barrier missing %q", token)
 		}
 	}
+	if !strings.Contains(source, "static SRWLOCK mb_frida_runtime_lock = SRWLOCK_INIT") {
+		t.Error("Frida lifetime lock must be usable before frida_init initializes GLib")
+	}
+	if strings.Contains(source, "GMutex mb_frida_runtime") {
+		t.Error("Frida lifetime lock must not depend on GLib before frida_init")
+	}
+	assertOrderedTokens(t, source, "static gboolean mb_frida_acquire", []string{
+		"AcquireSRWLockExclusive(&mb_frida_runtime_lock)",
+		"frida_init()",
+		"ReleaseSRWLockExclusive(&mb_frida_runtime_lock)",
+	})
+	assertOrderedTokens(t, source, "void mb_runtime_shutdown", []string{
+		"AcquireSRWLockExclusive(&mb_frida_runtime_lock)",
+		"g_atomic_int_get(&mb_frida_initialized) != 0",
+		"frida_deinit()",
+		"ReleaseSRWLockExclusive(&mb_frida_runtime_lock)",
+	})
 }
 
 func TestAuditNativeCleanupDoesNotTerminateAttachedProcess(t *testing.T) {
@@ -65,7 +82,9 @@ func TestAuditNativeCleanupDoesNotTerminateAttachedProcess(t *testing.T) {
 	assertOrderedTokens(t, source, "mb_script_unload", []string{
 		"mb_callback_owner_close(&script->callback)",
 		"g_signal_handlers_disconnect_by_data(script->script,script)",
-		"frida_script_unload_sync(script->script,NULL,&e)",
+		"mb_native_deadline_start(&deadline,error)",
+		"frida_script_unload_sync(script->script,deadline.cancellable,&e)",
+		"mb_native_deadline_stop(&deadline)",
 		"mb_callback_owner_drain(&script->callback)",
 		"frida_unref(script->script)",
 		"mb_callback_owner_clear(&script->callback)",
@@ -74,12 +93,26 @@ func TestAuditNativeCleanupDoesNotTerminateAttachedProcess(t *testing.T) {
 	assertOrderedTokens(t, source, "mb_session_detach", []string{
 		"mb_callback_owner_close(&session->callback)",
 		"g_signal_handlers_disconnect_by_data(session->session,session)",
-		"frida_session_detach_sync(session->session,NULL,&e)",
+		"mb_native_deadline_start(&deadline,error)",
+		"frida_session_detach_sync(session->session,deadline.cancellable,&e)",
+		"mb_native_deadline_stop(&deadline)",
 		"mb_callback_owner_drain(&session->callback)",
 		"frida_unref(session->session)",
 		"mb_callback_owner_clear(&session->callback)",
 		"free(session)",
 	})
+	for _, token := range []string{
+		"#define MB_NATIVE_DEADLINE_MS 15000u",
+		"mb_native_deadline_worker",
+		"g_cancellable_cancel(deadline->cancellable)",
+		"CreateThread(NULL, 0, mb_native_deadline_worker",
+		"WaitForSingleObject(deadline->thread, INFINITE)",
+		"g_object_unref(deadline->cancellable)",
+	} {
+		if !strings.Contains(source, token) {
+			t.Errorf("native deadline contract missing %q", token)
+		}
+	}
 	assertOrderedTokens(t, source, "mb_on_message", []string{
 		"mb_callback_owner_enter(&owner->callback, &handle)",
 		"owner->message(handle",
@@ -92,7 +125,7 @@ func TestAuditNativeCleanupDoesNotTerminateAttachedProcess(t *testing.T) {
 	})
 	assertOrderedTokens(t, source, "mb_device_close", []string{
 		"frida_unref(device->device)",
-		"frida_device_manager_close_sync(device->manager,NULL,NULL)",
+		"frida_device_manager_close_sync(device->manager,deadline.cancellable,NULL)",
 		"frida_unref(device->manager)",
 		"free(device)",
 		"mb_frida_release()",
@@ -177,9 +210,19 @@ func TestAuditNativeLoaderDiagnosticsAndReferenceCounting(t *testing.T) {
 		"_wcsicmp(g_path, path) == 0", "g_refs++", "g_refs = 1",
 	})
 	assertOrderedTokens(t, loader, "void mb_native_release", []string{
-		"if (g_refs > 0) g_refs--", "if (g_refs == 0 && g_module != NULL)",
-		"g_module = NULL", "free(g_path)", "p_runtime_shutdown()", "clear_functions()", "FreeLibrary(module)",
+		"if (g_refs > 0) g_refs--", "unload_if_idle_locked()",
 	})
+	assertOrderedTokens(t, loader, "static void unload_if_idle_locked", []string{
+		"g_refs != 0", "g_device_leases != 0", "g_session_leases != 0", "g_script_leases != 0", "g_active_calls != 0",
+		"g_module = NULL", "g_guard = INVALID_HANDLE_VALUE", "free(g_path)", "free(g_final_path)",
+		"p_runtime_shutdown()", "clear_functions()", "FreeLibrary(module)", "CloseHandle(guard)",
+	})
+	if !strings.Contains(loader, "normalized_path_copy") || !strings.Contains(loader, "UNC") {
+		t.Error("native loader must normalize extended DOS and UNC final paths before identity comparison")
+	}
+	if !strings.Contains(loader, "native_size > MB_MAX_ZLIB_OUTPUT") || !strings.Contains(loader, "native_size > m") {
+		t.Error("native zlib bridge must bound output before copying it")
+	}
 	assertOrderedTokens(t, loader, "int mb_native_loaded", []string{
 		"ensure_lock()", "EnterCriticalSection(&g_lock)", "g_module != NULL", "LeaveCriticalSection(&g_lock)",
 	})

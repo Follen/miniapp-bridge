@@ -8,7 +8,8 @@ param(
     [string]$FridaLibraryLicenseFile = '',
     [string]$ZlibLicenseFile = '',
     [string]$ThirdPartyNoticesFile = '',
-    [string]$DumpbinPath = ''
+    [string]$DumpbinPath = '',
+    [ValidateRange(1, 600)][int]$LockTimeoutSeconds = 120
 )
 
 $ErrorActionPreference = 'Stop'
@@ -119,6 +120,16 @@ if ($missingExports.Count -ne 0 -or $unexpectedExports.Count -ne 0) {
 }
 
 New-Item -ItemType Directory -Force -Path $out | Out-Null
+$lockPath = Join-Path $out '.native-release.lock'
+$releaseLock = $null
+$lockTimer = [Diagnostics.Stopwatch]::StartNew()
+while ($null -eq $releaseLock) {
+    try { $releaseLock = [IO.File]::Open($lockPath, [IO.FileMode]::OpenOrCreate, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None) }
+    catch [IO.IOException] {
+        if ($lockTimer.Elapsed.TotalSeconds -ge $LockTimeoutSeconds) { throw "native release output lock timeout: $lockPath" }
+        Start-Sleep -Milliseconds 100
+    }
+}
 $stage = Join-Path $out ".native-release-$([guid]::NewGuid().ToString('N'))"
 $asset = "miniapp-frida-native-$Version-windows-amd64.zip"
 $archive = Join-Path $out $asset
@@ -188,4 +199,8 @@ finally {
         if ($partial) { Remove-Item -LiteralPath $partial -Force -ErrorAction SilentlyContinue }
     }
     if (Test-Path -LiteralPath $stage) { Remove-Item -LiteralPath $stage -Recurse -Force -ErrorAction SilentlyContinue }
+    if ($null -ne $releaseLock) {
+        $releaseLock.Dispose()
+        Remove-Item -LiteralPath $lockPath -Force -ErrorAction SilentlyContinue
+    }
 }

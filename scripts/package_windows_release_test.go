@@ -12,6 +12,7 @@ import (
 	"runtime"
 	"sort"
 	"strings"
+	"syscall"
 	"testing"
 )
 
@@ -136,6 +137,64 @@ func TestPackageWindowsReleaseFirstFailureLeavesNoFinalBundle(t *testing.T) {
 			assertNoWindowsReleaseTemps(t, fixture.output)
 		})
 	}
+}
+
+func TestPackageWindowsReleaseLockAndJournalRecovery(t *testing.T) {
+	t.Run("lock", func(t *testing.T) {
+		fixture := newWindowsReleaseFixture(t)
+		lockPath := filepath.Join(filepath.Dir(fixture.output), ".release.update.lock")
+		if err := os.WriteFile(lockPath, nil, 0o600); err != nil {
+			t.Fatal(err)
+		}
+		name, err := syscall.UTF16PtrFromString(lockPath)
+		if err != nil {
+			t.Fatal(err)
+		}
+		handle, err := syscall.CreateFile(name, syscall.GENERIC_READ|syscall.GENERIC_WRITE, 0, nil, syscall.OPEN_EXISTING, syscall.FILE_ATTRIBUTE_NORMAL, 0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		output, runErr := fixture.run("v0.0.1")
+		if err := syscall.CloseHandle(handle); err != nil {
+			t.Fatal(err)
+		}
+		if runErr == nil || !strings.Contains(output, "release output lock is already held") {
+			t.Fatalf("package lock did not reject a concurrent writer: %v\n%s", runErr, output)
+		}
+	})
+
+	t.Run("journal", func(t *testing.T) {
+		fixture := newWindowsReleaseFixture(t)
+		if output, err := fixture.run("v0.0.1"); err != nil {
+			t.Fatalf("initial package failed: %v\n%s", err, output)
+		}
+		original := snapshotReleaseBundle(t, fixture.output)
+		parent := filepath.Dir(fixture.output)
+		backup := filepath.Join(parent, ".release.crash-backup")
+		if err := os.Rename(fixture.output, backup); err != nil {
+			t.Fatal(err)
+		}
+		journal, err := json.Marshal(map[string]string{
+			"phase": "backup", "stage": filepath.Join(parent, ".release.crash-stage"),
+			"backup": backup, "discard": filepath.Join(parent, ".release.crash-discard"),
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(parent, ".release.transaction.json"), journal, 0o600); err != nil {
+			t.Fatal(err)
+		}
+		output, runErr := fixture.run("v0.0.1", "DuringStage")
+		if runErr == nil || !strings.Contains(output, "injected release packaging failure: DuringStage") {
+			t.Fatalf("post-recovery failure was not injected: %v\n%s", runErr, output)
+		}
+		if got := snapshotReleaseBundle(t, fixture.output); !reflect.DeepEqual(got, original) {
+			t.Fatal("journal recovery did not restore the previous bundle")
+		}
+		if _, err := os.Stat(filepath.Join(parent, ".release.transaction.json")); !os.IsNotExist(err) {
+			t.Fatalf("transaction journal remains: %v", err)
+		}
+	})
 }
 
 func TestPackageWindowsReleaseRejectsInvalidInputs(t *testing.T) {

@@ -184,6 +184,26 @@ if (Test-Path -LiteralPath $out -PathType Leaf) {
     throw "output directory is a file: $out"
 }
 
+$lockPath = Join-Path $outParent ".$outLeaf.update.lock"
+$journalPath = Join-Path $outParent ".$outLeaf.transaction.json"
+$packageLock = $null
+try {
+    $packageLock = [IO.File]::Open($lockPath, [IO.FileMode]::OpenOrCreate, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
+}
+catch [IO.IOException] {
+    throw "release output lock is already held: $lockPath"
+}
+
+function Write-AtomicJSON {
+    param([string]$Path, [object]$Value)
+    $temporary = "$Path.$([guid]::NewGuid().ToString('N')).partial"
+    try {
+        [IO.File]::WriteAllText($temporary, ($Value | ConvertTo-Json -Compress), [Text.UTF8Encoding]::new($false))
+        Move-Item -LiteralPath $temporary -Destination $Path -Force
+    }
+    finally { Remove-Item -LiteralPath $temporary -Force -ErrorAction SilentlyContinue }
+}
+
 $operationID = [Guid]::NewGuid().ToString('N')
 $stage = Join-Path $outParent ".$outLeaf.staging-$operationID"
 $backup = Join-Path $outParent ".$outLeaf.backup-$operationID"
@@ -200,8 +220,19 @@ $stageCompatSums = Join-Path $stageCompat 'SHA256SUMS'
 $hadExisting = Test-Path -LiteralPath $out -PathType Container
 $oldMoved = $false
 $newPublished = $false
+$transactionResolved = $false
 
 try {
+    if (Test-Path -LiteralPath $journalPath -PathType Leaf) {
+        $recovery = Get-Content -LiteralPath $journalPath -Raw | ConvertFrom-Json
+        if ($recovery.phase -in @('backup', 'publish') -and $recovery.backup -and (Test-Path -LiteralPath $recovery.backup -PathType Container)) {
+            if (Test-Path -LiteralPath $out -PathType Container) { Remove-Item -LiteralPath $out -Recurse -Force }
+            Move-Item -LiteralPath $recovery.backup -Destination $out -Force
+        }
+        if ($recovery.stage -and (Test-Path -LiteralPath $recovery.stage)) { Remove-Item -LiteralPath $recovery.stage -Recurse -Force }
+        if ($recovery.discard -and (Test-Path -LiteralPath $recovery.discard)) { Remove-Item -LiteralPath $recovery.discard -Recurse -Force }
+        Remove-Item -LiteralPath $journalPath -Force
+    }
     New-Item -ItemType Directory -Path $stage | Out-Null
     New-Item -ItemType Directory -Path $stageProductContents | Out-Null
     New-Item -ItemType Directory -Path $stageCompat | Out-Null
@@ -244,20 +275,26 @@ try {
         throw 'native compatibility asset differs from the primary native asset'
     }
     Invoke-TestFailure -Point 'AfterStage'
+    Write-AtomicJSON -Path $journalPath -Value ([ordered]@{ phase = 'stage'; stage = $stage; backup = $backup; discard = $discard })
 
     if ($hadExisting) {
+        Write-AtomicJSON -Path $journalPath -Value ([ordered]@{ phase = 'backup'; stage = $stage; backup = $backup; discard = $discard })
         Move-Item -LiteralPath $out -Destination $backup
         $oldMoved = $true
     }
     Invoke-TestFailure -Point 'AfterBackup'
     Move-Item -LiteralPath $stage -Destination $out
     $newPublished = $true
+    Write-AtomicJSON -Path $journalPath -Value ([ordered]@{ phase = 'publish'; stage = $stage; backup = $backup; discard = $discard })
     Invoke-TestFailure -Point 'AfterPublish'
 
     if ($oldMoved) {
         Remove-Item -LiteralPath $backup -Recurse -Force
         $oldMoved = $false
     }
+    Write-AtomicJSON -Path $journalPath -Value ([ordered]@{ phase = 'cleanup'; stage = ''; backup = ''; discard = '' })
+    Remove-Item -LiteralPath $journalPath -Force -ErrorAction SilentlyContinue
+    $transactionResolved = $true
 
     $productAsset = Join-Path $out $productAssetName
     $publishedNative = Join-Path $out $nativeAssetName
@@ -284,6 +321,8 @@ catch {
         if (Test-Path -LiteralPath $discard) {
             Remove-Item -LiteralPath $discard -Recurse -Force
         }
+        Remove-Item -LiteralPath $journalPath -Force -ErrorAction SilentlyContinue
+        $transactionResolved = $true
     }
     catch {
         throw "release packaging failed and rollback failed: $($failure.Exception.Message); rollback: $($_.Exception.Message)"
@@ -300,5 +339,12 @@ finally {
     }
     if ((Test-Path -LiteralPath $backup) -and -not $oldMoved) {
         Remove-Item -LiteralPath $backup -Recurse -Force -ErrorAction SilentlyContinue
+    }
+    if ($transactionResolved) {
+        Remove-Item -LiteralPath $journalPath -Force -ErrorAction SilentlyContinue
+    }
+    if ($null -ne $packageLock) {
+        $packageLock.Dispose()
+        Remove-Item -LiteralPath $lockPath -Force -ErrorAction SilentlyContinue
     }
 }

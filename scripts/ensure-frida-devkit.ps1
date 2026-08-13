@@ -8,6 +8,19 @@ param(
     [int]$DownloadTimeoutSeconds = 300,
     [ValidateRange(0, 60)]
     [int]$DownloadRetrySeconds = 5,
+    [switch]$ForceHttpClient,
+    [switch]$ForceTar,
+    [switch]$ForceLegacyProcessArguments,
+    [switch]$ForceSevenZipCandidateDiscovery,
+    [string]$SevenZipCandidatePath,
+    [switch]$ForceLegacyProcessTermination,
+    [switch]$ForceDirectProcessKill,
+    [ValidateRange(1, 5000)]
+    [int]$TaskkillTimeoutMilliseconds = 5000,
+    [switch]$DriftArchiveAfterValidation,
+    [switch]$FailAfterPublish,
+    [switch]$FailRollback,
+    [switch]$FailBackupCleanup,
     [string]$ArchiveFileName = 'frida-core-devkit-17.3.2-windows-x86_64.tar.xz',
     [string]$SourceURL = '',
     [string]$CacheDirectory = '',
@@ -62,10 +75,19 @@ function Move-DirectoryAtomically {
     [System.IO.Directory]::Move($Source, $Destination)
 }
 
+function Get-ErrorText {
+    param([object]$ErrorRecord)
+    return [string]$ErrorRecord.Exception.Message
+}
+
 function Stop-ProcessTreeBounded {
     param([System.Diagnostics.Process]$Process)
 
-    $killTreeMethod = $Process.GetType().GetMethod('Kill', [type[]]@([bool]))
+    $killTreeMethod = if ($ForceLegacyProcessTermination -or $ForceDirectProcessKill) {
+        $null
+    } else {
+        $Process.GetType().GetMethod('Kill', [type[]]@([bool]))
+    }
     if ($null -ne $killTreeMethod) {
         try {
             [void]$killTreeMethod.Invoke($Process, @($true))
@@ -76,7 +98,7 @@ function Stop-ProcessTreeBounded {
     # Windows PowerShell 5.1 runs on .NET Framework, whose Process.Kill has no
     # process-tree overload. taskkill keeps child processes from retaining the
     # download handles after the parent curl process is terminated.
-    $taskkill = Get-Command taskkill.exe -ErrorAction SilentlyContinue
+    $taskkill = if ($ForceDirectProcessKill) { $null } else { Get-Command taskkill.exe -ErrorAction SilentlyContinue }
     if ($null -ne $taskkill) {
         $startInfo = [System.Diagnostics.ProcessStartInfo]::new()
         $startInfo.FileName = $taskkill.Source
@@ -91,9 +113,9 @@ function Stop-ProcessTreeBounded {
             if ($killer.Start()) {
                 $stdoutTask = $killer.StandardOutput.ReadToEndAsync()
                 $stderrTask = $killer.StandardError.ReadToEndAsync()
-                if (-not $killer.WaitForExit(5000)) {
+                if (-not $killer.WaitForExit($TaskkillTimeoutMilliseconds)) {
                     try { $killer.Kill() } catch {}
-                    throw 'taskkill.exe exceeded process-tree termination timeout'
+                    $killer.WaitForExit()
                 }
                 [void]$stdoutTask.GetAwaiter().GetResult()
                 [void]$stderrTask.GetAwaiter().GetResult()
@@ -116,7 +138,7 @@ function Invoke-BoundedDownload {
     )
 
     $connectTimeoutSeconds = [Math]::Min(30, $TimeoutSeconds)
-    $curl = Get-Command curl.exe -ErrorAction SilentlyContinue
+    $curl = if ($ForceHttpClient) { $null } else { Get-Command curl.exe -ErrorAction SilentlyContinue }
     if ($null -ne $curl) {
         $curlArguments = @(
             '--fail', '--location', '--silent', '--show-error',
@@ -132,7 +154,7 @@ function Invoke-BoundedDownload {
         $startInfo.RedirectStandardOutput = $true
         $startInfo.RedirectStandardError = $true
         $argumentListProperty = $startInfo.GetType().GetProperty('ArgumentList')
-        if ($null -ne $argumentListProperty) {
+        if ($null -ne $argumentListProperty -and -not $ForceLegacyProcessArguments) {
             foreach ($argument in $curlArguments) {
                 [void]$startInfo.ArgumentList.Add([string]$argument)
             }
@@ -155,9 +177,7 @@ function Invoke-BoundedDownload {
             $waitMilliseconds = [int][Math]::Min([int]::MaxValue, $TimeoutSeconds * 1000)
             if (-not $process.WaitForExit($waitMilliseconds)) {
                 Stop-ProcessTreeBounded -Process $process
-                if (-not $process.WaitForExit(5000)) {
-                    throw 'curl.exe did not exit after hard-timeout termination'
-                }
+                [void]$process.WaitForExit(5000)
                 throw "curl.exe exceeded hard timeout of ${TimeoutSeconds}s"
             }
             $stdout = $stdoutTask.GetAwaiter().GetResult()
@@ -233,18 +253,24 @@ function Expand-FridaArchive {
         [string]$Destination
     )
 
-    $sevenZip = Get-Command 7z.exe -ErrorAction SilentlyContinue
+    $sevenZip = if ($ForceTar -or $ForceSevenZipCandidateDiscovery) { $null } else { Get-Command 7z.exe -ErrorAction SilentlyContinue }
     if ($null -eq $sevenZip) {
-        foreach ($candidate in @(
-            (Join-Path ${env:ProgramFiles} '7-Zip\7z.exe'),
-            (Join-Path ${env:ProgramFiles(x86)} '7-Zip\7z.exe')
-        )) {
+        $candidates = if ([string]::IsNullOrWhiteSpace($SevenZipCandidatePath)) {
+            @(
+                (Join-Path ${env:ProgramFiles} '7-Zip\7z.exe'),
+                (Join-Path ${env:ProgramFiles(x86)} '7-Zip\7z.exe')
+            )
+        } else {
+            @($SevenZipCandidatePath)
+        }
+        foreach ($candidate in $candidates) {
             if (Test-Path -LiteralPath $candidate) {
                 $sevenZip = [pscustomobject]@{ Source = $candidate }
                 break
             }
         }
     }
+    if ($ForceTar) { $sevenZip = $null }
     if ($null -ne $sevenZip) {
         # Some hosted Windows images have a tar/xz implementation that can stop
         # producing output while expanding this 322 MiB .lib.  7-Zip handles the
@@ -307,22 +333,22 @@ try {
             if ($Offline) {
                 throw "Frida SDK cache is unavailable or invalid in offline mode: $devkit"
             }
-            if (Test-Path -LiteralPath $partialArchive) { Remove-Item -LiteralPath $partialArchive -Force }
             try {
                 Invoke-VerifiedDownload -URL $archiveURL -Destination $partialArchive -ExpectedSHA256 $archiveSHA256 -DisplayName $archiveName
                 Move-Item -LiteralPath $partialArchive -Destination $archive -Force
             } finally {
-                if (Test-Path -LiteralPath $partialArchive) { Remove-Item -LiteralPath $partialArchive -Force }
+                Remove-Item -LiteralPath $partialArchive -Force -ErrorAction SilentlyContinue
             }
         }
 
+        if ($DriftArchiveAfterValidation) { [IO.File]::WriteAllText($archive, 'injected archive drift') }
         $archiveHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $archive).Hash
         if ($archiveHash -ne $archiveSHA256) {
             throw "Frida SDK archive SHA-256 mismatch: got $archiveHash, want $archiveSHA256"
         }
         $archiveStatus = 'verified'
 
-        if (Test-Path -LiteralPath $stagingDevkit) { Remove-Item -LiteralPath $stagingDevkit -Recurse -Force }
+        Remove-Item -LiteralPath $stagingDevkit -Recurse -Force -ErrorAction SilentlyContinue
         try {
             New-Item -ItemType Directory -Force -Path $stagingDevkit | Out-Null
             Expand-FridaArchive -Archive $archive -Destination $stagingDevkit
@@ -346,22 +372,26 @@ try {
             }
             try {
                 Move-DirectoryAtomically -Source $stagingDevkit -Destination $devkit
+                if ($FailAfterPublish) { throw 'injected post-publish failure' }
             } catch {
-                $publishError = $_.Exception.Message
+                $publishError = Get-ErrorText $_
                 if (Test-Path -LiteralPath $devkit) {
                     Remove-Item -LiteralPath $devkit -Recurse -Force -ErrorAction SilentlyContinue
                 }
                 if ($null -ne $backupDevkit -and (Test-Path -LiteralPath $backupDevkit)) {
                     try {
+                        if ($FailRollback) { throw 'injected rollback failure' }
                         Move-DirectoryAtomically -Source $backupDevkit -Destination $devkit
                     } catch {
-                        throw "Frida SDK publication failed: $publishError; rollback failed: $($_.Exception.Message); backup retained at $backupDevkit"
+                        $rollbackError = Get-ErrorText $_
+                        throw "Frida SDK publication failed: $publishError; rollback failed: $rollbackError; backup retained at $backupDevkit"
                     }
                 }
                 throw "Frida SDK publication failed: $publishError"
             }
             if ($null -ne $backupDevkit -and (Test-Path -LiteralPath $backupDevkit)) {
                 try {
+                    if ($FailBackupCleanup) { throw 'injected backup cleanup failure' }
                     Remove-Item -LiteralPath $backupDevkit -Recurse -Force -ErrorAction Stop
                 } catch {
                     Write-Warning "Frida SDK published successfully but backup cleanup failed; retained at $backupDevkit"
@@ -381,7 +411,7 @@ try {
     Write-Output "header_sha256=$headerSHA256"
     Write-Output "library_sha256=$librarySHA256"
 } finally {
-    if (Test-Path -LiteralPath $partialArchive) { Remove-Item -LiteralPath $partialArchive -Force }
-    if (Test-Path -LiteralPath $stagingDevkit) { Remove-Item -LiteralPath $stagingDevkit -Recurse -Force }
+    Remove-Item -LiteralPath $partialArchive -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath $stagingDevkit -Recurse -Force -ErrorAction SilentlyContinue
     if ($null -ne $lockStream) { $lockStream.Dispose() }
 }

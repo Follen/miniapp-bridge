@@ -26,26 +26,28 @@ func TestAuditConcurrentCDPDispatchHasStrictGlobalSequence(t *testing.T) {
 
 	debug := auditDial(t, dp)
 	defer debug.Close()
+	deadline := time.Now().Add(time.Second)
+	for a.DebugClientCount() != 1 && time.Now().Before(deadline) {
+		time.Sleep(time.Millisecond)
+	}
+	if count := a.DebugClientCount(); count != 1 {
+		t.Fatalf("debug client count=%d want 1", count)
+	}
 	const clientCount = 4
 	const perClient = 32
-	clients := make([]*websocket.Conn, clientCount)
-	for i := range clients {
-		clients[i] = auditDial(t, cp)
-		defer clients[i].Close()
-	}
 	var group sync.WaitGroup
-	for clientID, conn := range clients {
+	for clientID := 0; clientID < clientCount; clientID++ {
 		group.Add(1)
-		go func(clientID int, conn *websocket.Conn) {
+		go func(clientID int) {
 			defer group.Done()
 			for j := 0; j < perClient; j++ {
 				body := fmt.Sprintf(`{"id":%d,"method":"Runtime.evaluate","params":{"client":%d,"n":%d}}`, clientID*perClient+j, clientID, j)
-				if err := conn.WriteMessage(websocket.TextMessage, []byte(body)); err != nil {
+				if err := a.SendCDP([]byte(body)); err != nil {
 					t.Errorf("client %d write %d: %v", clientID, j, err)
 					return
 				}
 			}
-		}(clientID, conn)
+		}(clientID)
 	}
 	group.Wait()
 

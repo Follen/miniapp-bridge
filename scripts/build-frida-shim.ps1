@@ -19,7 +19,7 @@ foreach ($path in @((Join-Path $devkit 'frida-core.h'), (Join-Path $devkit 'frid
     if (-not (Test-Path $path)) { throw "required Frida/MSVC file missing: $path" }
 }
 New-Item -ItemType Directory -Force -Path $runtime | Out-Null
-if (Test-Path -LiteralPath $legacyZlibObjectDirectory) { Remove-Item -LiteralPath $legacyZlibObjectDirectory -Recurse -Force }
+Remove-Item -LiteralPath $legacyZlibObjectDirectory -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force -Path $zlibObjectDirectory | Out-Null
 
 try {

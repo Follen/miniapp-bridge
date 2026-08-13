@@ -9,10 +9,33 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/Follen/miniapp-bridge/internal/capture"
 	"github.com/Follen/miniapp-bridge/internal/wmpf"
 )
+
+type selectCanceledContext struct {
+	done  chan struct{}
+	calls int
+}
+
+func newSelectCanceledContext() *selectCanceledContext {
+	done := make(chan struct{})
+	close(done)
+	return &selectCanceledContext{done: done}
+}
+
+func (*selectCanceledContext) Deadline() (time.Time, bool) { return time.Time{}, false }
+func (ctx *selectCanceledContext) Done() <-chan struct{}   { return ctx.done }
+func (ctx *selectCanceledContext) Err() error {
+	ctx.calls++
+	if ctx.calls > 1 {
+		return context.Canceled
+	}
+	return nil
+}
+func (*selectCanceledContext) Value(any) any { return nil }
 
 func TestReplayErrorContract(t *testing.T) {
 	t.Run("nil context and valid capture", func(t *testing.T) {
@@ -121,10 +144,23 @@ func TestCloseDeterministicWaitBranches(t *testing.T) {
 		s.mu.Lock()
 		s.state, s.status.State, s.closeDone = StateStopped, StateStopped, done
 		s.mu.Unlock()
+		ctx := newSelectCanceledContext()
+		if err := s.Close(ctx); !errors.Is(err, context.Canceled) {
+			t.Fatalf("stopped timeout=%v", err)
+		}
+		close(done)
+	})
+
+	t.Run("stopped pre-canceled", func(t *testing.T) {
+		s := newSDK(t, Options{})
+		done := make(chan struct{})
+		s.mu.Lock()
+		s.state, s.status.State, s.closeDone = StateStopped, StateStopped, done
+		s.mu.Unlock()
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
 		if err := s.Close(ctx); !errors.Is(err, context.Canceled) {
-			t.Fatalf("stopped timeout=%v", err)
+			t.Fatalf("stopped pre-canceled=%v", err)
 		}
 		close(done)
 	})
@@ -149,8 +185,7 @@ func TestCloseDeterministicWaitBranches(t *testing.T) {
 		s.mu.Lock()
 		s.state, s.status.State, s.closeDone = StateStopping, StateStopping, done
 		s.mu.Unlock()
-		ctx, cancel := context.WithCancel(context.Background())
-		cancel()
+		ctx := newSelectCanceledContext()
 		if err := s.Close(ctx); !errors.Is(err, context.Canceled) {
 			t.Fatalf("stopping timeout=%v", err)
 		}
