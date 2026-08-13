@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Existing SemVer tag to publish (initial release v0.0.1)
+        description: Existing SemVer tag to publish
         required: true
         type: string
 
@@ -244,85 +244,22 @@ jobs:
             }
           }
 
-      - name: Sign Windows artifacts and bind the signed native trust root
-        shell: pwsh
-        env:
-          WINDOWS_SIGNING_PFX_BASE64: ${{ secrets.WINDOWS_SIGNING_PFX_BASE64 }}
-          WINDOWS_SIGNING_PFX_PASSWORD: ${{ secrets.WINDOWS_SIGNING_PFX_PASSWORD }}
-          WINDOWS_SIGNING_TIMESTAMP_URL: ${{ vars.WINDOWS_SIGNING_TIMESTAMP_URL }}
-        run: |
-          $ErrorActionPreference = 'Stop'
-          foreach ($name in @('WINDOWS_SIGNING_PFX_BASE64', 'WINDOWS_SIGNING_PFX_PASSWORD', 'WINDOWS_SIGNING_TIMESTAMP_URL')) {
-            if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name))) {
-              throw "$name must be configured in the protected production-release environment"
-            }
-          }
-          $signTool = Get-ChildItem -LiteralPath 'C:\Program Files (x86)\Windows Kits\10\bin' -Filter signtool.exe -Recurse |
-            Where-Object { $_.FullName -match '\\x64\\signtool\.exe$' } |
-            Sort-Object FullName -Descending |
-            Select-Object -First 1
-          if ($null -eq $signTool) { throw 'Windows SDK x64 signtool.exe was not found' }
-
-          $pfx = Join-Path $env:RUNNER_TEMP "miniapp-bridge-signing-$([guid]::NewGuid().ToString('N')).pfx"
-          $generatedTrust = Join-Path $PWD 'internal\native\trust_release_signed.go'
-          try {
-            [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:WINDOWS_SIGNING_PFX_BASE64))
-            & $signTool.FullName sign /fd SHA256 /td SHA256 /tr $env:WINDOWS_SIGNING_TIMESTAMP_URL /f $pfx /p $env:WINDOWS_SIGNING_PFX_PASSWORD .\dist\miniapp-frida.dll
-            if ($LASTEXITCODE -ne 0) { throw "DLL Authenticode signing failed with exit $LASTEXITCODE" }
-
-            & .\scripts\native-release.ps1 -RuntimeDirectory .\dist -OutputDirectory .\dist\native -ManifestOutputDirectory .\dist
-            if ($null -ne $LASTEXITCODE -and $LASTEXITCODE -ne 0) { throw "signed native packaging failed with exit $LASTEXITCODE" }
-            $dll = Get-Item -LiteralPath .\dist\miniapp-frida.dll
-            $dllHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $dll.FullName).Hash.ToUpperInvariant()
-            $nativeAsset = "miniapp-frida-native-17.3.2-abi1-windows-amd64.zip"
-            $archiveHash = (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path .\dist\native $nativeAsset)).Hash.ToUpperInvariant()
-            Add-Content -LiteralPath $env:GITHUB_ENV -Value "SIGNED_NATIVE_ARCHIVE_SHA256=$archiveHash"
-            $trustSource = @"
-          //go:build release_signed
-
-          package native
-
-          const (
-          `tNativeDLLSize = int64($($dll.Length))
-          `tNativeDLLSHA256 = "$dllHash"
-          `tNativeArchiveSHA256 = "$archiveHash"
-          )
-          "@
-            [IO.File]::WriteAllText($generatedTrust, $trustSource, [Text.UTF8Encoding]::new($false))
-
-            $env:CGO_ENABLED = '1'
-            $runtime = (Resolve-Path 'third_party\frida\runtime-17.3.2').Path
-            $env:PATH = "$runtime;$env:PATH"
-            $env:MINIAPP_BRIDGE_NATIVE_PATH = (Resolve-Path .\dist\miniapp-frida.dll).Path
-            go test -tags 'frida,release_signed' ./internal/native ./sdk -run '^$'
-            if ($LASTEXITCODE -ne 0) { throw "signed trust-root compile check failed with exit $LASTEXITCODE" }
-            go build -tags 'frida,release_signed' -trimpath -o .\dist\miniapp-bridge.exe .\cmd\miniapp-bridge
-            if ($LASTEXITCODE -ne 0) { throw "signed trust-root executable build failed with exit $LASTEXITCODE" }
-            & $signTool.FullName sign /fd SHA256 /td SHA256 /tr $env:WINDOWS_SIGNING_TIMESTAMP_URL /f $pfx /p $env:WINDOWS_SIGNING_PFX_PASSWORD .\dist\miniapp-bridge.exe
-            if ($LASTEXITCODE -ne 0) { throw "EXE Authenticode signing failed with exit $LASTEXITCODE" }
-          }
-          finally {
-            Remove-Item -LiteralPath $pfx -Force -ErrorAction SilentlyContinue
-            Remove-Item -LiteralPath $generatedTrust -Force -ErrorAction SilentlyContinue
-          }
-
-      - name: Enforce Authenticode signatures and trusted timestamps
+      - name: Validate unsigned release artifacts
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          foreach ($path in @('dist\miniapp-bridge.exe', 'dist\miniapp-frida.dll')) {
-            $signature = Get-AuthenticodeSignature -LiteralPath $path
-            if ($signature.Status -ne [Management.Automation.SignatureStatus]::Valid) {
-              throw "$path must have a valid Authenticode signature before release packaging; status=$($signature.Status)"
-            }
-            if ($null -eq $signature.SignerCertificate) {
-              throw "$path Authenticode signer certificate is missing"
-            }
-            if ($null -eq $signature.TimeStamperCertificate) {
-              throw "$path Authenticode trusted timestamp is missing"
-            }
-            Write-Output "authenticode=$path signer=$($signature.SignerCertificate.Thumbprint) timestamp=$($signature.TimeStamperCertificate.Thumbprint)"
+          foreach ($path in @('dist\miniapp-bridge.exe', 'dist\miniapp-frida.dll', 'dist\manifest.json')) {
+            if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "release artifact is missing: $path" }
           }
+          $manifest = Get-Content -LiteralPath .\dist\manifest.json -Raw | ConvertFrom-Json
+          $dll = Get-Item -LiteralPath .\dist\miniapp-frida.dll
+          $dllHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $dll.FullName).Hash.ToUpperInvariant()
+          if ([int64]$manifest.size -ne $dll.Length -or $manifest.sha256 -cne $dllHash) {
+            throw 'release DLL does not match manifest size and SHA-256'
+          }
+          $nativeAsset = "miniapp-frida-native-$($manifest.nativeVersion)-windows-amd64.zip"
+          $nativePath = Join-Path .\dist\native $nativeAsset
+          if (-not (Test-Path -LiteralPath $nativePath -PathType Leaf)) { throw "native archive is missing: $nativePath" }
 
       - name: Package release assets
         shell: pwsh
@@ -345,12 +282,7 @@ jobs:
             throw "packaged native asset is missing: $nativeSource"
           }
           $nativeHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $nativeSource).Hash
-          if ($env:SIGNED_NATIVE_ARCHIVE_SHA256 -cnotmatch '^[0-9A-F]{64}$') {
-            throw 'signed native archive pin is missing or malformed'
-          }
-          if ($nativeHash -cne $env:SIGNED_NATIVE_ARCHIVE_SHA256) {
-            throw "native archive hash $nativeHash does not match signed SDK pin $env:SIGNED_NATIVE_ARCHIVE_SHA256"
-          }
+          if ($nativeHash -cnotmatch '^[0-9A-F]{64}$') { throw 'native archive hash is missing or malformed' }
           $compat = '.\dist\release\native-compat'
           New-Item -ItemType Directory -Force -Path $compat | Out-Null
           Copy-Item -LiteralPath $nativeSource -Destination (Join-Path $compat $nativeAsset) -Force

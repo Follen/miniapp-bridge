@@ -237,7 +237,7 @@ function Assert-NativeIdentity([string]$Path, $Expected, [switch]$Directory) {
 function Assert-NativeSignature([string]$Path) {
     $signature = Get-AuthenticodeSignature -LiteralPath $Path
     if ($null -eq $signature -or $signature.Status -eq [Management.Automation.SignatureStatus]::NotSigned) {
-        throw "native Authenticode signature is missing: $Path"
+        return [pscustomobject]@{ SignerThumbprint = ''; TimestampThumbprint = '' }
     }
     if ($signature.Status -ne [Management.Automation.SignatureStatus]::Valid) {
         throw "native Authenticode signature is invalid: $Path"

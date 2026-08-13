@@ -41,7 +41,7 @@ func TestBuildWindowsCompilesExecutableAgainstGeneratedNativeTrustRoot(t *testin
 	markers := []string{
 		"& $PSScriptRoot\\native-release.ps1",
 		"internal\\native\\trust_native_generated.go",
-		"//go:build native_generated && !release_signed",
+		"//go:build native_generated",
 		"go test -tags 'frida,native_generated' ./internal/native ./sdk -run '^$'",
 		"go build -tags 'frida,native_generated' -trimpath -o dist/miniapp-bridge.exe",
 		"Remove-Item -LiteralPath $generatedTrust -Force -ErrorAction SilentlyContinue",
@@ -62,7 +62,7 @@ func TestBuildWindowsCompilesExecutableAgainstGeneratedNativeTrustRoot(t *testin
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(defaultTrust), "//go:build !release_signed && !native_generated") {
+	if !strings.Contains(string(defaultTrust), "//go:build !native_generated") {
 		t.Fatal("default and generated native trust roots must have mutually exclusive build constraints")
 	}
 }

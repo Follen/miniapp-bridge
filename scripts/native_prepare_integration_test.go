@@ -705,13 +705,18 @@ func TestNativePrepareVersionedStagingRetainsVerifiedSourceArchive(t *testing.T)
 	}
 }
 
-func TestNativePrepareRollbackRejectsSignatureAndTimestampFailures(t *testing.T) {
+func TestNativePrepareRollbackAllowsUnsignedAndRejectsInvalidSignatures(t *testing.T) {
+	if output, err := func() (string, error) {
+		_, _, destination, _, retainedHash := prepareNativeRollbackPairWithSignature(t, "missing")
+		return runNativePrepareWithSecurity("missing", "", nativeRollbackArgs(destination, retainedHash)...)
+	}(); err != nil {
+		t.Fatalf("unsigned rollback was rejected: %v\n%s", err, output)
+	}
 	for _, tc := range []struct {
 		status string
 		want   string
 	}{
 		{status: "invalid", want: "Authenticode signature is invalid"},
-		{status: "missing", want: "Authenticode signature is missing"},
 		{status: "missing-timestamp", want: "Authenticode trusted timestamp is missing"},
 	} {
 		t.Run(tc.status, func(t *testing.T) {
@@ -1432,6 +1437,10 @@ func readNativeCurrentPointer(t *testing.T, destination string) nativeCurrentPoi
 }
 
 func prepareNativeRollbackPair(t *testing.T) (retainedDLL, currentDLL []byte, destination, retained, retainedHash string) {
+	return prepareNativeRollbackPairWithSignature(t, "valid")
+}
+
+func prepareNativeRollbackPairWithSignature(t *testing.T, signatureStatus string) (retainedDLL, currentDLL []byte, destination, retained, retainedHash string) {
 	t.Helper()
 	first := makeNativePrepareFixture(t, nativePrepareArchiveOptions{dll: []byte("A62 retained native DLL")})
 	second := makeNativePrepareFixture(t, nativePrepareArchiveOptions{dll: []byte("A62 current native DLL")})
@@ -1441,7 +1450,13 @@ func prepareNativeRollbackPair(t *testing.T) (retainedDLL, currentDLL []byte, de
 	for _, fixture := range []nativePrepareFixture{first, second} {
 		writeNativePrepareCache(t, cache, fixture.archive)
 		args := append(nativePrepareArgs(cache, destination, "unused", fixture.hash), "-Offline")
-		if output, err := runNativePrepare(args...); err != nil {
+		command := runNativePrepare
+		if signatureStatus != "valid" {
+			command = func(args ...string) (string, error) {
+				return runNativePrepareWithSecurity(signatureStatus, "", args...)
+			}
+		}
+		if output, err := command(args...); err != nil {
 			t.Fatalf("prepare rollback fixture failed: %v\n%s", err, output)
 		}
 	}

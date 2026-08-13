@@ -35,7 +35,7 @@ $nativeAsset = Join-Path $repo "dist\native\miniapp-frida-native-$($manifest.nat
 $archiveHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $nativeAsset).Hash.ToUpperInvariant()
 $generatedTrust = Join-Path $repo 'internal\native\trust_native_generated.go'
 $trustSource = @"
-//go:build native_generated && !release_signed
+//go:build native_generated
 
 package native
 

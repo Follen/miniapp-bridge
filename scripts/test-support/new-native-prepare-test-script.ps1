@@ -33,7 +33,7 @@ Insert-FunctionPreamble 'Assert-NativeSignature' @'
     $testSignature = [Environment]::GetEnvironmentVariable('MINIAPP_BRIDGE_TEST_NATIVE_PREPARE_SIGNATURE_STATUS')
     if ($testSignature -ceq 'valid') { return [pscustomobject]@{ SignerThumbprint='TEST-SIGNER'; TimestampThumbprint='TEST-TIMESTAMP' } }
     if ($testSignature -ceq 'invalid') { throw "native Authenticode signature is invalid: $Path" }
-    if ($testSignature -ceq 'missing') { throw "native Authenticode signature is missing: $Path" }
+    if ($testSignature -ceq 'missing') { return [pscustomobject]@{ SignerThumbprint=''; TimestampThumbprint='' } }
     if ($testSignature -ceq 'missing-timestamp') { throw "native Authenticode trusted timestamp is missing: $Path" }
     if ($testSignature) { throw 'invalid MINIAPP_BRIDGE_TEST_NATIVE_PREPARE_SIGNATURE_STATUS value' }
 '@
