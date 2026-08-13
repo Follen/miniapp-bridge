@@ -44,6 +44,13 @@ func TestCoverageGateRunsTaggedRaceAndUsesStableScope(t *testing.T) {
 			t.Errorf("coverage gate must not depend on host zlib through %q", forbidden)
 		}
 	}
+	allOnly := regexp.MustCompile(`(?s)if \(\$Mode -eq 'All'\) \{\s*Run 'unit'.*?if \(\$Mode -eq 'All'\) \{\s*Run 'race'.*?Run 'vet'`)
+	if !allOnly.MatchString(script) {
+		t.Error("Mode Go must delegate duplicate ordinary unit, race, and vet gates to Linux while Mode All retains them")
+	}
+	if !strings.Contains(script, "ordinary-unit/race/vet=delegated-to-linux") {
+		t.Error("Mode Go result must disclose delegated ordinary gates")
+	}
 }
 
 func TestCoverageGateBindsGoReportToCurrentSources(t *testing.T) {

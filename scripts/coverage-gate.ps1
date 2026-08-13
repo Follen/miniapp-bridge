@@ -153,7 +153,9 @@ if ($rows.Count -ne 13 -or @($rows | Where-Object { $_ -notmatch $implemented })
 $coverageGitProvenance = Get-GitProvenance
 $coverageSourceManifest = @(Get-GoSourceManifest)
 $coverageProfiles = @()
-Run 'unit' { go test ./... -count=1 -timeout 600s }
+if ($Mode -eq 'All') {
+    Run 'unit' { go test ./... -count=1 -timeout 600s }
+}
 $publicCoverage = Join-Path $env:TEMP "miniapp-bridge-public-coverage-$([guid]::NewGuid().ToString('N')).out"
 try {
     Run 'public CLI and Frida statement coverage' { go test ./cmd/... ./frida -count=1 -timeout 90s "-coverprofile=$publicCoverage" }
@@ -235,8 +237,10 @@ try {
     $env:MINIAPP_BRIDGE_NATIVE_PATH = $oldNativePath
     Remove-Item -LiteralPath $taggedCoverage -Force -ErrorAction SilentlyContinue
 }
-Run 'race' { go test -race ./... -count=1 -timeout 420s }
-Run 'vet' { go vet ./... }
+if ($Mode -eq 'All') {
+    Run 'race' { go test -race ./... -count=1 -timeout 420s }
+    Run 'vet' { go vet ./... }
+}
 Write-GoCoverageReport -Profiles $coverageProfiles -GitProvenance $coverageGitProvenance -SourceManifest $coverageSourceManifest
 if ($Mode -eq 'All') {
     Run 'C shim native line and branch-site coverage' {
@@ -245,5 +249,5 @@ if ($Mode -eq 'All') {
     }
     Write-Output 'coverage_gate=100% reference behaviors; cli_frida_go_statements=100.0%; internal_go_statements=100.0%; sdk_go_statements=100.0%; tagged_internal_sdk_go_statements=100.0%; smoke_runner_go_statements=100.0%; c_shim_lines=100.0%; c_shim_branch_sites=100.0%; unit/race/tagged-race/vet=passed'
 } else {
-    Write-Output 'coverage_gate=Go reference behaviors; cli_frida_go_statements=100.0%; internal_go_statements=100.0%; sdk_go_statements=100.0%; tagged_internal_sdk_go_statements=100.0%; smoke_runner_go_statements=100.0%; unit/race/tagged-race/vet=passed'
+    Write-Output 'coverage_gate=Go reference behaviors; cli_frida_go_statements=100.0%; internal_go_statements=100.0%; sdk_go_statements=100.0%; tagged_internal_sdk_go_statements=100.0%; smoke_runner_go_statements=100.0%; tagged-race=passed; ordinary-unit/race/vet=delegated-to-linux'
 }
