@@ -1,9 +1,9 @@
 schema: comet.native.v4
 name: production-hardening-single-client-v2
 language: zh-CN
-phase: verify
+phase: archive
 status: active
-state_version: 18
+state_version: 25
 brief: brief.md
 spec_changes:
   - capability: production-hardening
@@ -13,493 +13,732 @@ workspace:
   isolation: worktree
   change_branch: codex/production-hardening-single-client
   target_branch: main
-  finish: null
+  finish: pull-request
 loop:
-  stage: verify-ready
+  stage: archive-ready
   goal_cycle: 2
   iteration: 1
-  attempt: 1
+  attempt: 2
   retry_epoch: 0
   failed_iteration_count: 0
   no_progress_count: 0
   execution_failure_count: 0
   previous_unresolved_ids: []
-  next_action: await-verifier-result
+  next_action: archive
 acceptance:
   - id: A1
     source: brief.md
     text: 已有 upstream 或 CDP controller 在线时，第二个同类连接收到明确拒绝，原连接继续正常收发；旧连接的延迟事件不能污染下一
       owner generation。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Owner-generation integration tests and live smoke prove explicit
+        second-owner rejection without disrupting the active owner.
+      truncated: false
   - id: A2
     source: brief.md
     text: DLL 与旁置 manifest 同时被替换，即使二者自报的版本和哈希相互匹配，默认启动仍因不匹配编译内置信任根而失败；验证后替换、hardlink
       或 reparse-point 竞态也不能换入另一文件。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Native loader and prepare tests reject self-consistent replacement,
+        hardlink, reparse and post-validation identity changes.
+      truncated: false
   - id: A3
     source: brief.md
     text: 超大 WebSocket 消息、超限解压结果、过多 pending 请求、队列超额或录制达到配额时，bridge
       有界失败并给出结构化诊断，不发生无界内存或磁盘增长。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Resource-limit, queue, pending, zlib and capture quota tests pass; C shim
+        hard limit is exercised natively.
+      truncated: false
   - id: A4
     source: brief.md
     text: listener 异常退出、Frida detached、writer/recorder 失败或恢复失败会更新 supervisor
       状态；控制事件在普通数据队列饱和时仍可送达。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Supervisor, listener, detached, writer and reliable control-event failure
+        tests pass.
+      truncated: false
   - id: A5
     source: brief.md
     text: 关闭流程在总预算内完成；无法正常关闭的组件被强制断开，所有等待者收到确定结果，端口可立即复用。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Shutdown, waiter completion and immediate port-reuse tests pass under
+        normal and race execution.
+      truncated: false
   - id: A6
     source: brief.md
     text: 日志默认不暴露完整 CDP payload 或敏感本地路径；诊断快照和 metrics 能定位
       owner、队列、pending、丢弃、恢复和关闭状态。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Logging redaction, metrics and bounded diagnostic snapshot tests pass.
+      truncated: false
   - id: A7
     source: brief.md
     text: 发布工作流能产出并验证已签名二进制、SBOM、provenance 和哈希，依赖或 PE 门禁失败时不发布。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Pinned release workflow fails closed on signing, timestamp, SBOM,
+        provenance, hash and PE gates; protected release execution remains an
+        explicit delivery risk.
+      truncated: false
   - id: A8
     source: brief.md
     text: 已支持 WMPF 版本通过模拟兼容测试和真实 live canary；错误目标、preload-only 目标或未知版本以明确原因停止。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Protocol fixtures and real live smoke with 微乐家乡麻将 pass; preload and
+        wrong-target rejection paths are tested.
+      truncated: false
   - id: A9
     source: brief.md
     text: fuzz、race、性能、soak 和注入式失败测试具有可重复命令、阈值和证据；更新被中断后下一次启动能恢复或回滚到最后一个完整版本。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Fuzz, race, performance, soak, chaos and interrupted-update recovery
+        matrices pass locally and in CI.
+      truncated: false
   - id: A10
     source: brief.md
     text: GitHub CI 全绿且 PR 经 findings-first 审核通过后才允许合并；本次审核由主 Agent
       独立于实现过程做完整差异复核，不再启动子 Agent。合并后删除 change worktree，并确认目标分支包含最终提交。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: PR 3 passed required CI, findings-first review, squash merge and
+        post-merge validation; Native Archive will perform bound-worktree
+        cleanup next.
+      truncated: false
   - id: A11
     source: brief.md
     text: 在干净 Windows 环境运行 `build-windows.ps1` 能完整生成 EXE、DLL、manifest 和 native
       archive；发布包中的 manifest、编译内置信任根、DLL/archive 哈希、exports/imports 和 PE 门禁彼此一致。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Local and GitHub clean Windows builds generated and cross-validated EXE,
+        DLL, manifest and native archive.
+      truncated: false
   - id: A12
     source: brief.md
     text: Windows 构建在工具缺失、编译失败、签名/hash/export 不匹配时失败关闭；临时文件清理、重复执行和
       rollback/recovery 均通过真实行为测试。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Windows behavior gates cover missing tools, compile/signature/hash/export
+        failures, cleanup, repetition and rollback.
+      truncated: false
   - id: A13
     source: specs/production-hardening/spec.md
     text: miniapp-bridge 必须以单租户 Windows bridge 运行：一个 Service 实例最多拥有一个 WMPF upstream
       和一个 CDP controller。系统必须默认安全、资源有界、故障可观察、可恢复，并在
       native、网络、存储和更新组件异常时保持确定状态与关闭行为。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Complete unit, race, live and CI evidence proves the bounded single-tenant
+        bridge contract.
+      truncated: false
   - id: A14
     source: specs/production-hardening/spec.md
     text: upstream 与 CDP controller 分别具有唯一 owner generation。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Distinct upstream and controller owner generations are implemented and
+        tested.
+      truncated: false
   - id: A15
     source: specs/production-hardening/spec.md
     text: 首个通过安全校验的连接成为当前 owner；owner 存续期间同类后续连接必须被拒绝，不能替换、关闭或干扰 owner。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: First-owner reservation and second-owner rejection tests pass.
+      truncated: false
   - id: A16
     source: specs/production-hardening/spec.md
     text: owner 断开时，其 pending 请求、context 选择、订阅和连接关联状态必须按 generation 清理；旧 generation
       的延迟响应、事件和 callback 必须被丢弃并计数。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Generation cleanup, fences and stale-event accounting tests pass.
+      truncated: false
   - id: A17
     source: specs/production-hardening/spec.md
     text: upstream 必须匹配显式选择的 WMPF PID 和进程启动时间；PID 复用、错误宿主和 preload-only renderer
       必须被拒绝。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: PID, start-time, app-id and renderer identity binding tests pass,
+        including preload rejection.
+      truncated: false
   - id: A18
     source: specs/production-hardening/spec.md
     text: CDP WebSocket 不执行应用层鉴权，不生成、配置或校验 token；它必须保持 loopback 绑定并执行严格 Origin
       allowlist、单 controller 上限和 owner generation 隔离。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: No application token path exists; listeners remain loopback with Origin
+        and single-controller gates.
+      truncated: false
   - id: A19
     source: specs/production-hardening/spec.md
     text: Origin 不匹配、第二连接和 owner generation 不匹配必须返回可区分的结构化结果，不影响当前 owner。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Origin, duplicate-owner and stale-generation structured rejection tests
+        pass.
+      truncated: false
   - id: A20
     source: specs/production-hardening/spec.md
     text: 默认 native runtime 必须以编译内置 manifest 的 schema、平台、版本、ABI、导出集、大小和 SHA-256 为信任根。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Compiled native trust root validates schema, platform, version, ABI,
+        exports, size and hash.
+      truncated: false
   - id: A21
     source: specs/production-hardening/spec.md
     text: 旁置 manifest 只能作为与内置信任根的一致性证明，不能自行定义默认可信哈希；manifest 解析必须统一拒绝未知字段、重复字段和尾随值。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Strict manifest parsing and sidecar-versus-embedded trust consistency
+        tests pass.
+      truncated: false
   - id: A22
     source: specs/production-hardening/spec.md
     text: 校验与加载必须绑定同一文件身份，阻止 replace、delete、hardlink 或 reparse-point 竞态在验证后替换
       DLL；加载后必须复核规范路径与 Windows file ID。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Open-handle identity, canonical path and Windows file-ID race tests pass.
+      truncated: false
   - id: A23
     source: specs/production-hardening/spec.md
     text: runtime、device、session、script、callback 和 active native call
       必须形成受同步保护的引用图；存在子对象、callback 或在途调用时不得卸载 DLL。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Native reference graph, active-call and callback lifetime tests pass under
+        race detection.
+      truncated: false
   - id: A24
     source: specs/production-hardening/spec.md
     text: Frida init/deinit、runtime 引用、closing 与最终 `FreeLibrary` 必须由单一状态机串行化。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Frida init/deinit and DLL unload serialization is implemented and natively
+        covered.
+      truncated: false
   - id: A25
     source: specs/production-hardening/spec.md
     text: native 同步操作必须受可取消 deadline 管理；无法及时取消的调用进入隔离/强制终止路径，不能让 Service 永久停在
       starting 或 stopping。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Native synchronous calls use cancellable watchdog deadlines and
+        deterministic cleanup tests.
+      truncated: false
   - id: A26
     source: specs/production-hardening/spec.md
     text: WebSocket frame/message、zlib 输入与输出、单事件、每连接 outbound queue、全局队列、pending
       请求、context、订阅、capture segment 和 replay snapshot 都必须有明确上限。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Explicit limits exist and are tested for messages, zlib, queues, pending,
+        contexts, subscriptions, capture and replay.
+      truncated: false
   - id: A27
     source: specs/production-hardening/spec.md
     text: 配置必须提供安全默认值、合法范围与启动期校验；超限必须返回结构化错误、关闭违规连接或停止相关子功能，不能造成进程级无界增长。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Configuration range/default and structured over-limit behavior tests pass.
+      truncated: false
   - id: A28
     source: specs/production-hardening/spec.md
     text: 队列以字节和条目双重计量；控制事件具有独立保留容量，不能被普通数据流量挤出。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Byte/item queue accounting and reserved control capacity tests pass.
+      truncated: false
   - id: A29
     source: specs/production-hardening/spec.md
     text: pending 请求必须同时受容量、TTL 和 owner generation 约束；断线或 shutdown 必须以确定错误完成所有等待者。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Pending capacity, TTL, generation, disconnect and shutdown completion
+        tests pass.
+      truncated: false
   - id: A30
     source: specs/production-hardening/spec.md
     text: zlib fallback 和 native 路径必须执行相同的输出上限和错误语义，拒绝压缩炸弹及整数溢出。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Fallback and native zlib limits match; final C review fixed and tested the
+        expected-size hard-limit bypass.
+      truncated: false
   - id: A31
     source: specs/production-hardening/spec.md
     text: 录制必须采用独占 writer lease、累计字节/帧数配额、segment 轮转、保留策略和最小剩余磁盘阈值。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Capture lease, quota, rotation, retention and disk-threshold tests pass.
+      truncated: false
   - id: A32
     source: specs/production-hardening/spec.md
     text: 新 generation 在同目录临时文件中完成，数据和 metadata 必须具有长度、CRC/commit marker，并在
       flush/sync 后原子发布；启动失败不能破坏上一完整 generation。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Capture generation staging, CRC/commit, sync and atomic publication tests
+        pass.
+      truncated: false
   - id: A33
     source: specs/production-hardening/spec.md
     text: 短写、ENOSPC、metadata 或 sync 失败后 recorder 进入 sticky failed 状态，后续写入被拒绝并上报
       supervisor。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Short-write, ENOSPC, metadata and sync failures produce sticky recorder
+        failure.
+      truncated: false
   - id: A34
     source: specs/production-hardening/spec.md
     text: 协议 dispatcher 不能同步等待每帧磁盘 flush；异步 writer 必须有有界队列、明确背压和关闭 drain 预算。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Bounded asynchronous capture writer, backpressure and close-drain tests
+        pass under race.
+      truncated: false
   - id: A35
     source: specs/production-hardening/spec.md
     text: 校验与实际回放必须使用同一个不可变、有大小上限的 snapshot；metadata 必须受 context、条目/行大小限制并与主数据对账。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Immutable bounded replay snapshot and metadata reconciliation tests pass.
+      truncated: false
   - id: A36
     source: specs/production-hardening/spec.md
     text: listener Serve 异常、native detached、writer 失败、recorder 失败、队列控制事件缺失、更新恢复失败和兼容
       canary 失败必须上报统一 supervisor。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: All specified component failures report through the unified supervisor in
+        tests.
+      truncated: false
   - id: A37
     source: specs/production-hardening/spec.md
     text: 健康状态至少区分 starting、ready、degraded、reconnecting、failed、stopping 和
       stopped，并保留首次根因、最近错误、时间和恢复次数。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Health state, root-cause, recent-error, timestamp and recovery-count tests
+        pass.
+      truncated: false
   - id: A38
     source: specs/production-hardening/spec.md
     text: 自动恢复使用有界指数退避、最大尝试次数和 jitter，且可被 shutdown 取消；恢复期间拒绝会产生错误归属的新命令。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Bounded cancellable recovery backoff and command rejection tests pass.
+      truncated: false
   - id: A39
     source: specs/production-hardening/spec.md
     text: detached/fatal 等控制事件采用独立可靠通道；数据丢弃、sequence gap 和恢复动作必须可观测。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Reliable detached/fatal channel and observable drop/gap/recovery tests
+        pass.
+      truncated: false
   - id: A40
     source: specs/production-hardening/spec.md
     text: 临时故障恢复成功后只能在 owner identity、generation、native lease 和 canary 均重新建立后进入
       ready。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Ready transition requires restored owner, generation, native lease and
+        canary conditions.
+      truncated: false
   - id: A41
     source: specs/production-hardening/spec.md
     text: 所有启动、回放、capture、native 调用、listener、reader/writer 和恢复 goroutine 都必须归属
       Service 生命周期并可等待。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Lifecycle ownership and goroutine termination are covered by shutdown and
+        race tests.
+      truncated: false
   - id: A42
     source: specs/production-hardening/spec.md
     text: shutdown 具有总预算和分组件预算：先拒绝新工作，再关闭 listeners/connections 并完成 pending，停止恢复与
       capture，最后按 script、session、device、runtime、DLL 顺序释放 native 资源。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Ordered budgeted shutdown tests cover listeners, waiters, recovery,
+        capture and native teardown.
+      truncated: false
   - id: A43
     source: specs/production-hardening/spec.md
     text: 调用方 context 超时只结束该调用者等待，内部 shutdown 继续使用自己的有界 context；最终必须发布 stopped 或带
       timeout 原因的 failed/stopped 终态。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Caller timeout independence from internal shutdown is tested.
+      truncated: false
   - id: A44
     source: specs/production-hardening/spec.md
     text: 无法正常结束的组件必须进入明确强制关闭路径；Close 保持幂等，多个调用者可独立等待且不会互相继承 context。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Forced close, idempotency and independent concurrent Close waiter tests
+        pass.
+      truncated: false
   - id: A45
     source: specs/production-hardening/spec.md
     text: 正常关闭后 reader/writer/callback/observer 不得继续访问已释放资源，端口必须可立即复用。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Post-close callback safety and immediate port reuse pass locally and live.
+      truncated: false
   - id: A46
     source: specs/production-hardening/spec.md
     text: 日志必须结构化，至少包含 component、service/owner
       generation、operation、state、reason、duration 和计数；默认对完整 CDP payload 和敏感路径脱敏。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Structured logging fields and payload/path redaction tests pass.
+      truncated: false
   - id: A47
     source: specs/production-hardening/spec.md
     text: 指标至少覆盖连接与 owner generation、队列条目/字节、丢弃与拒绝、pending、解压拒绝、capture 用量/失败、native
       状态、恢复尝试和 shutdown 时延。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Required connection, queue, pending, zlib, capture, native, recovery and
+        shutdown metrics are tested.
+      truncated: false
   - id: A48
     source: specs/production-hardening/spec.md
     text: 必须提供线程安全的健康、就绪和诊断快照；诊断采集本身有大小/耗时上限，不阻塞协议主路径，不包含凭据。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Thread-safe bounded health/readiness/diagnostic snapshots and
+        subscriptions pass race tests.
+      truncated: false
   - id: A49
     source: specs/production-hardening/spec.md
     text: starting/reconnecting/degraded/failed/stopping 均不得报告 ready；关键
       listener、owner/native 和 canary 条件满足后才能报告 ready。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Readiness state gating is covered for starting, reconnecting, degraded,
+        failed and stopping states.
+      truncated: false
   - id: A50
     source: specs/production-hardening/spec.md
     text: 健康、就绪、指标和诊断通过现有 Go SDK 的线程安全快照/订阅以及 CLI 结构化日志和退出状态提供；本 change 不新增 HTTP
       management listener 或第三个 TCP 端口。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: SDK snapshots/subscriptions and CLI structured output expose operations
+        without a management listener or third port.
+      truncated: false
   - id: A51
     source: specs/production-hardening/spec.md
     text: CI 与 release 使用实施时仍受支持的 Go 稳定版本，并对默认与 `frida` tagged 构建执行测试、race/vet 和
       `govulncheck`。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Pinned supported Go toolchain runs default/tagged tests, race, vet and
+        govulncheck in CI.
+      truncated: false
   - id: A52
     source: specs/production-hardening/spec.md
     text: EXE 与 DLL 发布件必须进行带可信时间戳的 Authenticode 签名并验证签名；签名凭据只通过受保护发布环境注入。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Protected release workflow injects credentials only in the production
+        environment and verifies trusted Authenticode timestamps; actual
+        protected release is recorded as a risk.
+      truncated: false
   - id: A53
     source: specs/production-hardening/spec.md
     text: 每个 release 必须生成 CycloneDX 或 SPDX SBOM、构建 provenance/attestation、SHA-256
       清单和许可证集合，并绑定同一源码 revision。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Release workflow generates revision-bound CycloneDX SBOM, attestation,
+        SHA256SUMS and license set.
+      truncated: false
   - id: A54
     source: specs/production-hardening/spec.md
     text: native archive、DLL、导出集、普通/delay imports 和 PE 安全属性必须经过 allowlist
       门禁；zlib/Frida 源码从已验证 archive 解压到全新 staging，不能复用未经完整校验的源码缓存。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Archive, DLL, export/import and PE allowlists plus clean verified
+        dependency staging pass Windows CI.
+      truncated: false
   - id: A55
     source: specs/production-hardening/spec.md
     text: Actions 依赖固定不可变 revision；发布使用受保护 tag/environment，任何签名、SBOM、provenance、漏洞或
       PE 门禁失败均阻止发布。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Actions use immutable SHAs and protected release failures block
+        publication.
+      truncated: false
   - id: A56
     source: specs/production-hardening/spec.md
     text: 目标选择必须显式且可审计，至少绑定 PID、启动时间、app id/renderer 类型和发现时间，禁止按“第一个进程”隐式选择。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Auditable target identity fields and explicit selection tests pass.
+      truncated: false
   - id: A57
     source: specs/production-hardening/spec.md
     text: 支持矩阵明确记录 WMPF/WeChat、Frida shim ABI、protobuf fixture 和 Go/runtime
       组合；未知版本默认先运行只读 canary。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Support matrix and unknown-version read-only canary contract are
+        documented and tested.
+      truncated: false
   - id: A58
     source: specs/production-hardening/spec.md
     text: canary 必须验证进程身份、关键导出/ABI、attach/load、协议握手和最小 CDP round-trip，失败时不进入 ready。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Identity, ABI/export, attach/load, handshake and minimum CDP canary pass
+        in fixtures and live smoke.
+      truncated: false
   - id: A59
     source: specs/production-hardening/spec.md
     text: 正常单连接路径保持现有 WMPF wire contract、CDP payload 和事件顺序；协议 fixture 与真实 live
       matrix 共同构成兼容门禁。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Wire fixtures and live CDP matrix preserve the single-connection WMPF
+        contract.
+      truncated: false
   - id: A60
     source: specs/production-hardening/spec.md
     text: 更新锁必须绑定规范化 destination，而不是版本 archive；同一 destination 的不同版本更新必须串行。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Destination-scoped update serialization tests pass.
+      truncated: false
   - id: A61
     source: specs/production-hardening/spec.md
     text: runtime 使用不可变版本目录和原子 current 指针或等价事务发布，保留至少一个已验证的上一版本。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Immutable version directories, atomic current pointer and retained prior
+        version tests pass.
+      truncated: false
   - id: A62
     source: specs/production-hardening/spec.md
     text: 更新 journal 记录 prepare、verify、publish 和 cleanup
       阶段；进程在任意阶段终止后，下一次启动必须完成发布或回滚到最后完整版本。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Prepare/verify/publish/cleanup journal recovery tests pass for
+        interruption points.
+      truncated: false
   - id: A63
     source: specs/production-hardening/spec.md
     text: 运行中的 DLL 不原地覆盖；新版本在下一次受控重启切换。切换后 canary 失败必须自动回滚并留下结构化诊断。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: No in-place DLL replacement; restart switch and canary rollback tests
+        pass.
+      truncated: false
   - id: A64
     source: specs/production-hardening/spec.md
     text: 必须提供可重复执行的显式 rollback 命令，并校验回滚产物的内置信任根、签名和文件身份。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Repeatable rollback revalidates embedded trust, signature and file
+        identity.
+      truncated: false
   - id: A65
     source: specs/production-hardening/spec.md
     text: 单元与集成测试覆盖连接 owner、Origin、明确无 token 的连接路径、generation
       清理、资源上限、supervisor、shutdown、capture 事务、更新恢复和发布校验。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Unit/integration coverage spans owner, Origin, no-token, generations,
+        limits, supervisor, shutdown, capture, update and release.
+      truncated: false
   - id: A66
     source: specs/production-hardening/spec.md
     text: fuzz 覆盖 WebSocket/CDP/WMPF 解码、manifest、capture、zlib 和边界算术；corpus
       与崩溃样本可版本化复现。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Versioned fuzz targets cover WebSocket/CDP/WMPF, manifest, capture, zlib
+        and boundary arithmetic.
+      truncated: false
   - id: A67
     source: specs/production-hardening/spec.md
     text: 性能测试建立吞吐、P95/P99 延迟、峰值内存、队列水位和 CPU 基线，并使用显式回归阈值。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Performance baselines record throughput, latency percentiles, memory,
+        queues and CPU thresholds.
+      truncated: false
   - id: A68
     source: specs/production-hardening/spec.md
     text: soak 覆盖持续连接、周期断线重连、长时间 capture 和多轮更新；chaos/故障注入覆盖
       listener、callback、ENOSPC、短写、签名错误、文件替换、native hang/detach 和强制 shutdown。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Deterministic soak and injected
+        listener/callback/disk/signature/replacement/native/shutdown failures
+        pass.
+      truncated: false
   - id: A69
     source: specs/production-hardening/spec.md
     text: Windows live matrix 必须覆盖一个 upstream、一个 CDP
       controller、第二连接拒绝、断线重连、端口复用、真实目标 canary
       和更新回滚；缺少外部环境或签名凭据的检查必须作为已知风险记录，不能伪记通过。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Live Windows matrix covers one upstream/controller, rejection, reconnect,
+        port reuse and real canary; protected signing remains explicit.
+      truncated: false
   - id: A70
     source: specs/production-hardening/spec.md
     text: Go 仓库自有生产代码必须在合并 Windows 默认与 `frida` profile 后达到 100% statement
       coverage；所有生产包通过 `-coverpkg` 或等价全包插桩纳入统计。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Five Go production profiles cover 45 current source files at 100%
+        statements, bound to HEAD and per-file SHA256.
+      truncated: false
   - id: A71
     source: specs/production-hardening/spec.md
     text: C shim 仓库自有生产代码必须通过原生插桩 profile 达到 100% line coverage 和 100% function
       coverage；错误、清理、callback、init/deinit 和 loader 分支必须由真实执行覆盖。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Native gcov reports 234/234 lines and 70/70 functions, with 204/204 branch
+        sites executed.
+      truncated: false
   - id: A72
     source: specs/production-hardening/spec.md
     text: "`build-windows.ps1` 必须能在干净 Windows 环境完整构建 EXE、DLL、manifest 和 native
       archive；manifest、编译内置信任根、DLL/archive SHA-256、exports/imports、PE
       安全门禁与最终发布包必须彼此一致。"
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Local and hosted clean Windows builds validate all production artifacts
+        and trust relationships.
+      truncated: false
   - id: A73
     source: specs/production-hardening/spec.md
     text: Windows 构建在依赖工具缺失、编译失败、签名/hash/export
       不匹配时必须失败关闭；临时文件必须可靠清理，重复执行必须得到一致的可信关系，更新 rollback/recovery
       必须可重复执行并恢复到已验证产物。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Failure-closed, cleanup, repeat-build and rollback/recovery behavior gates
+        pass.
+      truncated: false
   - id: A74
     source: specs/production-hardening/spec.md
     text: Go 与 C 覆盖率必须分别使用真实执行 profile 计算，不得通过排除有行为的生产文件、生成空桩、只测
       getter、改变统计根或把未覆盖代码标成生成代码来规避门禁。PowerShell 不设数值 command coverage
       门槛，以真实生产构建、产物一致性和失败路径证据验收。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Go and C reports come from real execution with HEAD and source manifests;
+        PowerShell is assessed by production behavior.
+      truncated: false
   - id: A75
     source: specs/production-hardening/spec.md
     text: CI 必须将 Go/C 覆盖率、race、fuzz smoke、协议矩阵、真实 Windows native build、供应链校验和
       required checks 作为合并门禁；GitHub Windows required CI 必须对候选提交完整构建并通过。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Required CI includes Go/C coverage, race, fuzz, protocol, native build,
+        supply-chain and packaging gates.
+      truncated: false
   - id: A76
     source: specs/production-hardening/spec.md
     text: 候选实现通过本地完整验证后推送 `codex/production-hardening-single-client` 到 GitHub，并创建以
       `main` 为 base 的 PR。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Candidate branch was pushed and PR 3 targeted main.
+      truncated: false
   - id: A77
     source: specs/production-hardening/spec.md
     text: 必须等待 GitHub required checks 全部成功；失败或取消的 check 必须读取真实日志、修复根因并重新运行。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: All failed/cancelled runs were diagnosed and rerun; final PR and push
+        required jobs are successful.
+      truncated: false
   - id: A78
     source: specs/production-hardening/spec.md
     text: PR 必须由主 Agent 按 findings-first 方式完整审核，不再启动子 Agent。所有阻塞 finding
       必须修复、补测试并再次经过本地与 GitHub CI；审核通过前不得合并。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Main-Agent findings-first review fixed the C decompression hard-limit
+        bypass, reran all gates, and found no remaining blocker.
+      truncated: false
   - id: A79
     source: specs/production-hardening/spec.md
     text: PR 合并后必须在 `main` 上运行风险匹配的合并后验证并核对合并提交，然后删除
       `.worktree/production-hardening-single-client` 和已合并本地 change 分支。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: PR merged as 0c4028f; merge tree equals verified head tree and go test
+        ./... passes on main. Bound worktree/branch cleanup follows Native
+        Archive transaction.
+      truncated: false
   - id: A80
     source: specs/production-hardening/spec.md
     text: GitHub PR、CI、review、merge 和 worktree 清理结果都必须作为可核验的完成证据记录。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: PR, CI, review, merge and post-merge results are externally verifiable;
+        cleanup result will be emitted by Archive.
+      truncated: false
   - id: A81
     source: specs/production-hardening/spec.md
     text: 本规格不引入多租户、多 controller 路由或远程公网控制面。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: No multi-tenant, multi-controller or public control plane was introduced.
+      truncated: false
   - id: A82
     source: specs/production-hardening/spec.md
     text: 本规格不移除 cgo、不重写 Frida、不设计纯 Go ABI，也不改变 WMPF protobuf wire contract。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: cgo and Frida architecture and WMPF protobuf wire contract remain intact.
+      truncated: false
   - id: A83
     source: specs/production-hardening/spec.md
     text: 未进入支持矩阵且 canary 未通过的 WMPF 版本不视为受支持。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: Unsupported WMPF remains blocked until its canary succeeds.
+      truncated: false
   - id: A84
     source: specs/production-hardening/spec.md
     text: CDP controller 明确不做应用层鉴权。当前生产部署必须保持 loopback，执行严格 Origin allowlist，并且只接受一个
       active controller；任何未来非 loopback 模式属于独立需求，必须另行设计认证与传输保护。
-    result: pending
-    reason: null
+    result: passed
+    reason:
+      text: No application authentication was added; loopback, strict Origin and
+        one-controller invariants are enforced.
+      truncated: false
 builder_handoff:
   candidate_id: 45111384-6b1c-4d1d-935b-204a5c13c86e
   identity_provider: skill-coordinated
@@ -612,7 +851,30 @@ builder_handoff:
   known_limits_truncated: false
   submitted_at: 2026-08-12T20:40:53.861Z
 blockers: []
-verification: null
+verification:
+  candidate_id: 45111384-6b1c-4d1d-935b-204a5c13c86e
+  identity_provider: skill-coordinated
+  verifier_execution_ref: skill-coordinated:verifier:241a1f0d-5033-4304-810a-63546748bc1b
+  iteration: 1
+  attempt: 2
+  assurance: skill-coordinated
+  verdict: pass
+  checks: []
+  summary:
+    text: All 84 acceptance items pass on candidate 04143a8. Local build, live WMPF,
+      Go/C 100%, race/vet, two successful GitHub CI executions, findings-first
+      review, squash merge 0c4028f and post-merge tests are complete.
+    truncated: false
+  risks:
+    - text: Protected trusted-timestamp signing and GitHub provenance publication are
+        configured and fail-closed but require an actual protected release
+        invocation.
+      truncated: false
+    - text: The bound change worktree and local branch must remain until Native
+        Archive commits its transaction, then be deleted immediately.
+      truncated: false
+  risks_truncated: false
+  completed_at: 2026-08-13T00:11:26.559Z
 history:
   - goal_cycle: 1
     iteration: 1
@@ -749,6 +1011,38 @@ history:
       text: Native confirmed acceptance criteria changed
       truncated: false
     completed_at: 2026-08-12T20:39:44.816Z
+  - goal_cycle: 2
+    iteration: 1
+    attempt: 1
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: All 84 acceptance items pass on candidate 04143a8. Local build, live WMPF,
+        Go/C 100%, race/vet, two successful GitHub CI executions, findings-first
+        review, squash merge 0c4028f and post-merge tests are complete.
+      truncated: false
+    completed_at: 2026-08-13T00:08:39.891Z
+  - goal_cycle: 2
+    iteration: 1
+    attempt: 1
+    outcome: recovery
+    unresolved_ids: []
+    summary:
+      text: Local Runtime was unavailable at Archive ready; the synchronized
+        implementation must be verified again.
+      truncated: false
+    completed_at: 2026-08-13T00:10:27.192Z
+  - goal_cycle: 2
+    iteration: 1
+    attempt: 2
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: All 84 acceptance items pass on candidate 04143a8. Local build, live WMPF,
+        Go/C 100%, race/vet, two successful GitHub CI executions, findings-first
+        review, squash merge 0c4028f and post-merge tests are complete.
+      truncated: false
+    completed_at: 2026-08-13T00:11:26.559Z
 history_overflow:
   dropped_entries: 0
   first_dropped_at: null
@@ -759,7 +1053,7 @@ history_overflow:
     blocked: 0
     execution-error: 0
     recovery: 0
-verification_result: pending
-verification_report: null
+verification_result: pass
+verification_report: verification.md
 archived: false
 created_at: 2026-08-11T11:13:31.827Z
