@@ -368,7 +368,7 @@ jobs:
           $lines = @($assets | Sort-Object | ForEach-Object {
             "$((Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $bundle $_)).Hash.ToLowerInvariant())  $_"
           })
-          [IO.File]::WriteAllLines($sumPath, $lines, [Text.UTF8Encoding]::new($false))
+          [IO.File]::WriteAllText($sumPath, (($lines -join "`n") + "`n"), [Text.UTF8Encoding]::new($false))
           foreach ($line in Get-Content -LiteralPath $sumPath) {
             if ($line -notmatch '^([0-9a-f]{64})  ([^\\/]+)$') { throw "invalid generated checksum line: $line" }
             if ((Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $bundle $Matches[2])).Hash.ToLowerInvariant() -cne $Matches[1]) {

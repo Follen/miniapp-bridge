@@ -30,7 +30,7 @@ func TestGitHubReleaseWorkflowSecurityContract(t *testing.T) {
 		"fetch-depth: 0",
 		"Reconcile and publish GitHub Releases",
 	})
-	for _, forbidden := range []string{"pull_request:", "pull_request_target:", "permissions: write-all", "gh release create", "gh release upload", "WINDOWS_SIGNING_PFX_BASE64", "WINDOWS_SIGNING_PFX_PASSWORD", "WINDOWS_SIGNING_TIMESTAMP_URL", "Get-AuthenticodeSignature", "release_signed", "trust_release_signed.go", "signtool.exe"} {
+	for _, forbidden := range []string{"pull_request:", "pull_request_target:", "permissions: write-all", "gh release create", "gh release upload", "WINDOWS_SIGNING_PFX_BASE64", "WINDOWS_SIGNING_PFX_PASSWORD", "WINDOWS_SIGNING_TIMESTAMP_URL", "Get-AuthenticodeSignature", "release_signed", "trust_release_signed.go", "signtool.exe", "WriteAllLines($sumPath"} {
 		if strings.Contains(workflow, forbidden) {
 			t.Fatalf("release workflow contains forbidden token %q", forbidden)
 		}
@@ -104,6 +104,7 @@ func TestGitHubReleaseWorkflowBuildAndVersionContract(t *testing.T) {
 		"if-no-files-found: error",
 		"Generate deterministic SBOM provenance and license set",
 		"provenance.intoto.json",
+		"[IO.File]::WriteAllText($sumPath, (($lines -join \"`n\") + \"`n\"), [Text.UTF8Encoding]::new($false))",
 		"production-release",
 		"Validate unsigned release artifacts",
 		"release DLL does not match manifest size and SHA-256",

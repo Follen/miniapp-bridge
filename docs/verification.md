@@ -42,7 +42,7 @@ go test -v -tags "frida live" ./internal/frida `
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/coverage-gate.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/native-release.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-windows-release.ps1 `
-  -Version v0.0.2
+  -Version v0.0.3
 
 $verificationID = [guid]::NewGuid().ToString('N')
 $nativeCache = Join-Path $env:TEMP "miniapp-bridge-cache-$verificationID"
