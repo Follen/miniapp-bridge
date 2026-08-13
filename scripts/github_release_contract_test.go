@@ -105,6 +105,9 @@ func TestGitHubReleaseWorkflowBuildAndVersionContract(t *testing.T) {
 		"Generate deterministic SBOM provenance and license set",
 		"provenance.intoto.json",
 		"[IO.File]::WriteAllText($sumPath, (($lines -join \"`n\") + \"`n\"), [Text.UTF8Encoding]::new($false))",
+		"[IO.File]::WriteAllText($attestationSums, (($lines -join \"`r`n\") + \"`r`n\"), [Text.UTF8Encoding]::new($false))",
+		"subject-checksums: ${{ runner.temp }}\\release-attestation-SHA256SUMS",
+		"Remove-Item -LiteralPath (Join-Path $env:RUNNER_TEMP 'release-attestation-SHA256SUMS') -Force -ErrorAction SilentlyContinue",
 		"production-release",
 		"Validate unsigned release artifacts",
 		"release DLL does not match manifest size and SHA-256",
@@ -112,6 +115,9 @@ func TestGitHubReleaseWorkflowBuildAndVersionContract(t *testing.T) {
 	})
 	if strings.Contains(workflow, "            third_party/zlib/src-1.3.1") {
 		t.Fatal("release workflow must not cache the extracted zlib source tree")
+	}
+	if strings.Contains(workflow, "subject-checksums: dist/release/SHA256SUMS") {
+		t.Fatal("Windows attestation action must not parse the LF release checksum manifest directly")
 	}
 	semverLine := regexp.MustCompile(`(?m)^\s*\$semver = '([^']+)'\s*$`).FindStringSubmatch(workflow)
 	if len(semverLine) != 2 {
