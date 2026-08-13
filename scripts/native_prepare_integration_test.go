@@ -22,7 +22,7 @@ import (
 	"time"
 )
 
-const nativePrepareAsset = "miniapp-frida-native-17.3.2-abi1-windows-amd64.zip"
+const nativePrepareAsset = "miniapp-frida-native-17.3.2-abi1.1-windows-amd64.zip"
 
 var nativePrepareExports = []string{
 	"mb_abi_version", "mb_native_version", "mb_frida_core_version", "mb_zlib_version",
@@ -123,7 +123,7 @@ func TestNativePrepareDownloadWarmCacheAndOfflineCache(t *testing.T) {
 	if got := requests.Load(); got != 1 {
 		t.Fatalf("cold prepare requests = %d, want 1", got)
 	}
-	if !strings.Contains(output, "native_version=17.3.2-abi1") ||
+	if !strings.Contains(output, "native_version=17.3.2-abi1.1") ||
 		!strings.Contains(output, "native_manifest=") ||
 		!strings.Contains(output, "native_dll_sha256="+nativePrepareSHA(fixture.dll)) {
 		t.Fatalf("compatible output fields missing:\n%s", output)
@@ -599,7 +599,7 @@ func TestNativePrepareRejectsCurrentPointerArchivePinDowngrade(t *testing.T) {
 	pointer := readNativeCurrentPointer(t, destination)
 	downgraded, err := json.Marshal(map[string]string{
 		"versionDirectory": pointer.VersionDirectory,
-		"nativeVersion":    "17.3.2-abi1",
+		"nativeVersion":    "17.3.2-abi1.1",
 		"sha256":           pointer.SHA256,
 	})
 	if err != nil {
@@ -1179,7 +1179,7 @@ func makeNativePrepareFixture(t *testing.T, options nativePrepareArchiveOptions)
 	}
 	manifest := map[string]any{
 		"schema":           "miniapp-bridge.native-manifest.v1",
-		"nativeVersion":    "17.3.2-abi1",
+		"nativeVersion":    "17.3.2-abi1.1",
 		"fridaCoreVersion": "17.3.2",
 		"zlibVersion":      "1.3.1",
 		"abiVersion":       1,

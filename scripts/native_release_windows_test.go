@@ -18,7 +18,7 @@ import (
 	"testing"
 )
 
-const nativeReleaseAsset = "miniapp-frida-native-17.3.2-abi1-windows-amd64.zip"
+const nativeReleaseAsset = "miniapp-frida-native-17.3.2-abi1.1-windows-amd64.zip"
 
 var nativeReleaseExports = []string{
 	"mb_abi_version", "mb_native_version", "mb_frida_core_version", "mb_zlib_version",
@@ -127,7 +127,7 @@ func TestNativeReleaseArchiveContract(t *testing.T) {
 	dllBytes := entries["miniapp-frida.dll"]
 	dllSHA := bytesSHA256(dllBytes)
 	if manifest.Schema != "miniapp-bridge.native-manifest.v1" ||
-		manifest.NativeVersion != "17.3.2-abi1" || manifest.FridaCoreVersion != "17.3.2" ||
+		manifest.NativeVersion != "17.3.2-abi1.1" || manifest.FridaCoreVersion != "17.3.2" ||
 		manifest.ZlibVersion != "1.3.1" || manifest.ABIVersion != 1 ||
 		manifest.OS != "windows" || manifest.Arch != "amd64" || manifest.DLL != "miniapp-frida.dll" ||
 		manifest.Size != int64(len(dllBytes)) || !strings.EqualFold(manifest.SHA256, dllSHA) {

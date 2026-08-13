@@ -21,10 +21,10 @@ env:
   FRIDA_CORE_VERSION: 17.3.2
   ZLIB_VERSION: 1.3.1
   ZLIB_ARCHIVE_SHA256: 17E88863F3600672AB49182F217281B6FC4D3C762BDE361935E436A95214D05C
-  NATIVE_ARCHIVE_SHA256: A2F2BA223FA3803A90D1F16E5145C1D61FE2953EFEEB6AFBC6D912934F728EE6
+  NATIVE_ARCHIVE_SHA256: A63B7F121794DD9C6D51CAC9F47C6D0CE43EB61E753AC23075845630F6A76BFD
 
 concurrency:
-  group: release-native-17.3.2-abi1
+  group: release-native-17.3.2-abi1.1
   queue: max
   cancel-in-progress: false
 
@@ -145,7 +145,7 @@ jobs:
           "release_tag=$env:REQUESTED_TAG" >> $env:GITHUB_OUTPUT
           "release_version=$($env:REQUESTED_TAG.Substring(1))" >> $env:GITHUB_OUTPUT
           "source_commit=$sourceCommit" >> $env:GITHUB_OUTPUT
-          'native_tag=native-v17.3.2-abi1' >> $env:GITHUB_OUTPUT
+          'native_tag=native-v17.3.2-abi1.1' >> $env:GITHUB_OUTPUT
 
       - name: Verify module graph
         shell: pwsh
@@ -328,7 +328,7 @@ jobs:
             Copy-Item -LiteralPath $entry.Value -Destination (Join-Path $bundle $entry.Key) -Force
           }
 
-          $subjects = @('manifest.json', "miniapp-bridge-$env:RELEASE_TAG-windows-amd64.zip", 'miniapp-frida-native-17.3.2-abi1-windows-amd64.zip', 'miniapp-bridge.cdx.json') |
+          $subjects = @('manifest.json', "miniapp-bridge-$env:RELEASE_TAG-windows-amd64.zip", 'miniapp-frida-native-17.3.2-abi1.1-windows-amd64.zip', 'miniapp-bridge.cdx.json') |
             ForEach-Object {
               [ordered]@{
                 name = $_
@@ -362,7 +362,7 @@ jobs:
           $sumPath = Join-Path $bundle 'SHA256SUMS'
           $assets = @(
             "miniapp-bridge-$env:RELEASE_TAG-windows-amd64.zip",
-            'miniapp-frida-native-17.3.2-abi1-windows-amd64.zip',
+            'miniapp-frida-native-17.3.2-abi1.1-windows-amd64.zip',
             'manifest.json', 'miniapp-bridge.cdx.json', 'provenance.intoto.json'
           ) + @($licenseFiles.Keys)
           $lines = @($assets | Sort-Object | ForEach-Object {
@@ -410,7 +410,7 @@ jobs:
       RELEASE_VERSION: ${{ needs.verify.outputs.release_version }}
       SOURCE_COMMIT: ${{ needs.verify.outputs.source_commit }}
       NATIVE_TAG: ${{ needs.verify.outputs.native_tag }}
-      NATIVE_ASSET: miniapp-frida-native-17.3.2-abi1-windows-amd64.zip
+      NATIVE_ASSET: miniapp-frida-native-17.3.2-abi1.1-windows-amd64.zip
     steps:
       - name: Download verified release bundle
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
@@ -718,7 +718,7 @@ jobs:
             fi
           }
 
-          if [[ "$NATIVE_TAG" != "native-v17.3.2-abi1" ]]; then
+          if [[ "$NATIVE_TAG" != "native-v17.3.2-abi1.1" ]]; then
             echo "unexpected native compatibility tag: $NATIVE_TAG" >&2
             exit 1
           fi
@@ -756,7 +756,7 @@ jobs:
             exit 1
           fi
 
-          native_title='miniapp-bridge native 17.3.2-abi1'
+          native_title='miniapp-bridge native 17.3.2-abi1.1'
           native_files=(
             "release-bundle/native-compat/$NATIVE_ASSET"
             "release-bundle/native-compat/SHA256SUMS"

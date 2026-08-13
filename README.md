@@ -20,7 +20,7 @@ owns the complete bridge lifecycle. Node.js is not required at runtime.
 | Operating system | Windows amd64 |
 | WMPF | **25297** |
 | Frida Core | 17.3.2 |
-| Native ABI | 1 (`17.3.2-abi1`) |
+| Native ABI | 1 (`17.3.2-abi1.1`) |
 | Go SDK and source builds | Go 1.23 or newer |
 
 WMPF 25297 is the production and live-verified target for this release.
@@ -29,8 +29,8 @@ claim of live support.
 
 ## Quick start
 
-1. Download `miniapp-bridge-v0.0.4-windows-amd64.zip` from
-   [GitHub Releases](https://github.com/Follen/miniapp-bridge/releases/tag/v0.0.4).
+1. Download `miniapp-bridge-v0.0.5-windows-amd64.zip` from
+   [GitHub Releases](https://github.com/Follen/miniapp-bridge/releases/tag/v0.0.5).
 2. Extract the archive. Keep `miniapp-bridge.exe`, `miniapp-frida.dll`, and
    `manifest.json` in the same directory.
 3. Start the bridge:
@@ -81,7 +81,7 @@ The module path is `github.com/Follen/miniapp-bridge`; applications import the
 public package `github.com/Follen/miniapp-bridge/sdk`:
 
 ```powershell
-go get github.com/Follen/miniapp-bridge/sdk@v0.0.4
+go get github.com/Follen/miniapp-bridge/sdk@v0.0.5
 ```
 
 ```go
@@ -124,8 +124,8 @@ complete API and lifecycle contract.
 
 The Go module contains source and the Windows loader, but not
 `miniapp-frida.dll`. Release assets publish the native runtime separately as
-`miniapp-frida-native-17.3.2-abi1-windows-amd64.zip` under the compatibility
-tag `native-v17.3.2-abi1`.
+`miniapp-frida-native-17.3.2-abi1.1-windows-amd64.zip` under the compatibility
+tag `native-v17.3.2-abi1.1`.
 
 SDK applications that attach WMPF must:
 

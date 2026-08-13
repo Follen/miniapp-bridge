@@ -34,7 +34,7 @@ func TestPackageWindowsReleaseProducesReproducibleVerifiedAssets(t *testing.T) {
 	}
 
 	productName := "miniapp-bridge-v0.0.1-windows-amd64.zip"
-	nativeName := "miniapp-frida-native-17.3.2-abi1-windows-amd64.zip"
+	nativeName := "miniapp-frida-native-17.3.2-abi1.1-windows-amd64.zip"
 	productPath := filepath.Join(fixture.output, productName)
 	firstHash := fileSHA256(t, productPath)
 	secondOutput, secondErr := fixture.run("v0.0.1")
@@ -231,7 +231,7 @@ func TestPackageWindowsReleaseRejectsInvalidInputs(t *testing.T) {
 
 	t.Run("native-hash", func(t *testing.T) {
 		fixture := newWindowsReleaseFixture(t)
-		nativeName := "miniapp-frida-native-17.3.2-abi1-windows-amd64.zip"
+		nativeName := "miniapp-frida-native-17.3.2-abi1.1-windows-amd64.zip"
 		if err := os.WriteFile(filepath.Join(fixture.native, nativeName), []byte("tampered"), 0o644); err != nil {
 			t.Fatal(err)
 		}
@@ -283,7 +283,7 @@ func newWindowsReleaseFixture(t *testing.T) windowsReleaseFixture {
 
 	dll := []byte("MZ fixture miniapp-frida DLL")
 	manifestValue := map[string]any{
-		"schema": "miniapp-bridge.native-manifest.v1", "nativeVersion": "17.3.2-abi1",
+		"schema": "miniapp-bridge.native-manifest.v1", "nativeVersion": "17.3.2-abi1.1",
 		"fridaCoreVersion": "17.3.2", "zlibVersion": "1.3.1", "abiVersion": 1,
 		"os": "windows", "arch": "amd64", "dll": "miniapp-frida.dll",
 		"size": len(dll), "sha256": bytesSHA256(dll), "requiredExports": []string{"mb_abi_version"},
@@ -293,7 +293,7 @@ func newWindowsReleaseFixture(t *testing.T) windowsReleaseFixture {
 		t.Fatal(err)
 	}
 	nativeZIP := []byte("fixture native zip")
-	nativeName := "miniapp-frida-native-17.3.2-abi1-windows-amd64.zip"
+	nativeName := "miniapp-frida-native-17.3.2-abi1.1-windows-amd64.zip"
 	files := map[string][]byte{
 		filepath.Join(input, "miniapp-bridge.exe"):                         []byte("MZ fixture executable"),
 		filepath.Join(input, "miniapp-frida.dll"):                          dll,

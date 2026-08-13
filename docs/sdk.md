@@ -77,7 +77,7 @@ last structured error.
 ## Native runtime
 
 The pinned runtime is Frida core `17.3.2`, native ABI `1`, native version
-`17.3.2-abi1`, and `miniapp-frida.dll`. The SDK can validate a DLL or prepare a
+`17.3.2-abi1.1`, and `miniapp-frida.dll`. The SDK can validate a DLL or prepare a
 verified cache without exposing a handle:
 
 ```go

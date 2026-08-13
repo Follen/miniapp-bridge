@@ -15,13 +15,13 @@ powershell -ExecutionPolicy Bypass -File scripts/native-release.ps1 `
   -OutputDirectory dist/native
 ```
 
-The command emits `miniapp-frida-native-17.3.2-abi1-windows-amd64.zip` and
+The command emits `miniapp-frida-native-17.3.2-abi1.1-windows-amd64.zip` and
 `SHA256SUMS`. The archive contains `miniapp-frida.dll`, a pinned
 `manifest.json`, `LICENSE`, `FRIDA_COPYING`, `FRIDA_COPYING.LIB`,
 `ZLIB_LICENSE`, `THIRD_PARTY_NOTICES.md`, and its internal `SHA256SUMS`. The
 manifest records the DLL size and SHA-256 and all C
 ABI exports required by the dynamic loader. Version probes cover ABI 1, native
-runtime `17.3.2-abi1`, Frida Core `17.3.2`, and the pinned zlib contract `1.3.1`.
+runtime `17.3.2-abi1.1`, Frida Core `17.3.2`, and the pinned zlib contract `1.3.1`.
 The shim's zlib probe is an ABI compatibility marker;
 the actual compression code is compiled from the pinned stock zlib 1.3.1 source
 into the DLL. The 18 required exports include bounded compress/decompress
@@ -33,18 +33,18 @@ before packaging.
 ## Product bundle
 
 After `build-windows.ps1`, create the release bundle with the canonical Go
-Module version `v0.0.4`:
+Module version `v0.0.5`:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass `
-  -File scripts/package-windows-release.ps1 -Version v0.0.4
+  -File scripts/package-windows-release.ps1 -Version v0.0.5
 ```
 
 The command writes these files under `dist/release`:
 
 ```text
-miniapp-bridge-v0.0.4-windows-amd64.zip
-miniapp-frida-native-17.3.2-abi1-windows-amd64.zip
+miniapp-bridge-v0.0.5-windows-amd64.zip
+miniapp-frida-native-17.3.2-abi1.1-windows-amd64.zip
 manifest.json
 SHA256SUMS
 ```
@@ -66,7 +66,7 @@ deterministic tests, the 100% coverage/race/vet gate, native build, export and
 dependency inspection, packaging, and every published checksum.
 
 The product tag publishes the four assets above. The workflow also creates or
-verifies `native-v17.3.2-abi1`, which is the compatibility Release used by the
+verifies `native-v17.3.2-abi1.1`, which is the compatibility Release used by the
 default SDK and PowerShell download URL. The publisher creates or resumes a
 draft, reconciles every expected asset byte-for-byte, rejects unexpected assets,
 rechecks the remote tag commit, and only then publishes. Existing product
@@ -75,7 +75,7 @@ generated ones, and the native release is never selected as Latest.
 The pinned native archive SHA-256 is:
 
 ```text
-A2F2BA223FA3803A90D1F16E5145C1D61FE2953EFEEB6AFBC6D912934F728EE6
+A63B7F121794DD9C6D51CAC9F47C6D0CE43EB61E753AC23075845630F6A76BFD
 ```
 
 Only the final publisher job has `contents: write`; it consumes the verified
@@ -87,8 +87,8 @@ serialized, and `queue: max` retains up to 100 pending runs.
 After CI passes, create and push an annotated tag:
 
 ```bash
-git tag -a v0.0.4 -m "miniapp-bridge v0.0.4"
-git push origin v0.0.4
+git tag -a v0.0.5 -m "miniapp-bridge v0.0.5"
+git push origin v0.0.5
 ```
 
 Hosted CI verifies deterministic and native packaging behavior but has no live

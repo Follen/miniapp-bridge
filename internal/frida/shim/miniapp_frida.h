@@ -25,7 +25,7 @@ typedef void (*mb_message_cb)(uintptr_t handle, char *message, uint8_t *data, si
 typedef void (*mb_detached_cb)(uintptr_t handle, int reason);
 
 #define MB_ABI_VERSION 1u
-#define MB_NATIVE_VERSION "17.3.2-abi1"
+#define MB_NATIVE_VERSION "17.3.2-abi1.1"
 #define MB_FRIDA_CORE_VERSION "17.3.2"
 #define MB_ZLIB_VERSION "1.3.1"
 

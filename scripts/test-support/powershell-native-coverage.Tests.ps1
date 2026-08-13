@@ -85,9 +85,9 @@ function script:New-PackageFixture([string]$Root) {
     $dll = Join-Path $input 'miniapp-frida.dll'
     [IO.File]::WriteAllText($dll, 'MZ fixture dll')
     $dllHash = Get-TestSHA256 $dll
-    $manifest = [ordered]@{ schema='miniapp-bridge.native-manifest.v1'; nativeVersion='17.3.2-abi1'; fridaCoreVersion='17.3.2'; zlibVersion='1.3.1'; abiVersion=1; os='windows'; arch='amd64'; dll='miniapp-frida.dll'; size=(Get-Item $dll).Length; sha256=$dllHash; requiredExports=@('mb_abi_version') }
+    $manifest = [ordered]@{ schema='miniapp-bridge.native-manifest.v1'; nativeVersion='17.3.2-abi1.1'; fridaCoreVersion='17.3.2'; zlibVersion='1.3.1'; abiVersion=1; os='windows'; arch='amd64'; dll='miniapp-frida.dll'; size=(Get-Item $dll).Length; sha256=$dllHash; requiredExports=@('mb_abi_version') }
     [IO.File]::WriteAllText((Join-Path $input 'manifest.json'), ($manifest | ConvertTo-Json -Compress))
-    $assetName = 'miniapp-frida-native-17.3.2-abi1-windows-amd64.zip'
+    $assetName = 'miniapp-frida-native-17.3.2-abi1.1-windows-amd64.zip'
     $asset = Join-Path $native $assetName
     [IO.File]::WriteAllText($asset, 'native archive')
     [IO.File]::WriteAllText((Join-Path $native 'SHA256SUMS'), "$(Get-TestSHA256 $asset)  $assetName`n")
@@ -122,11 +122,11 @@ function script:New-NativePrepareFixture([string]$Root, [object]$ManifestOverrid
         'mb_script_unload', 'mb_error_free'
     )
     $manifest = if ($null -ne $ManifestOverride) { $ManifestOverride } else {
-        [ordered]@{ schema='miniapp-bridge.native-manifest.v1'; nativeVersion='17.3.2-abi1'; fridaCoreVersion='17.3.2'; zlibVersion='1.3.1'; abiVersion=1; os='windows'; arch='amd64'; dll='miniapp-frida.dll'; size=(Get-Item $dll).Length; sha256=(Get-TestSHA256 $dll); requiredExports=$exports }
+        [ordered]@{ schema='miniapp-bridge.native-manifest.v1'; nativeVersion='17.3.2-abi1.1'; fridaCoreVersion='17.3.2'; zlibVersion='1.3.1'; abiVersion=1; os='windows'; arch='amd64'; dll='miniapp-frida.dll'; size=(Get-Item $dll).Length; sha256=(Get-TestSHA256 $dll); requiredExports=$exports }
     }
     $manifestText = if ($manifest -is [string]) { $manifest } else { $manifest | ConvertTo-Json -Compress }
     [IO.File]::WriteAllText((Join-Path $payload 'manifest.json'), $manifestText)
-    $archive = Join-Path $cache 'miniapp-frida-native-17.3.2-abi1-windows-amd64.zip'
+    $archive = Join-Path $cache 'miniapp-frida-native-17.3.2-abi1.1-windows-amd64.zip'
     Compress-Archive -LiteralPath (Join-Path $payload 'manifest.json'),$dll -DestinationPath $archive -Force
     return [pscustomobject]@{ Cache=$cache; Destination=$destination; Archive=$archive; Hash=(Get-TestSHA256 $archive); Payload=$payload }
 }
@@ -481,7 +481,7 @@ Describe 'Native release PowerShell command coverage' {
                     }
                     'mismatch' {
                         Write-Output (('0' * 64) + '  miniapp-bridge-v0.0.1-windows-amd64.zip')
-                        Write-Output (('0' * 64) + '  miniapp-frida-native-17.3.2-abi1-windows-amd64.zip')
+                        Write-Output (('0' * 64) + '  miniapp-frida-native-17.3.2-abi1.1-windows-amd64.zip')
                         Write-Output (('0' * 64) + '  manifest.json')
                         return
                     }
@@ -489,7 +489,7 @@ Describe 'Native release PowerShell command coverage' {
             }
             if ($path -like '*native-compat\SHA256SUMS' -and $global:packageCopyMode -eq 'alter-compat') {
                 $directory = Split-Path -Parent $path
-                $assetName = 'miniapp-frida-native-17.3.2-abi1-windows-amd64.zip'
+                $assetName = 'miniapp-frida-native-17.3.2-abi1.1-windows-amd64.zip'
                 $assetPath = Join-Path $directory $assetName
                 return @("$(Get-TestSHA256 $assetPath)  $assetName")
             }

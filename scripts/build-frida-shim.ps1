@@ -48,7 +48,7 @@ try {
     # require a Go import library; the MSVC .lib above is only the shim's internal
     # link artifact. The release packager records this hash in manifest.json.
     $dll = Join-Path $runtime 'miniapp-frida.dll'
-    Write-Output 'native_version=17.3.2-abi1'
+    Write-Output 'native_version=17.3.2-abi1.1'
     Write-Output 'frida_core_version=17.3.2'
     Write-Output 'abi_version=1'
     Write-Output "dll_sha256=$((Get-FileHash -Algorithm SHA256 $dll).Hash)"
