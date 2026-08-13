@@ -103,7 +103,7 @@ jobs:
               package="${spec%%:*}"
               target="${spec#*:}"
               printf '=== fuzz %s %s ===\n' "$package" "$target"
-              go test "$package" -run '^$' -fuzz "^${target}$" -fuzztime=2s -parallel=1 -timeout=90s
+              go test "$package" -run '^$' -fuzz "^${target}$" -fuzztime=1000x -parallel=1 -timeout=90s
             done
           } 2>&1 | tee ci-artifacts/linux-fuzz.log
 
@@ -264,7 +264,7 @@ jobs:
           foreach ($target in @('FuzzWMPFZlibBoundedRoundTrip', 'FuzzWMPFZlibDecode')) {
             Write-Output "=== tagged fuzz ./internal/wmpf $target ===" |
               Tee-Object -FilePath ci-artifacts\windows-tagged-fuzz.log -Append
-            go test -tags=frida ./internal/wmpf -run '^$' -fuzz "^${target}$" -fuzztime=2s -parallel=1 -timeout=90s *>&1 |
+            go test -tags=frida ./internal/wmpf -run '^$' -fuzz "^${target}$" -fuzztime=1000x -parallel=1 -timeout=90s *>&1 |
               Tee-Object -FilePath ci-artifacts\windows-tagged-fuzz.log -Append
             if ($LASTEXITCODE -ne 0) { throw "tagged fuzz $target failed with exit $LASTEXITCODE" }
           }

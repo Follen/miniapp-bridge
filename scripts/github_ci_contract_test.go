@@ -47,6 +47,7 @@ func TestGitHubCIWorkflowContract(t *testing.T) {
 		"go run \"github.com/rhysd/actionlint/cmd/actionlint@v${ACTIONLINT_VERSION}\" -ignore 'unexpected key.*queue.*concurrency'",
 		"go test ./... -count=1 -timeout 120s",
 		"go vet ./...",
+		"-fuzztime=1000x -parallel=1 -timeout=90s",
 		"go test -race ./... -count=1 -timeout 240s",
 		"runs-on: windows-2022",
 		"timeout-minutes: 90",
@@ -143,6 +144,12 @@ func TestGitHubCIWorkflowContract(t *testing.T) {
 	}
 	if strings.Contains(workflow, "PowerShell command coverage") || strings.Contains(workflow, ".\\scripts\\powershell-coverage.ps1") {
 		t.Fatal("Windows required CI must use production behavior gates instead of PowerShell numerical command coverage")
+	}
+	if got := strings.Count(workflow, "-fuzztime=1000x -parallel=1 -timeout=90s"); got != 2 {
+		t.Fatalf("Linux and tagged Windows fuzz smoke must use fixed execution budgets: got %d commands", got)
+	}
+	if strings.Contains(workflow, "-fuzztime=2s") {
+		t.Fatal("fuzz smoke must not use wall-clock budgets that can fail during Go fuzz shutdown")
 	}
 
 	linuxLogs := workflowStep(t, workflow, "Upload Linux test logs")
