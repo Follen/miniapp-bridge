@@ -93,8 +93,12 @@ BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved) {
 		t.Fatal(err)
 	}
 	harness := filepath.Join(work, "loader-harness.exe")
+	goodPath := filepath.Join(work, "good.dll")
+	// Exercise the identity check with the extended DOS spelling returned by
+	// GetFinalPathNameByHandleW while GetModuleFileNameW may return DOS form.
+	extendedGoodPath := `\\?\` + goodPath
 	cmd := exec.Command(harness,
-		filepath.Join(work, "good.dll"),
+		extendedGoodPath,
 		filepath.Join(work, "bad-zlib.dll"),
 		filepath.Join(work, "missing.dll"),
 		filepath.Join(work, "bad-native.dll"),
