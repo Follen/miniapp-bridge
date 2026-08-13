@@ -292,16 +292,21 @@ func fakeCDPServerMode(t *testing.T, mode string) (string, func()) {
 }
 
 func TestLinkAndMatrixClients(t *testing.T) {
-	url, closeServer := fakeCDPServer(t)
-	defer closeServer()
-	if err := runLink(url); err != nil {
-		t.Fatal(err)
-	}
-	if err := runMatrix(url); err != nil {
-		t.Fatal(err)
-	}
-	if err := runInteraction(url); err != nil {
-		t.Fatal(err)
+	for _, run := range []struct {
+		name string
+		fn   func(string) error
+	}{
+		{name: "link", fn: runLink},
+		{name: "matrix", fn: runMatrix},
+		{name: "interaction", fn: runInteraction},
+	} {
+		t.Run(run.name, func(t *testing.T) {
+			url, closeServer := fakeCDPServer(t)
+			defer closeServer()
+			if err := run.fn(url); err != nil {
+				t.Fatal(err)
+			}
+		})
 	}
 }
 
