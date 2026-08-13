@@ -1,3 +1,9 @@
+param(
+    [ValidateSet('All', 'Go', 'C')]
+    [string]$Mode = 'All',
+    [switch]$UseExistingNative
+)
+
 $ErrorActionPreference = 'Stop'
 
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
@@ -116,6 +122,15 @@ function Write-GoCoverageReport {
     Get-Content -LiteralPath $reportPath | Write-Output
 }
 
+if ($Mode -eq 'C') {
+    Run 'C shim native line and branch-site coverage' {
+        & (Join-Path $PSScriptRoot 'cshim-coverage.ps1') -ReportPath (Join-Path $repo 'ci-artifacts\c-shim-coverage.log')
+        if ($LASTEXITCODE -ne 0) { throw "C shim coverage failed with exit $LASTEXITCODE" }
+    }
+    Write-Output 'coverage_gate=c_shim_lines=100.0%; c_shim_branch_sites=100.0%'
+    exit 0
+}
+
 $messages = Get-Content testdata/golden/reference_messages.json -Raw | ConvertFrom-Json
 if ($messages.fixtures.Count -ne 55) { throw "expected 55 protobuf fixtures, got $($messages.fixtures.Count)" }
 $fieldCount = ($messages.fixtures | ForEach-Object { $_.fields.Count } | Measure-Object -Sum).Sum
@@ -199,7 +214,9 @@ $taggedCoverage = Join-Path $env:TEMP "miniapp-bridge-coverage-frida-$([guid]::N
 $oldPath = $env:PATH
 $oldNativePath = $env:MINIAPP_BRIDGE_NATIVE_PATH
 try {
-    Run 'native shim build' { & $PSScriptRoot\build-frida-shim.ps1 }
+    if (-not $UseExistingNative) {
+        Run 'native shim build' { & $PSScriptRoot\build-frida-shim.ps1 }
+    }
     $runtime = (Resolve-Path (Join-Path $repo 'third_party\frida\runtime-17.3.2')).Path
     $env:PATH = $runtime + ';' + $env:PATH
     $env:MINIAPP_BRIDGE_NATIVE_PATH = Join-Path $runtime 'miniapp-frida.dll'
@@ -221,8 +238,12 @@ try {
 Run 'race' { go test -race ./... -count=1 -timeout 420s }
 Run 'vet' { go vet ./... }
 Write-GoCoverageReport -Profiles $coverageProfiles -GitProvenance $coverageGitProvenance -SourceManifest $coverageSourceManifest
-Run 'C shim native line and branch-site coverage' {
-    & (Join-Path $PSScriptRoot 'cshim-coverage.ps1') -ReportPath (Join-Path $repo 'ci-artifacts\c-shim-coverage.log')
-    if ($LASTEXITCODE -ne 0) { throw "C shim coverage failed with exit $LASTEXITCODE" }
+if ($Mode -eq 'All') {
+    Run 'C shim native line and branch-site coverage' {
+        & (Join-Path $PSScriptRoot 'cshim-coverage.ps1') -ReportPath (Join-Path $repo 'ci-artifacts\c-shim-coverage.log')
+        if ($LASTEXITCODE -ne 0) { throw "C shim coverage failed with exit $LASTEXITCODE" }
+    }
+    Write-Output 'coverage_gate=100% reference behaviors; cli_frida_go_statements=100.0%; internal_go_statements=100.0%; sdk_go_statements=100.0%; tagged_internal_sdk_go_statements=100.0%; smoke_runner_go_statements=100.0%; c_shim_lines=100.0%; c_shim_branch_sites=100.0%; unit/race/tagged-race/vet=passed'
+} else {
+    Write-Output 'coverage_gate=Go reference behaviors; cli_frida_go_statements=100.0%; internal_go_statements=100.0%; sdk_go_statements=100.0%; tagged_internal_sdk_go_statements=100.0%; smoke_runner_go_statements=100.0%; unit/race/tagged-race/vet=passed'
 }
-Write-Output 'coverage_gate=100% reference behaviors; cli_frida_go_statements=100.0%; internal_go_statements=100.0%; sdk_go_statements=100.0%; tagged_internal_sdk_go_statements=100.0%; smoke_runner_go_statements=100.0%; c_shim_lines=100.0%; c_shim_branch_sites=100.0%; unit/race/tagged-race/vet=passed'

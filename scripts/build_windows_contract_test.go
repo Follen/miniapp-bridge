@@ -66,3 +66,15 @@ func TestBuildWindowsCompilesExecutableAgainstGeneratedNativeTrustRoot(t *testin
 		t.Fatal("default and generated native trust roots must have mutually exclusive build constraints")
 	}
 }
+
+func TestBuildWindowsAllowsCIToDelegateTestsWithoutChangingTheDefault(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "scripts", "build-windows.ps1"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	script := string(data)
+	if !strings.Contains(script, "[switch]$SkipTests") ||
+		!strings.Contains(script, "if (-not $SkipTests) {\n    go test -tags frida -race ./... -count=1") {
+		t.Fatal("build-windows must run tagged race by default and only skip it through the explicit CI switch")
+	}
+}
