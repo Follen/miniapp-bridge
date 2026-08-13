@@ -24,7 +24,7 @@ func TestCoverageGateRunsTaggedRaceAndUsesStableScope(t *testing.T) {
 		"go test ./... -count=1 -timeout 600s",
 		"go test ./cmd/... ./frida -count=1 -timeout 90s",
 		"go test -tags frida ./internal/... ./sdk -count=1 -timeout 180s",
-		"go test -tags frida -race ./... -count=1 -timeout 420s",
+		"go test -tags frida -race -p 1 ./... -count=1 -timeout 900s",
 		"go test -race ./... -count=1 -timeout 420s",
 		"cli_frida_go_statements=100.0%",
 		"internal_go_statements=100.0%",

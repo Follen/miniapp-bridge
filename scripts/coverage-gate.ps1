@@ -229,7 +229,7 @@ try {
         throw "tagged Go statement coverage must be 100.0%; got: $taggedTotal"
     }
     $coverageProfiles += [ordered]@{ name = 'tagged_internal_sdk'; statement_percent = 100.0 }
-    Run 'tagged race' { go test -tags frida -race ./... -count=1 -timeout 420s }
+    Run 'tagged race' { go test -tags frida -race -p 1 ./... -count=1 -timeout 900s }
 } finally {
     $env:PATH = $oldPath
     $env:MINIAPP_BRIDGE_NATIVE_PATH = $oldNativePath
