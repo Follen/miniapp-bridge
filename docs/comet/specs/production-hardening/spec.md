@@ -65,10 +65,10 @@ miniapp-bridge 必须以单租户 Windows bridge 运行：一个 Service 实例�
 ## 发布供应链与工具链
 
 - CI 与 release 使用实施时仍受支持的 Go 稳定版本，并对默认与 `frida` tagged 构建执行测试、race/vet 和 `govulncheck`。
-- EXE 与 DLL 发布件必须进行带可信时间戳的 Authenticode 签名并验证签名；签名凭据只通过受保护发布环境注入。
+- EXE 与 DLL 发布件不要求 Authenticode 或其他代码签名；发布包必须通过编译内置信任根、manifest、DLL/archive SHA-256、exports/imports 和 PE 安全属性门禁。
 - 每个 release 必须生成 CycloneDX 或 SPDX SBOM、构建 provenance/attestation、SHA-256 清单和许可证集合，并绑定同一源码 revision。
 - native archive、DLL、导出集、普通/delay imports 和 PE 安全属性必须经过 allowlist 门禁；zlib/Frida 源码从已验证 archive 解压到全新 staging，不能复用未经完整校验的源码缓存。
-- Actions 依赖固定不可变 revision；发布使用受保护 tag/environment，任何签名、SBOM、provenance、漏洞或 PE 门禁失败均阻止发布。
+- Actions 依赖固定不可变 revision；发布使用受保护 tag/environment，任何 manifest/hash/SBOM/provenance、漏洞或 PE 门禁失败均阻止发布。
 
 ## 目标选择与兼容策略
 
@@ -83,19 +83,19 @@ miniapp-bridge 必须以单租户 Windows bridge 运行：一个 Service 实例�
 - runtime 使用不可变版本目录和原子 current 指针或等价事务发布，保留至少一个已验证的上一版本。
 - 更新 journal 记录 prepare、verify、publish 和 cleanup 阶段；进程在任意阶段终止后，下一次启动必须完成发布或回滚到最后完整版本。
 - 运行中的 DLL 不原地覆盖；新版本在下一次受控重启切换。切换后 canary 失败必须自动回滚并留下结构化诊断。
-- 必须提供可重复执行的显式 rollback 命令，并校验回滚产物的内置信任根、签名和文件身份。
+- 必须提供可重复执行的显式 rollback 命令，并校验回滚产物的内置信任根、manifest/hash 和文件身份。
 
 ## 测试与生产门禁
 
 - 单元与集成测试覆盖连接 owner、Origin、明确无 token 的连接路径、generation 清理、资源上限、supervisor、shutdown、capture 事务、更新恢复和发布校验。
 - fuzz 覆盖 WebSocket/CDP/WMPF 解码、manifest、capture、zlib 和边界算术；corpus 与崩溃样本可版本化复现。
 - 性能测试建立吞吐、P95/P99 延迟、峰值内存、队列水位和 CPU 基线，并使用显式回归阈值。
-- soak 覆盖持续连接、周期断线重连、长时间 capture 和多轮更新；chaos/故障注入覆盖 listener、callback、ENOSPC、短写、签名错误、文件替换、native hang/detach 和强制 shutdown。
-- Windows live matrix 必须覆盖一个 upstream、一个 CDP controller、第二连接拒绝、断线重连、端口复用、真实目标 canary 和更新回滚；缺少外部环境或签名凭据的检查必须作为已知风险记录，不能伪记通过。
+- soak 覆盖持续连接、周期断线重连、长时间 capture 和多轮更新；chaos/故障注入覆盖 listener、callback、ENOSPC、短写、hash/manifest 错误、文件替换、native hang/detach 和强制 shutdown。
+- Windows live matrix 必须覆盖一个 upstream、一个 CDP controller、第二连接拒绝、断线重连、端口复用、真实目标 canary 和更新回滚；缺少外部环境检查必须作为已知风险记录，不能伪记通过。
 - Go 仓库自有生产代码必须在合并 Windows 默认与 `frida` profile 后达到 100% statement coverage；所有生产包通过 `-coverpkg` 或等价全包插桩纳入统计。
 - C shim 仓库自有生产代码必须通过原生插桩 profile 达到 100% line coverage 和 100% function coverage；错误、清理、callback、init/deinit 和 loader 分支必须由真实执行覆盖。
 - `build-windows.ps1` 必须能在干净 Windows 环境完整构建 EXE、DLL、manifest 和 native archive；manifest、编译内置信任根、DLL/archive SHA-256、exports/imports、PE 安全门禁与最终发布包必须彼此一致。
-- Windows 构建在依赖工具缺失、编译失败、签名/hash/export 不匹配时必须失败关闭；临时文件必须可靠清理，重复执行必须得到一致的可信关系，更新 rollback/recovery 必须可重复执行并恢复到已验证产物。
+- Windows 构建在依赖工具缺失、编译失败、manifest/hash/export 不匹配时必须失败关闭；临时文件必须可靠清理，重复执行必须得到一致的可信关系，更新 rollback/recovery 必须可重复执行并恢复到已验证产物。
 - Go 与 C 覆盖率必须分别使用真实执行 profile 计算，不得通过排除有行为的生产文件、生成空桩、只测 getter、改变统计根或把未覆盖代码标成生成代码来规避门禁。PowerShell 不设数值 command coverage 门槛，以真实生产构建、产物一致性和失败路径证据验收。
 - CI 必须将 Go/C 覆盖率、race、fuzz smoke、协议矩阵、真实 Windows native build、供应链校验和 required checks 作为合并门禁；GitHub Windows required CI 必须对候选提交完整构建并通过。
 

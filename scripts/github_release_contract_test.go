@@ -30,7 +30,7 @@ func TestGitHubReleaseWorkflowSecurityContract(t *testing.T) {
 		"fetch-depth: 0",
 		"Reconcile and publish GitHub Releases",
 	})
-	for _, forbidden := range []string{"pull_request:", "pull_request_target:", "permissions: write-all", "gh release create", "gh release upload"} {
+	for _, forbidden := range []string{"pull_request:", "pull_request_target:", "permissions: write-all", "gh release create", "gh release upload", "WINDOWS_SIGNING_PFX_BASE64", "WINDOWS_SIGNING_PFX_PASSWORD", "WINDOWS_SIGNING_TIMESTAMP_URL", "Get-AuthenticodeSignature", "release_signed", "trust_release_signed.go", "signtool.exe"} {
 		if strings.Contains(workflow, forbidden) {
 			t.Fatalf("release workflow contains forbidden token %q", forbidden)
 		}
@@ -95,7 +95,7 @@ func TestGitHubReleaseWorkflowBuildAndVersionContract(t *testing.T) {
 		"if ($null -ne $LASTEXITCODE -and $LASTEXITCODE -ne 0) { throw \"release packaging failed with exit $LASTEXITCODE\" }",
 		"native_tag=native-v17.3.2-abi1",
 		"manifest.nativeVersion",
-		"native archive hash $nativeHash does not match signed SDK pin $env:SIGNED_NATIVE_ARCHIVE_SHA256",
+		"native archive hash is missing or malformed",
 		"ZLIB_ARCHIVE_SHA256: 17E88863F3600672AB49182F217281B6FC4D3C762BDE361935E436A95214D05C",
 		"${{ env.ZLIB_ARCHIVE_SHA256 }}-${{ hashFiles('go.sum') }}",
 		"Populate Frida devkit archive cache",
@@ -105,17 +105,9 @@ func TestGitHubReleaseWorkflowBuildAndVersionContract(t *testing.T) {
 		"Generate deterministic SBOM provenance and license set",
 		"provenance.intoto.json",
 		"production-release",
-		"Sign Windows artifacts and bind the signed native trust root",
-		"WINDOWS_SIGNING_PFX_BASE64: ${{ secrets.WINDOWS_SIGNING_PFX_BASE64 }}",
-		"WINDOWS_SIGNING_PFX_PASSWORD: ${{ secrets.WINDOWS_SIGNING_PFX_PASSWORD }}",
-		"WINDOWS_SIGNING_TIMESTAMP_URL: ${{ vars.WINDOWS_SIGNING_TIMESTAMP_URL }}",
-		"trust_release_signed.go",
-		"go build -tags 'frida,release_signed'",
-		"NativeArchiveSHA256 = \"$archiveHash\"",
-		"SIGNED_NATIVE_ARCHIVE_SHA256=$archiveHash",
-		"$env:SIGNED_NATIVE_ARCHIVE_SHA256",
-		"Get-AuthenticodeSignature -LiteralPath $path",
-		"TimeStamperCertificate",
+		"Validate unsigned release artifacts",
+		"release DLL does not match manifest size and SHA-256",
+		"native archive is missing: $nativePath",
 	})
 	if strings.Contains(workflow, "            third_party/zlib/src-1.3.1") {
 		t.Fatal("release workflow must not cache the extracted zlib source tree")
