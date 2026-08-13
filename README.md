@@ -29,8 +29,8 @@ claim of live support.
 
 ## Quick start
 
-1. Download `miniapp-bridge-v0.0.3-windows-amd64.zip` from
-   [GitHub Releases](https://github.com/Follen/miniapp-bridge/releases/tag/v0.0.3).
+1. Download `miniapp-bridge-v0.0.4-windows-amd64.zip` from
+   [GitHub Releases](https://github.com/Follen/miniapp-bridge/releases/tag/v0.0.4).
 2. Extract the archive. Keep `miniapp-bridge.exe`, `miniapp-frida.dll`, and
    `manifest.json` in the same directory.
 3. Start the bridge:
@@ -81,7 +81,7 @@ The module path is `github.com/Follen/miniapp-bridge`; applications import the
 public package `github.com/Follen/miniapp-bridge/sdk`:
 
 ```powershell
-go get github.com/Follen/miniapp-bridge/sdk@v0.0.3
+go get github.com/Follen/miniapp-bridge/sdk@v0.0.4
 ```
 
 ```go
