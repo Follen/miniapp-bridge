@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	NativeVersion        = "17.3.2-abi1"
+	NativeVersion        = "17.3.2-abi1.1"
 	FridaCoreVersion     = "17.3.2"
 	ZlibVersion          = "1.3.1"
 	NativeABIVersion     = uint32(1)

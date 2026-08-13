@@ -42,7 +42,7 @@ go test -v -tags "frida live" ./internal/frida `
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/coverage-gate.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/native-release.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-windows-release.ps1 `
-  -Version v0.0.4
+  -Version v0.0.5
 
 $verificationID = [guid]::NewGuid().ToString('N')
 $nativeCache = Join-Path $env:TEMP "miniapp-bridge-cache-$verificationID"
@@ -50,11 +50,11 @@ $nativeDestination = Join-Path $env:TEMP "miniapp-bridge-runtime-$verificationID
 New-Item -ItemType Directory -Force -Path $nativeCache,$nativeDestination | Out-Null
 try {
   Copy-Item `
-    '.\dist\native\miniapp-frida-native-17.3.2-abi1-windows-amd64.zip' `
+    '.\dist\native\miniapp-frida-native-17.3.2-abi1.1-windows-amd64.zip' `
     $nativeCache
   powershell -NoProfile -ExecutionPolicy Bypass -File scripts/native-prepare.ps1 `
     -Offline -CacheDirectory $nativeCache -DestinationDirectory $nativeDestination `
-     -ExpectedArchiveSHA256 A2F2BA223FA3803A90D1F16E5145C1D61FE2953EFEEB6AFBC6D912934F728EE6
+     -ExpectedArchiveSHA256 A63B7F121794DD9C6D51CAC9F47C6D0CE43EB61E753AC23075845630F6A76BFD
   if ($LASTEXITCODE -ne 0) { throw "offline native preparation failed: $LASTEXITCODE" }
 }
 finally {
@@ -125,9 +125,9 @@ response/event ordering that the protocol does not guarantee.
 
 The Windows amd64 runtime is Frida core `17.3.2`, native ABI `1`, and zlib
 `1.3.1`. The pinned DLL SHA-256 is
-`8C2C32BC5AC4F5D2E96AF10BFD2A6C1450D688DA91157B065E497B102945812C`.
+`AEF471FB32E9BAF31C7B9F774BA76A5F4FFC0E379BB9C7E9A38783864999D44E`.
 The pinned native ZIP SHA-256 is
-`A2F2BA223FA3803A90D1F16E5145C1D61FE2953EFEEB6AFBC6D912934F728EE6`.
+`A63B7F121794DD9C6D51CAC9F47C6D0CE43EB61E753AC23075845630F6A76BFD`.
 Release scripts write `dist/native/SHA256SUMS` and a unified
 `dist/release/SHA256SUMS`; the workflow recomputes both after artifact transfer.
 

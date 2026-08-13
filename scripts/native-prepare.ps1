@@ -4,7 +4,7 @@ param(
     [ValidateRange(1, 10)][int]$DownloadAttempts = 3,
     [ValidateRange(1, 900)][int]$DownloadTimeoutSeconds = 300,
     [ValidateRange(0, 60)][int]$DownloadRetrySeconds = 5,
-    [string]$Version = '17.3.2-abi1',
+    [string]$Version = '17.3.2-abi1.1',
     [string]$CacheDirectory = '',
     [string]$DestinationDirectory = '',
     [string]$SourceURL = '',

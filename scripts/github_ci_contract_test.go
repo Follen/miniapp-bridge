@@ -167,7 +167,7 @@ func TestGitHubCIWorkflowContract(t *testing.T) {
 		"dist/miniapp-bridge.exe",
 		"dist/miniapp-frida.dll",
 		"dist/manifest.json",
-		"dist/native/miniapp-frida-native-17.3.2-abi1-windows-amd64.zip",
+		"dist/native/miniapp-frida-native-17.3.2-abi1.1-windows-amd64.zip",
 		"dist/native/SHA256SUMS",
 	})
 	assertStepLine(t, windowsBinaries, "if-no-files-found: error")

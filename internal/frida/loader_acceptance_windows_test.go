@@ -167,7 +167,7 @@ func writeLoaderFixture(t *testing.T, path string, spec loaderFixtureSpec) {
 		spec.abiVersion = "1"
 	}
 	if spec.nativeVersion == "" {
-		spec.nativeVersion = `"17.3.2-abi1"`
+		spec.nativeVersion = `"17.3.2-abi1.1"`
 	}
 	if spec.fridaVersion == "" {
 		spec.fridaVersion = `"17.3.2"`
@@ -202,7 +202,7 @@ typedef void (*mb_message_cb)(uintptr_t,char*,uint8_t*,size_t); typedef void (*m
 #define MB_ZLIB_DELAY() ((void)0)
 #endif
 __declspec(dllexport) uint32_t mb_abi_version(void){return 1;}
-__declspec(dllexport) const char *mb_native_version(void){return "17.3.2-abi1";}
+__declspec(dllexport) const char *mb_native_version(void){return "17.3.2-abi1.1";}
 __declspec(dllexport) const char *mb_frida_core_version(void){return "17.3.2";}
 __declspec(dllexport) const char *mb_zlib_version(void){return "%s";}
 __declspec(dllexport) int mb_zlib_compress(const uint8_t*i,size_t n,uint8_t**o,size_t*s,char**e){(void)e;MB_ZLIB_DELAY();*o=(uint8_t*)malloc(n?n:1);if(!*o)return 0;if(n)memcpy(*o,i,n);*s=n;return 1;}
@@ -304,7 +304,7 @@ int wmain(int argc, wchar_t **argv) {
   if (!mb_native_load(argv[1], &error, &code) || code != MB_NATIVE_LOAD_OK || !mb_native_load(argv[1], &error, &code) || code != MB_NATIVE_LOAD_OK) return 3;
   if (!mb_native_loaded()) return 4;
   if (!mb_native_retain_loaded()) return 13;
-  if (mb_abi_version() != 1 || strcmp(mb_native_version(),"17.3.2-abi1") != 0 || strcmp(mb_frida_core_version(),"17.3.2") != 0 || strcmp(mb_zlib_version(),"1.3.1") != 0) return 16;
+  if (mb_abi_version() != 1 || strcmp(mb_native_version(),"17.3.2-abi1.1") != 0 || strcmp(mb_frida_core_version(),"17.3.2") != 0 || strcmp(mb_zlib_version(),"1.3.1") != 0) return 16;
   if (!mb_zlib_compress(input,3,&output,&output_size,&error) || output_size != 3 || memcmp(input,output,3) != 0) return 14;
   mb_bytes_free(output); output = NULL; output_size = 0;
   if (!mb_zlib_decompress(input,3,3,16,&output,&output_size,&error) || output_size != 3 || memcmp(input,output,3) != 0) return 15;

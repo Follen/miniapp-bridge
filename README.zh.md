@@ -20,7 +20,7 @@ Windows 可执行程序会自动发现 WMPF、加载内嵌 Frida Agent，并管�
 | 操作系统 | Windows amd64 |
 | WMPF | **25297** |
 | Frida Core | 17.3.2 |
-| Native ABI | 1（`17.3.2-abi1`） |
+| Native ABI | 1（`17.3.2-abi1.1`） |
 | Go SDK 与源码构建 | Go 1.23 或更高版本 |
 
 本版本的生产支持和 live 验证目标是 WMPF 25297。仓库中的其他历史地址数据仅用于
@@ -28,8 +28,8 @@ Windows 可执行程序会自动发现 WMPF、加载内嵌 Frida Agent，并管�
 
 ## 快速开始
 
-1. 从 [GitHub Releases](https://github.com/Follen/miniapp-bridge/releases/tag/v0.0.4)
-   下载 `miniapp-bridge-v0.0.4-windows-amd64.zip`。
+1. 从 [GitHub Releases](https://github.com/Follen/miniapp-bridge/releases/tag/v0.0.5)
+   下载 `miniapp-bridge-v0.0.5-windows-amd64.zip`。
 2. 解压后保持 `miniapp-bridge.exe`、`miniapp-frida.dll` 和 `manifest.json`
    位于同一目录。
 3. 启动 bridge：
@@ -80,7 +80,7 @@ Module 路径为 `github.com/Follen/miniapp-bridge`，业务项目只需导入�
 `github.com/Follen/miniapp-bridge/sdk`：
 
 ```powershell
-go get github.com/Follen/miniapp-bridge/sdk@v0.0.4
+go get github.com/Follen/miniapp-bridge/sdk@v0.0.5
 ```
 
 ```go
@@ -121,8 +121,8 @@ func Run(ctx context.Context) error {
 ## Native runtime
 
 Go Module 包含源码和 Windows loader，但不包含 `miniapp-frida.dll`。Native
-runtime 以 `miniapp-frida-native-17.3.2-abi1-windows-amd64.zip` 资产单独发布，
-兼容 tag 为 `native-v17.3.2-abi1`。
+runtime 以 `miniapp-frida-native-17.3.2-abi1.1-windows-amd64.zip` 资产单独发布，
+兼容 tag 为 `native-v17.3.2-abi1.1`。
 
 需要 attach WMPF 的 SDK 程序必须：
 

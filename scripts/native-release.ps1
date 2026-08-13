@@ -2,7 +2,7 @@ param(
     [string]$RuntimeDirectory = '',
     [string]$OutputDirectory = '',
     [string]$ManifestOutputDirectory = '',
-    [ValidateSet('17.3.2-abi1')][string]$Version = '17.3.2-abi1',
+    [ValidateSet('17.3.2-abi1.1')][string]$Version = '17.3.2-abi1.1',
     [string]$LicenseFile = '',
     [string]$FridaCopyingFile = '',
     [string]$FridaLibraryLicenseFile = '',

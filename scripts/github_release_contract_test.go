@@ -11,7 +11,7 @@ import (
 func TestGitHubReleaseWorkflowSecurityContract(t *testing.T) {
 	workflow := readReleaseWorkflow(t)
 	requireReleaseTokens(t, workflow, []string{
-		"group: release-native-17.3.2-abi1",
+		"group: release-native-17.3.2-abi1.1",
 		"queue: max",
 		"push:\n    tags:\n      - 'v*'",
 		"workflow_dispatch:",
@@ -93,7 +93,7 @@ func TestGitHubReleaseWorkflowBuildAndVersionContract(t *testing.T) {
 		".\\scripts\\build-windows.ps1",
 		".\\scripts\\package-windows-release.ps1 -Version $env:RELEASE_TAG",
 		"if ($null -ne $LASTEXITCODE -and $LASTEXITCODE -ne 0) { throw \"release packaging failed with exit $LASTEXITCODE\" }",
-		"native_tag=native-v17.3.2-abi1",
+		"native_tag=native-v17.3.2-abi1.1",
 		"manifest.nativeVersion",
 		"native archive hash is missing or malformed",
 		"ZLIB_ARCHIVE_SHA256: 17E88863F3600672AB49182F217281B6FC4D3C762BDE361935E436A95214D05C",
@@ -160,7 +160,7 @@ func TestGitHubReleaseWorkflowNativeArchiveHashMatchesSDK(t *testing.T) {
 	if workflowMatch[1] != string(runtimeMatch[1]) {
 		t.Fatalf("release native archive SHA=%s, SDK pin=%s", workflowMatch[1], runtimeMatch[1])
 	}
-	const expected = "A2F2BA223FA3803A90D1F16E5145C1D61FE2953EFEEB6AFBC6D912934F728EE6"
+	const expected = "A63B7F121794DD9C6D51CAC9F47C6D0CE43EB61E753AC23075845630F6A76BFD"
 	if workflowMatch[1] != expected {
 		t.Fatalf("release native archive SHA=%s, want pinned artifact %s", workflowMatch[1], expected)
 	}
@@ -170,7 +170,7 @@ func TestGitHubReleaseWorkflowArtifactAndCompatibilityContract(t *testing.T) {
 	workflow := readReleaseWorkflow(t)
 	requireReleaseTokens(t, workflow, []string{
 		"miniapp-bridge-$RELEASE_TAG-windows-amd64.zip",
-		"miniapp-frida-native-17.3.2-abi1-windows-amd64.zip",
+		"miniapp-frida-native-17.3.2-abi1.1-windows-amd64.zip",
 		"release-bundle/manifest.json",
 		"release-bundle/SHA256SUMS",
 		"release-bundle/native-compat/$NATIVE_ASSET",
@@ -250,7 +250,7 @@ func TestGitHubReleaseWorkflowRecoverablePublishingContract(t *testing.T) {
 	if strings.Contains(workflow, "$env:REQUESTED_TAG -notmatch $semver") {
 		t.Fatal("PowerShell release tag matching must remain case-sensitive")
 	}
-	if !strings.Contains(workflow, "concurrency:\n  group: release-native-17.3.2-abi1\n  queue: max\n  cancel-in-progress: false") {
+	if !strings.Contains(workflow, "concurrency:\n  group: release-native-17.3.2-abi1.1\n  queue: max\n  cancel-in-progress: false") {
 		t.Fatal("all product releases sharing the pinned native tag must be serialized")
 	}
 	reconcileStart := strings.Index(workflow, "          reconcile_assets() {")
