@@ -12,10 +12,7 @@ import (
 )
 
 func TestWindowsLoaderFakeDLLAcceptance(t *testing.T) {
-	vsdev := `C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\Tools\VsDevCmd.bat`
-	if _, err := os.Stat(vsdev); err != nil {
-		t.Skipf("MSVC Build Tools unavailable: %v", err)
-	}
+	vsdev := findMSVCDevCommand(t)
 	work := t.TempDir()
 	repo, err := filepath.Abs(filepath.Join("..", ".."))
 	if err != nil {
@@ -131,6 +128,24 @@ BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved) {
 			t.Fatalf("loader lifecycle trace=%v", events)
 		}
 	}
+}
+
+func findMSVCDevCommand(t *testing.T) string {
+	t.Helper()
+	fixed := `C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\Tools\VsDevCmd.bat`
+	if _, err := os.Stat(fixed); err == nil {
+		return fixed
+	}
+	vswhere := `C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe`
+	output, err := exec.Command(vswhere, "-latest", "-products", "*", "-requires", "Microsoft.VisualStudio.Component.VC.Tools.x86.x64", "-property", "installationPath").CombinedOutput()
+	if err != nil {
+		t.Skipf("MSVC Build Tools unavailable: vswhere failed: %v: %s", err, output)
+	}
+	vsdev := filepath.Join(strings.TrimSpace(string(output)), "Common7", "Tools", "VsDevCmd.bat")
+	if _, err := os.Stat(vsdev); err != nil {
+		t.Skipf("MSVC Build Tools unavailable: %v", err)
+	}
+	return vsdev
 }
 
 func runMSVCCommand(t *testing.T, dir, vsdev, command string) {

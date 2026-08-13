@@ -104,7 +104,7 @@ func buildNativeZlibFixture(t *testing.T, name, compress, decompress string) str
 		t.Fatal(err)
 	}
 	dir := filepath.Dir(path)
-	runMSVCCommand(t, dir, `C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\Tools\VsDevCmd.bat`, fmt.Sprintf(`cl /nologo /LD /MT /W3 /Fe:"%s.dll" "%s.c"`, name, name))
+	runMSVCCommand(t, dir, findMSVCDevCommand(t), fmt.Sprintf(`cl /nologo /LD /MT /W3 /Fe:"%s.dll" "%s.c"`, name, name))
 	return filepath.Join(dir, name+".dll")
 }
 
