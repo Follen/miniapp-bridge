@@ -17,7 +17,9 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  GO_VERSION: 1.26.x
+  # Pinned to the first patch that fixes the go1.26.5 standard-library
+  # vulnerabilities reported by govulncheck (GO-2026-5026/5972/6089/6090/6218).
+  GO_VERSION: 1.26.6
   ACTIONLINT_VERSION: 1.7.7
   GOVULNCHECK_VERSION: v1.6.0
   CYCLONEDX_GOMOD_VERSION: v1.10.0
