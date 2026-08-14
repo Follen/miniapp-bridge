@@ -28,8 +28,8 @@ Windows 可执行程序会自动发现 WMPF、加载内嵌 Frida Agent，并管�
 
 ## 快速开始
 
-1. 从 [GitHub Releases](https://github.com/Follen/miniapp-bridge/releases/tag/v0.0.7)
-   下载 `miniapp-bridge-v0.0.7-windows-amd64.zip`。
+1. 从 [GitHub Releases](https://github.com/Follen/miniapp-bridge/releases/tag/v0.0.8)
+   下载 `miniapp-bridge-v0.0.8-windows-amd64.zip`。
 2. 解压后保持 `miniapp-bridge.exe`、`miniapp-frida.dll` 和 `manifest.json`
    位于同一目录。
 3. 启动 bridge：
@@ -81,7 +81,7 @@ Module 路径为 `github.com/Follen/miniapp-bridge`，业务项目只需导入�
 [`SDK.zh.md`](SDK.zh.md)（English: [`SDK.md`](SDK.md)）：
 
 ```powershell
-go get github.com/Follen/miniapp-bridge/sdk@v0.0.7
+go get github.com/Follen/miniapp-bridge/sdk@v0.0.8
 ```
 
 ```go

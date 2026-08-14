@@ -4,14 +4,14 @@
 完整契约见 [`docs/sdk.md`](docs/sdk.md)。
 
 - 平台：Windows amd64（**WMPF 25297** 为 live 验证目标；其他历史地址数据仅作兼容）
-- 最新版本：**v0.0.7**
+- 最新版本：**v0.0.8**
 - 最低 Go 版本：`go.mod` 的 `go` 指令（Go 1.23 或更新）
 - 端口：upstream（小程序）`9421`，CDP WebSocket `62000`
 
 ## 1. 安装
 
 ```powershell
-go get github.com/Follen/miniapp-bridge/sdk@v0.0.7
+go get github.com/Follen/miniapp-bridge/sdk@v0.0.8
 ```
 
 使用本地 checkout 调试：
