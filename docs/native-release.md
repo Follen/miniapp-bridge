@@ -33,17 +33,17 @@ before packaging.
 ## Product bundle
 
 After `build-windows.ps1`, create the release bundle with the canonical Go
-Module version `v0.0.7`:
+Module version `v0.0.8`:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass `
-  -File scripts/package-windows-release.ps1 -Version v0.0.7
+  -File scripts/package-windows-release.ps1 -Version v0.0.8
 ```
 
 The command writes these files under `dist/release`:
 
 ```text
-miniapp-bridge-v0.0.7-windows-amd64.zip
+miniapp-bridge-v0.0.8-windows-amd64.zip
 miniapp-frida-native-17.3.2-abi1.1-windows-amd64.zip
 manifest.json
 SHA256SUMS
@@ -87,8 +87,8 @@ serialized, and `queue: max` retains up to 100 pending runs.
 After CI passes, create and push an annotated tag:
 
 ```bash
-git tag -a v0.0.7 -m "miniapp-bridge v0.0.7"
-git push origin v0.0.7
+git tag -a v0.0.8 -m "miniapp-bridge v0.0.8"
+git push origin v0.0.8
 ```
 
 Hosted CI verifies deterministic and native packaging behavior but has no live

@@ -6,14 +6,14 @@ lives in [`docs/sdk.md`](docs/sdk.md).
 
 - Platform: Windows amd64 (WMPF 25297 is the live-verified target; other
   historical address data is compatibility data only)
-- Latest release: **v0.0.7**
+- Latest release: **v0.0.8**
 - Minimum Go: the `go` directive in `go.mod` (Go 1.23 or newer)
 - Ports: upstream (miniapp) `9421`, CDP WebSocket `62000`
 
 ## 1. Install
 
 ```powershell
-go get github.com/Follen/miniapp-bridge/sdk@v0.0.7
+go get github.com/Follen/miniapp-bridge/sdk@v0.0.8
 ```
 
 To test against a local checkout:
