@@ -259,6 +259,9 @@ jobs:
               expected_names+=("$(basename "$file")")
             done
             while IFS= read -r existing_name; do
+              # Windows runner jq output can carry a trailing CR; normalize so
+              # exact-name reconciliation is platform-independent.
+              existing_name="${existing_name%$(printf '\r')}"
               found=false
               for name in "${expected_names[@]}"; do
                 if [[ "$existing_name" == "$name" ]]; then found=true; break; fi
