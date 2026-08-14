@@ -174,20 +174,28 @@ func (a *App) handleDebugWebSocket(w http.ResponseWriter, r *http.Request) {
 // upstream transport. WMPF only emits Runtime.executionContext* events after
 // Runtime.enable, so without this the context registry stays empty and every
 // SDK command fails with ErrNoContext until a CDP client manually enables the
-// domain. The enable is sent once per upstream connection through the normal
-// outbound path (so its response resolves through the shared correlator), and
-// the miniapp treats repeated enables as idempotent, so a CDP client enabling
-// the domain itself later is unaffected. A reconnect installs a new transport,
-// which needs its own enable to start emitting context events again.
+// domain. The enable is sent through the normal outbound path but registered
+// in a private correlator scope: its response is resolved and then swallowed
+// by the bridge, so it can never satisfy (or be confused with) an SDK or raw
+// CDP request that reuses the same request id. A generation guard makes the
+// function exactly-once per upstream transport; reconnects install a new
+// generation, which needs its own enable to start emitting context events
+// again. The miniapp treats repeated enables as idempotent, so a CDP client
+// enabling the domain itself later is unaffected.
 func (a *App) bootstrapUpstreamDomains() {
 	if a.closing.Load() {
 		return
 	}
-	id := a.bootstrapSeq.Add(1)
-	payload := fmt.Sprintf(`{"id":%d,"method":"Runtime.enable"}`, id)
 	a.dispatchMu.Lock()
 	defer a.dispatchMu.Unlock()
-	a.sendCDPToContextLocked(payload, nil, "")
+	if a.debugGeneration != 0 && a.bootstrapGeneration == a.debugGeneration {
+		// The current upstream transport is already enabled.
+		return
+	}
+	a.bootstrapGeneration = a.debugGeneration
+	id := a.bootstrapSeq.Add(1)
+	payload := fmt.Sprintf(`{"id":%d,"method":"Runtime.enable"}`, id)
+	a.sendCDPToContextLocked(payload, nil, "", "bootstrap")
 }
 
 func (a *App) handleCDPWebSocket(w http.ResponseWriter, r *http.Request) {

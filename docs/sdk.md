@@ -61,8 +61,10 @@ selection, and an unknown explicit context returns `ErrUnknownContext`.
 The bridge also sends one automatic `Runtime.enable` through that empty
 bootstrap route whenever an upstream (miniapp) transport connects, including
 after a reconnect, so `Contexts()` and `Status().Contexts` populate without
-any manual client enable. The automatic request resolves through the shared CDP
-correlator, and a later explicit `Runtime.enable` from a client is idempotent.
+any manual client enable. The automatic request is registered in a private
+correlator scope and its response is swallowed by the bridge, so it can never
+satisfy a client request that reused the same id; a later explicit
+`Runtime.enable` from a client is idempotent.
 `SendRawRoute` provides the same routing for raw JSON.
 `Runtime.executionContextCreated`, `Runtime.executionContextDestroyed`, and
 `Runtime.executionContextsCleared` update the same registry as WMPF's private

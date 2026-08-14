@@ -438,7 +438,7 @@ func TestHardeningGenerationAndRoutingBranches(t *testing.T) {
 	}
 	outboundConnection := newQueuedTestConnection(false)
 	outboundClient := &wsClient{conn: outboundConnection, typeID: websocket.TextMessage, generation: 1}
-	subscriptions.sendCDPToContextLocked(`{"id":"overflow","method":"Overflow.enable"}`, outboundClient, "ctx")
+	subscriptions.sendCDPToContextLocked(`{"id":"overflow","method":"Overflow.enable"}`, outboundClient, "ctx", "")
 	select {
 	case <-outboundConnection.started:
 	case <-time.After(time.Second):

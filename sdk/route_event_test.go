@@ -282,7 +282,125 @@ func TestExecutionContextEventsBootstrapPublicSend(t *testing.T) {
 		t.Fatalf("bootstrap route after destroy=%q want empty", request.JSContextID)
 	}
 }
+func TestBootstrapResponseCannotSatisfySDKRequest(t *testing.T) {
+	s := newSDK(t, Options{})
+	if err := s.Start(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = s.Close(context.Background()) })
 
+	debug, _, err := websocket.DefaultDialer.Dial(fmt.Sprintf("ws://127.0.0.1:%d", s.Status().DebugPort), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = debug.Close() })
+	if err := debug.SetReadDeadline(time.Now().Add(5 * time.Second)); err != nil {
+		t.Fatal(err)
+	}
+
+	// The bridge self-bootstraps Runtime.enable on upstream connect; the
+	// automatic request id can collide with the SDK default sequence. Read
+	// and answer the context events, but deliberately do NOT answer the
+	// bootstrap enable yet.
+	bootstrapOuter, err := wmpf.DecodeDebugMessage(mustReadFrame(t, debug))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bootstrapOuter.Category != wmpf.CategoryChromeDevtools {
+		t.Fatalf("bootstrap category=%q", bootstrapOuter.Category)
+	}
+	bootstrapChrome, err := wmpf.DecodeChrome(bootstrapOuter.Data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var bootstrapReq struct {
+		ID     json.RawMessage `json:"id"`
+		Method string          `json:"method"`
+	}
+	if err := json.Unmarshal([]byte(bootstrapChrome.Payload), &bootstrapReq); err != nil || bootstrapReq.Method != "Runtime.enable" {
+		t.Fatalf("bootstrap payload=%q err=%v", bootstrapChrome.Payload, err)
+	}
+
+	// Context events arrive, so the SDK poll sees a populated registry and
+	// issues its first structured Send (default id, potentially the same
+	// numeric value as the bootstrap id).
+	writeRuntimeEvent := func(payload string) {
+		t.Helper()
+		frame := wmpf.EncodeDebugMessage(wmpf.DebugMessage{
+			Category: wmpf.CategoryChromeDevtoolsResult,
+			Data:     wmpf.EncodeChrome(wmpf.ChromeDevtools{Payload: payload}),
+		})
+		if err := debug.WriteMessage(websocket.BinaryMessage, frame); err != nil {
+			t.Fatal(err)
+		}
+	}
+	writeRuntimeEvent(`{"method":"Runtime.executionContextCreated","params":{"context":{"id":1}}}`)
+	deadline := time.Now().Add(5 * time.Second)
+	for len(s.Contexts()) == 0 && time.Now().Before(deadline) {
+		time.Sleep(10 * time.Millisecond)
+	}
+	if len(s.Contexts()) == 0 {
+		t.Fatal("contexts were not auto-populated")
+	}
+
+	requestDone := make(chan error, 1)
+	go func() {
+		_, err := s.Send(context.Background(), Request{Method: "Runtime.evaluate", Params: map[string]any{"expression": "1+1", "returnByValue": true}})
+		requestDone <- err
+	}()
+
+	// The SDK request reaches the upstream with its real id.
+	requestOuter, err := wmpf.DecodeDebugMessage(mustReadFrame(t, debug))
+	if err != nil {
+		t.Fatal(err)
+	}
+	requestChrome, err := wmpf.DecodeChrome(requestOuter.Data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var requestEnvelope struct {
+		ID     json.RawMessage `json:"id"`
+		Method string          `json:"method"`
+	}
+	if err := json.Unmarshal([]byte(requestChrome.Payload), &requestEnvelope); err != nil || requestEnvelope.Method != "Runtime.evaluate" {
+		t.Fatalf("SDK request payload=%q err=%v", requestChrome.Payload, err)
+	}
+
+	// The bootstrap response arrives FIRST, reusing the same id as the SDK
+	// request. The bridge must swallow it: the SDK pending request stays
+	// unsatisfied.
+	writeRuntimeEvent(`{"id":` + string(bootstrapReq.ID) + `,"result":{"bootstrap":true}}`)
+	select {
+	case err := <-requestDone:
+		t.Fatalf("bootstrap response satisfied the SDK request: %v", err)
+	case <-time.After(300 * time.Millisecond):
+	}
+
+	// The real response then resolves the SDK request with its true result.
+	writeRuntimeEvent(`{"id":` + string(requestEnvelope.ID) + `,"result":{"result":{"type":"number","value":2,"description":"2"}}}`)
+	select {
+	case err := <-requestDone:
+		if err != nil {
+			t.Fatalf("Send error=%v", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("SDK request was not resolved by its own response")
+	}
+}
+func mustReadFrame(t *testing.T, conn *websocket.Conn) []byte {
+	t.Helper()
+	if err := conn.SetReadDeadline(time.Now().Add(5 * time.Second)); err != nil {
+		t.Fatal(err)
+	}
+	typ, frame, err := conn.ReadMessage()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if typ != websocket.BinaryMessage {
+		t.Fatalf("frame type=%d want binary", typ)
+	}
+	return frame
+}
 func TestCDPSubscribersReceiveIndependentDeepCopies(t *testing.T) {
 	s := newSDK(t, Options{SubscriberBuffer: 4})
 	first := s.SubscribeCDP()

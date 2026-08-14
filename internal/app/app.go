@@ -119,6 +119,7 @@ type App struct {
 	replayWG                sync.WaitGroup
 	seq                     atomic.Uint32
 	bootstrapSeq            atomic.Uint64
+	bootstrapGeneration     uint64
 	listen                  func(string, string) (net.Listener, error)
 	serve                   func(*http.Server, net.Listener) error
 }
@@ -647,7 +648,13 @@ func (a *App) handleUnwrappedDebugForGeneration(u wmpf.Unwrapped, generation uin
 					a.recordStaleDrop("cdp-response", controllerGeneration)
 					return
 				}
-				a.resolveCDPResponse(id, response.Result, response.Error)
+				if a.resolveCDPResponse(id, response.Result, response.Error) {
+					// The automatic Runtime.enable bootstrap owns this response;
+					// no CDP client is waiting for it. Swallow the frame instead
+					// of broadcasting it, so an SDK or raw controller request
+					// that reused the same id can never be satisfied by it.
+					return
+				}
 			}
 		}
 		if !a.applyCDPRuntimeContextEvent(payload, generation) {
@@ -753,17 +760,27 @@ func (a *App) decodeCategoryData(category string, data any) (any, bool) {
 	return value, true
 }
 
-func (a *App) resolveCDPResponse(id any, result map[string]any, responseError *cdp.Error) {
+// resolveCDPResponse resolves a CDP response in priority order: the automatic
+// bootstrap scope, the CDP controller generation, then the legacy unscoped
+// scope. It returns true when the response belonged to the automatic
+// Runtime.enable bootstrap; the caller must then swallow the frame so it can
+// never satisfy (or be confused with) a client request that reused the same
+// request id.
+func (a *App) resolveCDPResponse(id any, result map[string]any, responseError *cdp.Error) bool {
+	if _, err := a.Requests.ResolveFor("bootstrap", 0, cdp.Response{ID: id, Result: result, Error: responseError}); err == nil {
+		return true
+	}
 	a.connMu.RLock()
 	owner := a.cdpOwner
 	generation := a.cdpGeneration
 	a.connMu.RUnlock()
 	if owner != nil && owner.generation != 0 {
 		if _, err := a.Requests.ResolveFor("controller", generation, cdp.Response{ID: id, Result: result, Error: responseError}); err == nil {
-			return
+			return false
 		}
 	}
 	_, _ = a.Requests.Resolve(cdp.Response{ID: id, Result: result, Error: responseError})
+	return false
 }
 
 func (a *App) readCDP(c *wsClient) {
@@ -867,13 +884,13 @@ func (a *App) SendCDPRoute(payload []byte, jscontextID string) error {
 	if err != nil {
 		return err
 	}
-	a.sendCDPToContextLocked(string(payload), nil, contextID)
+	a.sendCDPToContextLocked(string(payload), nil, contextID, "")
 	return nil
 }
 
 func (a *App) sendCDPLocked(payload string, c *wsClient) {
 	contextID, _ := a.routeContextID("")
-	a.sendCDPToContextLocked(payload, c, contextID)
+	a.sendCDPToContextLocked(payload, c, contextID, "")
 }
 
 func (a *App) routeContextID(jscontextID string) (string, error) {
@@ -889,7 +906,12 @@ func (a *App) routeContextID(jscontextID string) (string, error) {
 	return jscontextID, nil
 }
 
-func (a *App) sendCDPToContextLocked(payload string, c *wsClient, contextID string) {
+// sendCDPToContextLocked routes a CDP payload to the upstream transport.
+// requestOwner selects the correlator scope: "bootstrap" registers the request
+// in the private automatic-enable scope (whose responses are swallowed by the
+// bridge), while "" uses the controller generation for WebSocket clients or
+// the legacy unscoped scope for injected SDK traffic.
+func (a *App) sendCDPToContextLocked(payload string, c *wsClient, contextID string, requestOwner string) {
 	var env struct {
 		ID     json.RawMessage `json:"id"`
 		Method string          `json:"method"`
@@ -930,9 +952,12 @@ func (a *App) sendCDPToContextLocked(payload string, c *wsClient, contextID stri
 	if hasRequestID {
 		request := cdp.Request{ID: requestID, Method: env.Method, Params: env.Params}
 		var addErr error
-		if c != nil && c.generation != 0 {
+		switch {
+		case requestOwner == "bootstrap":
+			addErr = a.Requests.TryAddFor("bootstrap", 0, request)
+		case c != nil && c.generation != 0:
 			addErr = a.Requests.TryAddFor("controller", c.generation, request)
-		} else {
+		default:
 			addErr = a.Requests.TryAdd(request)
 		}
 		if addErr != nil {
