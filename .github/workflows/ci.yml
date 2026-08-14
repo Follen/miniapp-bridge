@@ -30,7 +30,7 @@ env:
 jobs:
   classify:
     name: Classify changes
-    runs-on: ubuntu-latest
+    runs-on: windows-2022
     outputs:
       run_full: ${{ steps.paths.outputs.run_full }}
       source_sha: ${{ steps.paths.outputs.source_sha }}
@@ -95,7 +95,7 @@ jobs:
   quick:
     name: Workflow and documentation contracts
     needs: classify
-    runs-on: ubuntu-latest
+    runs-on: windows-2022
     timeout-minutes: 8
     steps:
       - name: Check out source
@@ -112,19 +112,19 @@ jobs:
           cache-dependency-path: go.sum
 
       - name: Lint GitHub Actions workflows
-        shell: bash
+        shell: pwsh
         run: go run "github.com/rhysd/actionlint/cmd/actionlint@v${ACTIONLINT_VERSION}" -ignore 'unexpected key.*queue.*concurrency'
 
       - name: Run workflow documentation and release fixture contracts
-        shell: bash
+        shell: pwsh
         run: go test ./scripts -run '^(TestGitHub|TestReadme|TestCoverageGateContract)' -count=1 -timeout=180s
 
-  linux:
-    name: Linux core gates
+  windows-core-gates:
+    name: Windows core gates
     if: needs.classify.outputs.run_full == 'true'
-    needs: classify
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
+    needs: [classify, windows-build]
+    runs-on: windows-2022
+    timeout-minutes: 40
     steps:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -137,58 +137,71 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: true
           cache-dependency-path: go.sum
+      - name: Download the single Windows build
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: windows-build-${{ needs.classify.outputs.source_sha }}
+          path: .
       - name: Verify module graph and formatting
-        shell: bash
+        shell: pwsh
         run: |
-          set -euo pipefail
+          $ErrorActionPreference = 'Stop'
           go mod download
           go mod verify
           go mod tidy
           git diff --exit-code -- go.mod go.sum
-          mapfile -d '' go_files < <(git ls-files -z -- '*.go')
-          test -z "$(gofmt -l "${go_files[@]}")"
+          $goFiles = @(git ls-files -- '*.go')
+          $unformatted = @(gofmt -l $goFiles)
+          if ($unformatted.Count -gt 0) { throw ("unformatted Go files:" + [Environment]::NewLine + ($unformatted -join [Environment]::NewLine)) }
       - name: Unit vet and vulnerability gates
-        shell: bash
+        shell: pwsh
         run: |
-          set -o pipefail
-          mkdir -p ci-artifacts
-          go test ./... -count=1 -timeout=120s 2>&1 | tee ci-artifacts/linux-unit.log
-          go vet ./... 2>&1 | tee ci-artifacts/linux-vet.log
-          go run "golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION}" ./... 2>&1 | tee ci-artifacts/linux-govulncheck.log
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force ci-artifacts | Out-Null
+          go test ./... -count=1 -timeout=600s 2>&1 | Tee-Object ci-artifacts\windows-unit.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          go vet ./... 2>&1 | Tee-Object ci-artifacts\windows-vet.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          go run "golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION}" ./... 2>&1 | Tee-Object ci-artifacts\windows-govulncheck.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Fuzz decoder and boundary smoke matrix
-        shell: bash
+        shell: pwsh
         run: |
-          set -euo pipefail
-          targets=(
-            './internal/app:FuzzWebSocketDebugFrameDecode'
-            './internal/app:FuzzCDPWebSocketFrameDecode'
-            './internal/cdp:FuzzCDPJSONNumberCanonicalization'
-            './internal/cdp:FuzzCDPIDKeyTypeBoundaries'
-            './internal/capture:FuzzCaptureDecode'
-            './internal/capture:FuzzCaptureBoundaryArithmetic'
-            './internal/native:FuzzNativeManifestDecode'
-            './internal/native:FuzzNativeManifestTrustBoundaries'
-            './internal/wmpf:FuzzWMPFDebugMessageDecode'
-            './internal/wmpf:FuzzWMPFGenericDecode'
-            './internal/wmpf:FuzzWMPFCommandDecode'
-            './internal/wmpf:FuzzWMPFZlibBoundedRoundTrip'
+          $ErrorActionPreference = 'Stop'
+          $targets = @(
+            './internal/app:FuzzWebSocketDebugFrameDecode',
+            './internal/app:FuzzCDPWebSocketFrameDecode',
+            './internal/cdp:FuzzCDPJSONNumberCanonicalization',
+            './internal/cdp:FuzzCDPIDKeyTypeBoundaries',
+            './internal/capture:FuzzCaptureDecode',
+            './internal/capture:FuzzCaptureBoundaryArithmetic',
+            './internal/native:FuzzNativeManifestDecode',
+            './internal/native:FuzzNativeManifestTrustBoundaries',
+            './internal/wmpf:FuzzWMPFDebugMessageDecode',
+            './internal/wmpf:FuzzWMPFGenericDecode',
+            './internal/wmpf:FuzzWMPFCommandDecode',
+            './internal/wmpf:FuzzWMPFZlibBoundedRoundTrip',
             './internal/wmpf:FuzzWMPFZlibDecode'
           )
-          for spec in "${targets[@]}"; do
-            go test "${spec%%:*}" -run '^$' -fuzz "^${spec#*:}$" -fuzztime=1000x -parallel=1 -timeout=90s
-          done 2>&1 | tee ci-artifacts/linux-fuzz.log
+          foreach ($spec in $targets) {
+            $parts = $spec.Split(':')
+            go test $parts[0] -run '^$' -fuzz ('^' + $parts[1] + '$') -fuzztime=1000x -parallel=1 -timeout=90s
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
       - name: Deterministic soak chaos and race
-        shell: bash
+        shell: pwsh
         run: |
-          set -euo pipefail
+          $ErrorActionPreference = 'Stop'
           go test ./internal/app -run '^(TestSingleOwnerReconnectDeterministicSoak|TestWSClientQueueAccountingDeterministicSoak|TestWSClientWriterFaultAndConcurrentShutdownChaos)$' -count=20 -timeout=300s
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           go test ./internal/capture -run '^(TestSegmentedRecorderRotationRetentionAndReplay|TestSegmentedProductionReplayCompatibility|TestSegmentedRecorderDiskBackpressureAndDrainBudget)$' -count=10 -timeout=300s
-          go test -race ./... -count=1 -timeout=360s
-      - name: Upload Linux logs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          go test -race ./... -count=1 -timeout=900s
+      - name: Upload Windows core gate logs
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: linux-logs-${{ github.run_id }}-${{ github.run_attempt }}
+          name: windows-core-gate-logs-${{ github.run_id }}-${{ github.run_attempt }}
           path: ci-artifacts/**
           if-no-files-found: warn
           retention-days: 7
@@ -444,7 +457,7 @@ jobs:
   candidate:
     name: Create verified candidate
     if: needs.classify.outputs.run_full == 'true'
-    needs: [classify, quick, linux, windows-build, windows-behavior, go-coverage, c-coverage, windows-pe-package]
+    needs: [classify, quick, windows-build, windows-core-gates, windows-behavior, go-coverage, c-coverage, windows-pe-package]
     runs-on: windows-2022
     timeout-minutes: 10
     steps:
@@ -522,8 +535,8 @@ jobs:
   ci-gate:
     name: ci-gate
     if: always()
-    needs: [classify, quick, linux, windows-build, windows-behavior, go-coverage, c-coverage, windows-pe-package, candidate, promote-main]
-    runs-on: ubuntu-latest
+    needs: [classify, quick, windows-build, windows-core-gates, windows-behavior, go-coverage, c-coverage, windows-pe-package, candidate, promote-main]
+    runs-on: windows-2022
     steps:
       - name: Enforce classified job results
         shell: bash
@@ -532,7 +545,7 @@ jobs:
           RUN_FULL: ${{ needs.classify.outputs.run_full }}
           CLASSIFY: ${{ needs.classify.result }}
           QUICK: ${{ needs.quick.result }}
-          LINUX: ${{ needs.linux.result }}
+          WINDOWS_CORE_GATES: ${{ needs.windows-core-gates.result }}
           WINDOWS_BUILD: ${{ needs.windows-build.result }}
           WINDOWS_BEHAVIOR: ${{ needs.windows-behavior.result }}
           GO_COVERAGE: ${{ needs.go-coverage.result }}
@@ -542,16 +555,16 @@ jobs:
           PROMOTE_MAIN: ${{ needs.promote-main.result }}
         run: |
           set -euo pipefail
-          printf 'run_full=%s classify=%s quick=%s linux=%s windows_build=%s windows_behavior=%s go_coverage=%s c_coverage=%s windows_pe_package=%s candidate=%s promote_main=%s\n' \
-            "$RUN_FULL" "$CLASSIFY" "$QUICK" "$LINUX" "$WINDOWS_BUILD" "$WINDOWS_BEHAVIOR" "$GO_COVERAGE" "$C_COVERAGE" "$WINDOWS_PE_PACKAGE" "$CANDIDATE" "$PROMOTE_MAIN"
+          printf 'run_full=%s classify=%s quick=%s windows_build=%s windows_core_gates=%s windows_behavior=%s go_coverage=%s c_coverage=%s windows_pe_package=%s candidate=%s promote_main=%s\n' \
+            "$RUN_FULL" "$CLASSIFY" "$QUICK" "$WINDOWS_BUILD" "$WINDOWS_CORE_GATES" "$WINDOWS_BEHAVIOR" "$GO_COVERAGE" "$C_COVERAGE" "$WINDOWS_PE_PACKAGE" "$CANDIDATE" "$PROMOTE_MAIN"
           [[ "$CLASSIFY" == success && "$QUICK" == success ]]
           if [[ "$RUN_FULL" == true ]]; then
-            for result in "$LINUX" "$WINDOWS_BUILD" "$WINDOWS_BEHAVIOR" "$GO_COVERAGE" "$C_COVERAGE" "$WINDOWS_PE_PACKAGE" "$CANDIDATE"; do
+            for result in "$WINDOWS_BUILD" "$WINDOWS_CORE_GATES" "$WINDOWS_BEHAVIOR" "$GO_COVERAGE" "$C_COVERAGE" "$WINDOWS_PE_PACKAGE" "$CANDIDATE"; do
               [[ "$result" == success ]] || exit 1
             done
             [[ "$PROMOTE_MAIN" == skipped ]]
           else
-            for result in "$LINUX" "$WINDOWS_BUILD" "$WINDOWS_BEHAVIOR" "$GO_COVERAGE" "$C_COVERAGE" "$WINDOWS_PE_PACKAGE" "$CANDIDATE"; do
+            for result in "$WINDOWS_BUILD" "$WINDOWS_CORE_GATES" "$WINDOWS_BEHAVIOR" "$GO_COVERAGE" "$C_COVERAGE" "$WINDOWS_PE_PACKAGE" "$CANDIDATE"; do
               [[ "$result" == skipped ]] || exit 1
             done
             if [[ "$EVENT_NAME" == push ]]; then

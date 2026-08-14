@@ -35,8 +35,8 @@ func TestGitHubCIWorkflowContract(t *testing.T) {
 		"git diff --name-only \"$PR_BASE_SHA\"...HEAD",
 		"run_full=true",
 		"quick:\n    name: Workflow and documentation contracts",
-		"linux:\n    name: Linux core gates",
 		"windows-build:\n    name: Windows build",
+		"windows-core-gates:\n    name: Windows core gates",
 		"windows-behavior:\n    name: Windows behavior",
 		"go-coverage:\n    name: Go 100% coverage",
 		"c-coverage:\n    name: C 100% coverage",
@@ -67,8 +67,8 @@ func TestGitHubCIWorkflowContract(t *testing.T) {
 	if strings.Count(workflow, ".\\scripts\\build-windows.ps1") != 1 {
 		t.Fatal("the full Windows build must have exactly one producer")
 	}
-	if got := strings.Count(workflow, "Download the single Windows build"); got != 4 {
-		t.Fatalf("Windows build consumers=%d want 4", got)
+	if got := strings.Count(workflow, "Download the single Windows build"); got != 5 {
+		t.Fatalf("Windows build consumers=%d want 5", got)
 	}
 
 	usesPattern := regexp.MustCompile(`(?m)^\s*uses:\s+([^\s#]+)`)
@@ -146,9 +146,9 @@ func TestGitHubCIWorkflowContract(t *testing.T) {
 		t.Fatal("fuzz smoke must not use wall-clock budgets that can fail during Go fuzz shutdown")
 	}
 
-	linuxLogs := workflowStep(t, workflow, "Upload Linux logs")
-	assertStepLine(t, linuxLogs, "if: always()")
-	assertStepLine(t, linuxLogs, "path: ci-artifacts/**")
+	coreGateLogs := workflowStep(t, workflow, "Upload Windows core gate logs")
+	assertStepLine(t, coreGateLogs, "if: always()")
+	assertStepLine(t, coreGateLogs, "path: ci-artifacts/**")
 	windowsLogs := workflowStep(t, workflow, "Upload Windows behavior logs")
 	assertStepLine(t, windowsLogs, "if: always()")
 	assertStepLine(t, windowsLogs, "path: ci-artifacts/**")
@@ -156,13 +156,13 @@ func TestGitHubCIWorkflowContract(t *testing.T) {
 		t.Fatal("always-run Windows log upload must not include build outputs")
 	}
 	moduleGate := strings.Index(workflow, "go mod download")
-	formatGate := strings.Index(workflow, "git ls-files -z -- '*.go'")
+	formatGate := strings.Index(workflow, "git ls-files -- '*.go'")
 	actionlintGate := strings.Index(workflow, "go run \"github.com/rhysd/actionlint/cmd/actionlint@v${ACTIONLINT_VERSION}\" -ignore 'unexpected key.*queue.*concurrency'")
 	unitTests := strings.Index(workflow, "- name: Unit vet and vulnerability gates")
 	if moduleGate < 0 || formatGate < moduleGate || unitTests < formatGate || actionlintGate < 0 {
-		t.Fatalf("module and gofmt gates must run before Linux tests, and actionlint must remain present: module=%d format=%d unit=%d actionlint=%d", moduleGate, formatGate, unitTests, actionlintGate)
+		t.Fatalf("module and gofmt gates must run before unit tests, and actionlint must remain present: module=%d format=%d unit=%d actionlint=%d", moduleGate, formatGate, unitTests, actionlintGate)
 	}
-	if !strings.Contains(workflow, "needs: [classify, quick, linux, windows-build, windows-behavior, go-coverage, c-coverage, windows-pe-package, candidate, promote-main]") {
+	if !strings.Contains(workflow, "needs: [classify, quick, windows-build, windows-core-gates, windows-behavior, go-coverage, c-coverage, windows-pe-package, candidate, promote-main]") {
 		t.Fatal("ci-gate must require both the quick contracts and every classified core job")
 	}
 

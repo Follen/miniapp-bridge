@@ -46,9 +46,9 @@ func TestCoverageGateRunsTaggedRaceAndUsesStableScope(t *testing.T) {
 	}
 	allOnly := regexp.MustCompile(`(?s)if \(\$Mode -eq 'All'\) \{\s*Run 'unit'.*?if \(\$Mode -eq 'All'\) \{\s*Run 'race'.*?Run 'vet'`)
 	if !allOnly.MatchString(script) {
-		t.Error("Mode Go must delegate duplicate ordinary unit, race, and vet gates to Linux while Mode All retains them")
+		t.Error("Mode Go must delegate duplicate ordinary unit, race, and vet gates to the Windows core gates job while Mode All retains them")
 	}
-	if !strings.Contains(script, "ordinary-unit/race/vet=delegated-to-linux") {
+	if !strings.Contains(script, "ordinary-unit/race/vet=delegated-to-windows-core-gates") {
 		t.Error("Mode Go result must disclose delegated ordinary gates")
 	}
 }
