@@ -57,6 +57,12 @@ has been discovered yet, it preserves the reference bridge bootstrap behavior
 and sends an empty `jscontext_id`; this allows `Runtime.enable` to produce the
 initial `Runtime.executionContextCreated` event. An explicit route overrides the
 selection, and an unknown explicit context returns `ErrUnknownContext`.
+
+The bridge also sends one automatic `Runtime.enable` through that empty
+bootstrap route whenever an upstream (miniapp) transport connects, including
+after a reconnect, so `Contexts()` and `Status().Contexts` populate without
+any manual client enable. The automatic request resolves through the shared CDP
+correlator, and a later explicit `Runtime.enable` from a client is idempotent.
 `SendRawRoute` provides the same routing for raw JSON.
 `Runtime.executionContextCreated`, `Runtime.executionContextDestroyed`, and
 `Runtime.executionContextsCleared` update the same registry as WMPF's private

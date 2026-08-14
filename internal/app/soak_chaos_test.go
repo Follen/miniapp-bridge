@@ -2,9 +2,11 @@ package app
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -35,6 +37,38 @@ func TestSingleOwnerReconnectDeterministicSoak(t *testing.T) {
 
 	for cycle := 1; cycle <= deterministicSoakCycles; cycle++ {
 		upstream := auditDial(t, debugPort)
+		// Each fresh upstream transport triggers one automatic Runtime.enable;
+		// drain and answer it so the bootstrap request resolves and the frames
+		// below stay deterministic.
+		bootstrap := auditRead(t, upstream, websocket.BinaryMessage)
+		outer, err := wmpf.DecodeDebugMessage(bootstrap)
+		if err != nil {
+			t.Fatalf("cycle %d bootstrap decode: %v", cycle, err)
+		}
+		chrome, err := wmpf.DecodeChrome(outer.Data)
+		if err != nil {
+			t.Fatalf("cycle %d bootstrap chrome: %v", cycle, err)
+		}
+		var bootstrapRequest struct {
+			ID     json.RawMessage `json:"id"`
+			Method string          `json:"method"`
+		}
+		if err := json.Unmarshal([]byte(chrome.Payload), &bootstrapRequest); err != nil {
+			t.Fatalf("cycle %d bootstrap payload: %v", cycle, err)
+		}
+		if chrome.JSContextID != "" || bootstrapRequest.Method != "Runtime.enable" {
+			t.Fatalf("cycle %d bootstrap chrome=%+v", cycle, chrome)
+		}
+		if id := string(bootstrapRequest.ID); id != strconv.Itoa(cycle) {
+			t.Fatalf("cycle %d bootstrap id=%q want %d", cycle, id, cycle)
+		}
+		bootstrapReply := wmpf.EncodeDebugMessage(wmpf.DebugMessage{
+			Category: wmpf.CategoryChromeDevtoolsResult,
+			Data:     wmpf.EncodeChrome(wmpf.ChromeDevtools{Payload: fmt.Sprintf(`{"id":%d,"result":{}}`, cycle)}),
+		})
+		if err := upstream.WriteMessage(websocket.BinaryMessage, bootstrapReply); err != nil {
+			t.Fatalf("cycle %d bootstrap reply: %v", cycle, err)
+		}
 		controller := auditDial(t, cdpPort)
 		waitForConnectionCounts(t, bridge, 1, 1)
 		contextID := fmt.Sprintf("soak-context-%d", cycle)
@@ -48,11 +82,11 @@ func TestSingleOwnerReconnectDeterministicSoak(t *testing.T) {
 			t.Fatalf("cycle %d CDP write: %v", cycle, err)
 		}
 		frame := auditRead(t, upstream, websocket.BinaryMessage)
-		outer, err := wmpf.DecodeDebugMessage(frame)
+		outer, err = wmpf.DecodeDebugMessage(frame)
 		if err != nil {
 			t.Fatalf("cycle %d outer decode: %v", cycle, err)
 		}
-		chrome, err := wmpf.DecodeChrome(outer.Data)
+		chrome, err = wmpf.DecodeChrome(outer.Data)
 		if err != nil {
 			t.Fatalf("cycle %d CDP decode: %v", cycle, err)
 		}

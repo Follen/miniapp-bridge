@@ -3,6 +3,7 @@ package app
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net"
 	"net/http"
 	"net/url"
@@ -161,11 +162,32 @@ func (a *App) handleDebugWebSocket(w http.ResponseWriter, r *http.Request) {
 		_ = c.Close()
 		return
 	}
+	a.bootstrapUpstreamDomains()
 	if observer := a.observerSnapshot(); observer.OnConnection != nil {
 		observer.OnConnection(ConnectionEvent{Kind: "upstream", Connected: true, Generation: client.generation})
 	}
 	a.Log.Info("[miniapp] miniapp client connected")
 	go a.readDebug(client)
+}
+
+// bootstrapUpstreamDomains activates the Runtime domain on a freshly connected
+// upstream transport. WMPF only emits Runtime.executionContext* events after
+// Runtime.enable, so without this the context registry stays empty and every
+// SDK command fails with ErrNoContext until a CDP client manually enables the
+// domain. The enable is sent once per upstream connection through the normal
+// outbound path (so its response resolves through the shared correlator), and
+// the miniapp treats repeated enables as idempotent, so a CDP client enabling
+// the domain itself later is unaffected. A reconnect installs a new transport,
+// which needs its own enable to start emitting context events again.
+func (a *App) bootstrapUpstreamDomains() {
+	if a.closing.Load() {
+		return
+	}
+	id := a.bootstrapSeq.Add(1)
+	payload := fmt.Sprintf(`{"id":%d,"method":"Runtime.enable"}`, id)
+	a.dispatchMu.Lock()
+	defer a.dispatchMu.Unlock()
+	a.sendCDPToContextLocked(payload, nil, "")
 }
 
 func (a *App) handleCDPWebSocket(w http.ResponseWriter, r *http.Request) {

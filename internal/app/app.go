@@ -118,6 +118,7 @@ type App struct {
 	replayID                uint64
 	replayWG                sync.WaitGroup
 	seq                     atomic.Uint32
+	bootstrapSeq            atomic.Uint64
 	listen                  func(string, string) (net.Listener, error)
 	serve                   func(*http.Server, net.Listener) error
 }

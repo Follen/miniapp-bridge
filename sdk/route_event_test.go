@@ -149,6 +149,42 @@ func TestExecutionContextEventsBootstrapPublicSend(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// The bridge self-bootstraps the Runtime domain on upstream connect: the
+	// first frame the miniapp receives is an automatic Runtime.enable with the
+	// empty bootstrap route, no manual client enable required.
+	bootstrapType, bootstrapFrame, err := debug.ReadMessage()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bootstrapType != websocket.BinaryMessage {
+		t.Fatalf("bootstrap message type=%d want binary", bootstrapType)
+	}
+	bootstrapOuter, err := wmpf.DecodeDebugMessage(bootstrapFrame)
+	if err != nil {
+		t.Fatal(err)
+	}
+	bootstrapChrome, err := wmpf.DecodeChrome(bootstrapOuter.Data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var bootstrapReq struct {
+		ID     json.RawMessage `json:"id"`
+		Method string          `json:"method"`
+	}
+	if err := json.Unmarshal([]byte(bootstrapChrome.Payload), &bootstrapReq); err != nil {
+		t.Fatal(err)
+	}
+	if bootstrapChrome.JSContextID != "" || bootstrapReq.Method != "Runtime.enable" {
+		t.Fatalf("bootstrap chrome=%+v", bootstrapChrome)
+	}
+	bootstrapResponseFrame := wmpf.EncodeDebugMessage(wmpf.DebugMessage{
+		Category: wmpf.CategoryChromeDevtoolsResult,
+		Data:     wmpf.EncodeChrome(wmpf.ChromeDevtools{Payload: `{"id":` + string(bootstrapReq.ID) + `,"result":{}}`}),
+	})
+	if err := debug.WriteMessage(websocket.BinaryMessage, bootstrapResponseFrame); err != nil {
+		t.Fatal(err)
+	}
+
 	writeRuntimeEvent := func(payload string) {
 		t.Helper()
 		frame := wmpf.EncodeDebugMessage(wmpf.DebugMessage{

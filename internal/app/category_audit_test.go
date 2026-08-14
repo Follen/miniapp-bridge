@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"encoding/json"
 	"path/filepath"
 	"sync"
 	"testing"
@@ -188,6 +189,41 @@ func TestAuditCDPIDBoundaries(t *testing.T) {
 		}
 		if time.Now().After(ownerDeadline) {
 			t.Fatal("upstream owner was not installed")
+		}
+		time.Sleep(time.Millisecond)
+	}
+	// The upstream connect self-bootstraps Runtime.enable; drain and answer it
+	// so the pending assertions below count only controller requests.
+	bootstrapFrame := auditRead(t, debug, websocket.BinaryMessage)
+	bootstrapOuter, err := wmpf.DecodeDebugMessage(bootstrapFrame)
+	if err != nil {
+		t.Fatal(err)
+	}
+	bootstrapChrome, err := wmpf.DecodeChrome(bootstrapOuter.Data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var bootstrapRequest struct {
+		ID     json.RawMessage `json:"id"`
+		Method string          `json:"method"`
+	}
+	if err := json.Unmarshal([]byte(bootstrapChrome.Payload), &bootstrapRequest); err != nil {
+		t.Fatal(err)
+	}
+	if bootstrapChrome.JSContextID != "" || bootstrapRequest.Method != "Runtime.enable" {
+		t.Fatalf("bootstrap chrome=%+v", bootstrapChrome)
+	}
+	bootstrapReply := wmpf.EncodeDebugMessage(wmpf.DebugMessage{
+		Category: wmpf.CategoryChromeDevtoolsResult,
+		Data:     wmpf.EncodeChrome(wmpf.ChromeDevtools{Payload: `{"id":` + string(bootstrapRequest.ID) + `,"result":{}}`}),
+	})
+	if err := debug.WriteMessage(websocket.BinaryMessage, bootstrapReply); err != nil {
+		t.Fatal(err)
+	}
+	deadlineBootstrap := time.Now().Add(time.Second)
+	for a.Requests.Len() != 0 {
+		if time.Now().After(deadlineBootstrap) {
+			t.Fatalf("bootstrap request was not resolved: %d pending", a.Requests.Len())
 		}
 		time.Sleep(time.Millisecond)
 	}
