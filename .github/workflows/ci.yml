@@ -113,7 +113,7 @@ jobs:
 
       - name: Lint GitHub Actions workflows
         shell: pwsh
-        run: go run "github.com/rhysd/actionlint/cmd/actionlint@v${ACTIONLINT_VERSION}" -ignore 'unexpected key.*queue.*concurrency'
+        run: go run "github.com/rhysd/actionlint/cmd/actionlint@v$env:ACTIONLINT_VERSION" -ignore 'unexpected key.*queue.*concurrency'
 
       - name: Run workflow documentation and release fixture contracts
         shell: pwsh
@@ -150,8 +150,18 @@ jobs:
           go mod verify
           go mod tidy
           git diff --exit-code -- go.mod go.sum
-          $goFiles = @(git ls-files -- '*.go')
-          $unformatted = @(gofmt -l $goFiles)
+          # gofmt rejects CRLF worktree files on Windows checkouts; normalize
+          # to LF in a temp mirror and format-check that instead.
+          $tmp = Join-Path $env:RUNNER_TEMP 'gofmt-mirror'
+          New-Item -ItemType Directory -Force $tmp | Out-Null
+          $hasher = [System.Security.Cryptography.MD5]::Create()
+          $unformatted = @()
+          foreach ($f in @(git ls-files -- '*.go')) {
+            $lf = ([System.IO.File]::ReadAllText($f) -replace "`r`n", "`n")
+            $name = [Convert]::ToHexString($hasher.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($f))) + '.go'
+            [System.IO.File]::WriteAllText((Join-Path $tmp $name), $lf)
+            if (gofmt -l (Join-Path $tmp $name)) { $unformatted += $f }
+          }
           if ($unformatted.Count -gt 0) { throw ("unformatted Go files:" + [Environment]::NewLine + ($unformatted -join [Environment]::NewLine)) }
       - name: Unit vet and vulnerability gates
         shell: pwsh
@@ -162,7 +172,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           go vet ./... 2>&1 | Tee-Object ci-artifacts\windows-vet.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          go run "golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION}" ./... 2>&1 | Tee-Object ci-artifacts\windows-govulncheck.log
+          go run "golang.org/x/vuln/cmd/govulncheck@$env:GOVULNCHECK_VERSION" ./... 2>&1 | Tee-Object ci-artifacts\windows-govulncheck.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Fuzz decoder and boundary smoke matrix
         shell: pwsh

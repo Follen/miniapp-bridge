@@ -157,7 +157,7 @@ func TestGitHubCIWorkflowContract(t *testing.T) {
 	}
 	moduleGate := strings.Index(workflow, "go mod download")
 	formatGate := strings.Index(workflow, "git ls-files -- '*.go'")
-	actionlintGate := strings.Index(workflow, "go run \"github.com/rhysd/actionlint/cmd/actionlint@v${ACTIONLINT_VERSION}\" -ignore 'unexpected key.*queue.*concurrency'")
+	actionlintGate := strings.Index(workflow, "go run \"github.com/rhysd/actionlint/cmd/actionlint@v$env:ACTIONLINT_VERSION\" -ignore 'unexpected key.*queue.*concurrency'")
 	unitTests := strings.Index(workflow, "- name: Unit vet and vulnerability gates")
 	if moduleGate < 0 || formatGate < moduleGate || unitTests < formatGate || actionlintGate < 0 {
 		t.Fatalf("module and gofmt gates must run before unit tests, and actionlint must remain present: module=%d format=%d unit=%d actionlint=%d", moduleGate, formatGate, unitTests, actionlintGate)

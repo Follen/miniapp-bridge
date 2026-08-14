@@ -97,9 +97,11 @@ func TestSingleOwnerReconnectDeterministicSoak(t *testing.T) {
 		closeWebSocketNormally(t, controller)
 		closeWebSocketNormally(t, upstream)
 		waitForConnectionCounts(t, bridge, 0, 0)
-		if bridge.Requests.Len() != 0 || bridge.Contexts.Len() != 0 {
-			t.Fatalf("cycle %d retained requests/contexts=%d/%d", cycle, bridge.Requests.Len(), bridge.Contexts.Len())
-		}
+		// Owner release and generation teardown run in the reader goroutines;
+		// poll so the leak assertion observes the settled state.
+		waitFor(t, func() bool {
+			return bridge.Requests.Len() == 0 && bridge.Contexts.Len() == 0
+		}, fmt.Sprintf("cycle %d retained requests/contexts=%d/%d", cycle, bridge.Requests.Len(), bridge.Contexts.Len()))
 	}
 
 	snapshot := bridge.ConnectionSnapshot()
