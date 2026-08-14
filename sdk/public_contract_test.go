@@ -6,8 +6,6 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
-	"strconv"
-	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -62,19 +60,10 @@ func TestPublicDTOAliasesAndStructuredErrors(t *testing.T) {
 func TestStructuredIDsAreProcessWideAndMonotonic(t *testing.T) {
 	first := nextStructuredRequestID()
 	second := nextStructuredRequestID()
-	parse := func(value string) uint64 {
-		t.Helper()
-		if !strings.HasPrefix(value, "sdk-") {
-			t.Fatalf("structured ID=%q", value)
-		}
-		n, err := strconv.ParseUint(strings.TrimPrefix(value, "sdk-"), 10, 64)
-		if err != nil {
-			t.Fatal(err)
-		}
-		return n
-	}
-	if a, b := parse(first), parse(second); b != a+1 {
-		t.Fatalf("IDs are not monotonic: %q %q", first, second)
+	// The WMPF miniapp debug endpoint rejects non-integer CDP ids, so the
+	// bridge default must remain a positive integer.
+	if first < 1 || second != first+1 {
+		t.Fatalf("IDs are not monotonic positive integers: %d %d", first, second)
 	}
 }
 

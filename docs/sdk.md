@@ -67,7 +67,8 @@ correlator, and a later explicit `Runtime.enable` from a client is idempotent.
 `Runtime.executionContextCreated`, `Runtime.executionContextDestroyed`, and
 `Runtime.executionContextsCleared` update the same registry as WMPF's private
 context messages; numeric CDP context IDs are preserved as decimal strings.
-Structured requests receive a process-unique `sdk-*` ID. `SendRaw` preserves a
+Structured requests receive a process-unique integer ID (the WMPF miniapp
+debug endpoint rejects non-integer CDP ids). `SendRaw` preserves a
 valid string or JSON numeric caller ID and rejects duplicate pending IDs. Numeric
 IDs are correlated from their normalized decimal value without conversion through
 `float64`; this includes integers beyond `2^53`, `uint64` maximum, fractions, and

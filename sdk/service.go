@@ -1265,8 +1265,12 @@ func idKey(id any) string {
 	return key
 }
 
-func nextStructuredRequestID() string {
-	return fmt.Sprintf("sdk-%d", structuredRequestSequence.Add(1))
+// nextStructuredRequestID returns a process-unique integer request id for
+// structured sends that omit an explicit caller id. The WMPF miniapp debug
+// endpoint rejects non-integer CDP ids ("Message must have integer 'id'
+// property"), so the bridge default must stay numeric.
+func nextStructuredRequestID() int64 {
+	return int64(structuredRequestSequence.Add(1))
 }
 
 func validRequestID(id any) bool {
