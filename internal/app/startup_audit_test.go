@@ -42,6 +42,14 @@ func TestAuditCloseTerminatesUpgradedWebSockets(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer conn.Close()
+	// The bridge self-bootstraps Runtime.enable on upstream connect; consume
+	// that frame before asserting the transport terminates on App.Close.
+	if err := conn.SetReadDeadline(time.Now().Add(2 * time.Second)); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := conn.ReadMessage(); err != nil {
+		t.Fatalf("bootstrap frame was not received: %v", err)
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	if err := a.Close(ctx); err != nil {
