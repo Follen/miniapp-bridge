@@ -29,30 +29,46 @@ are compatibility data, not a production support claim.
 lifetime context starts an orderly asynchronous close. `Close` is safe before
 Start, concurrently, repeatedly, and after a caller timeout.
 
+On Windows, `Discover` reads one CIM process snapshot and returns each target's
+PID, parent PID, process name, executable path, and WMPF version. A discovered
+target therefore carries the metadata required by `Attach` without a second
+caller-side lookup. `Attach` still re-enumerates the requested PID and checks
+every supplied field plus the process start-time/host identity before unloading
+the previous session; its published target status uses the revalidated metadata.
+
 ## CDP and events
 
 ```go
 sub := svc.SubscribeCDP(sdk.SubscriptionOptions{Buffer: 128})
 defer sub.Close()
-contexts := svc.Contexts()
-if len(contexts) == 0 { return sdk.ErrNoContext }
+if _, err := svc.Send(ctx, sdk.Request{Method: "Runtime.enable"}); err != nil {
+	return err
+}
 response, err := svc.Send(ctx, sdk.Request{
-    Method: "Runtime.evaluate",
-    Params: map[string]any{"expression": "1 + 1", "returnByValue": true},
-    Route: sdk.Route{JSContextID: contexts[0].ID},
+	Method: "Runtime.evaluate",
+	Params: map[string]any{"expression": "1 + 1", "returnByValue": true},
 })
 if err != nil { return err }
 _ = response
-
-if err := svc.Notify(sdk.Request{Method: "Runtime.enable"}); err != nil { return err }
 ```
 
-An empty route snapshots the selected context at dispatch time; an explicit
-route overrides it. Missing and unknown contexts return `ErrNoContext` and
-`ErrUnknownContext`. `SendRawRoute` provides the same routing for raw JSON.
+An empty route snapshots the selected context at dispatch time. When no context
+has been discovered yet, it preserves the reference bridge bootstrap behavior
+and sends an empty `jscontext_id`; this allows `Runtime.enable` to produce the
+initial `Runtime.executionContextCreated` event. An explicit route overrides the
+selection, and an unknown explicit context returns `ErrUnknownContext`.
+`SendRawRoute` provides the same routing for raw JSON.
+`Runtime.executionContextCreated`, `Runtime.executionContextDestroyed`, and
+`Runtime.executionContextsCleared` update the same registry as WMPF's private
+context messages; numeric CDP context IDs are preserved as decimal strings.
 Structured requests receive a process-unique `sdk-*` ID. `SendRaw` preserves a
-valid string or numeric caller ID and rejects duplicate pending IDs. Responses,
-CDP errors, notifications, and events retain the reference ordering. Pending
+valid string or JSON numeric caller ID and rejects duplicate pending IDs. Numeric
+IDs are correlated from their normalized decimal value without conversion through
+`float64`; this includes integers beyond `2^53`, `uint64` maximum, fractions, and
+legal exponents outside IEEE-754 range. Structured numbers exposed through
+`CDPEvent.Params`, `Response.Result`, and `CDPError.Data` are `json.Number` values,
+so their original JSON text remains available. Responses, CDP errors,
+notifications, and events retain the reference ordering. Pending
 waiters are terminated with `ErrUpstreamDisconnected` or `ErrClosed` when the
 connection/service ends.
 
@@ -72,7 +88,9 @@ if err := svc.Replay(ctx, "capture.bin"); err != nil { return err }
 
 Context lists are deterministic. `Status` includes listener ports, client
 counts, selected context, native state, recording/lifecycle timestamps, and the
-last structured error.
+last structured error. Selected and removed context events retain both the
+context ID and target name. Upstream generation disconnect clears the registry
+and publishes one removal per context in the same deterministic order.
 
 ## Native runtime
 

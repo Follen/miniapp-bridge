@@ -225,14 +225,6 @@ func makeZlibArchiveFixture(t *testing.T) zlibArchiveFixture {
 	return zlibArchiveFixture{data: data, hash: fmt.Sprintf("%X", sha256.Sum256(data))}
 }
 
-func copyFile(source, destination string) error {
-	data, err := os.ReadFile(source)
-	if err != nil {
-		return err
-	}
-	return os.WriteFile(destination, data, 0o644)
-}
-
 func assertNoZlibDownloadTemps(t *testing.T, cache string) {
 	t.Helper()
 	partial := filepath.Join(cache, zlibOfflineArchiveName+".partial")

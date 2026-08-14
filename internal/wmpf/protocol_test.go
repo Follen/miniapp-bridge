@@ -15,6 +15,13 @@ func TestOutgoingDebugEnvelopeMatchesReferencePresence(t *testing.T) {
 	}
 }
 
+func TestChromeDevtoolsExplicitZeroFieldsMatchReference(t *testing.T) {
+	want := []byte{0x08, 0x00, 0x12, 0x00, 0x1a, 0x00}
+	if got := EncodeChrome(ChromeDevtools{}); !bytes.Equal(got, want) {
+		t.Fatalf("explicit-zero ChromeDevtools=%x want=%x", got, want)
+	}
+}
+
 func TestDebugMessageRoundTrip(t *testing.T) {
 	in := DebugMessage{Seq: 7, After: 3, Category: CategoryChromeDevtools, Data: EncodeChrome(ChromeDevtools{OpID: 99, Payload: `{"id":1}`, JSContextID: "ctx"}), CompressAlgo: CompressZlib, OriginalSize: 0}
 	packed, size, err := WrapData(in.Data, in.Category, in.CompressAlgo)

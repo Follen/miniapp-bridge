@@ -21,6 +21,17 @@ type blockingCloseNative struct {
 	once    sync.Once
 }
 
+type resolvedTargetNative struct {
+	lifecycleNative
+	target Target
+}
+
+func (n *resolvedTargetNative) TargetMetadata() TargetStatus {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	return TargetStatus{Attached: n.metadata.Attached, Target: n.target}
+}
+
 func (n *blockingCloseNative) Close(context.Context) error {
 	n.once.Do(func() { close(n.started) })
 	<-n.release
@@ -122,8 +133,13 @@ func TestSelectedTargetRecordingAndStatusCopies(t *testing.T) {
 	defer s.Close(context.Background())
 	s.app.Contexts.Upsert(bridgecontext.Context{ID: "b", Target: "worker"})
 	s.app.Contexts.Upsert(bridgecontext.Context{ID: "a", Target: "main"})
+	contextEvents := s.SubscribeContexts()
+	defer contextEvents.Close()
 	if err := s.SelectContext("a"); err != nil {
 		t.Fatal(err)
+	}
+	if event := <-contextEvents.Channel(); event.Kind != "selected" || event.Context != (JSContext{ID: "a", Target: "main"}) {
+		t.Fatalf("selected context event=%+v", event)
 	}
 	selected, ok := s.SelectedContext()
 	if !ok || selected.ID != "a" || selected.Target != "main" {
@@ -171,6 +187,27 @@ func TestSelectedTargetRecordingAndStatusCopies(t *testing.T) {
 	}
 	if !validRequestID(json.Number("1")) {
 		t.Fatal("json.Number should be a valid request ID")
+	}
+}
+
+func TestAttachPublishesResolvedNativeTargetMetadata(t *testing.T) {
+	resolved := TargetStatus{Attached: true, Target: Target{
+		PID: 77, ParentPID: 12, Name: "WeChatAppEx.exe",
+		Path: `C:\fixture\WMPF\25297\WeChatAppEx.exe`, Version: 25297,
+	}}
+	native := &resolvedTargetNative{target: resolved.Target}
+	s := newSDK(t, Options{Native: func(context.Context, func(LogEvent)) (NativeSession, error) {
+		return native, nil
+	}})
+	if err := s.Start(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close(context.Background())
+	if err := s.Attach(context.Background(), Target{PID: resolved.PID}); err != nil {
+		t.Fatal(err)
+	}
+	if got := s.Status().Target; got != resolved {
+		t.Fatalf("target status = %+v, want %+v", got, resolved)
 	}
 }
 

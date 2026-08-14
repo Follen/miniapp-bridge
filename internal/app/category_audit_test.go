@@ -84,6 +84,8 @@ func TestAuditUpstreamCategoryRoutingMatchesReference(t *testing.T) {
 
 func TestAuditJsContextAddRemoveConnectSelectRouting(t *testing.T) {
 	a := New(0, 0, logging.New(false, false))
+	var contextEvents []ContextEvent
+	a.SetObserver(Observer{OnContext: func(event ContextEvent) { contextEvents = append(contextEvents, event) }})
 	add := func(category string, value wmpf.JsContext) {
 		t.Helper()
 		data, err := wmpf.EncodeCategory(category, value)
@@ -104,6 +106,9 @@ func TestAuditJsContextAddRemoveConnectSelectRouting(t *testing.T) {
 	add(wmpf.CategoryRemoveJsContext, wmpf.JsContext{ID: "ctx-b"})
 	if selected, ok := a.Contexts.Selected(); !ok || selected.ID != "ctx-a" {
 		t.Fatalf("remove fallback selected=%+v ok=%v", selected, ok)
+	}
+	if event := contextEvents[len(contextEvents)-1]; event.Kind != "removed" || event.Context != (bridgecontext.Context{ID: "ctx-b", Target: "worker"}) {
+		t.Fatalf("remove context event=%+v", event)
 	}
 	add(wmpf.CategoryConnectJsContext, wmpf.JsContext{ID: "ctx-new"})
 	if selected, ok := a.Contexts.Selected(); !ok || selected.ID != "ctx-new" {

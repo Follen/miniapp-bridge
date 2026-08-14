@@ -127,8 +127,8 @@ func TestExactRequestIDsAndCorrelation(t *testing.T) {
 	if key := idKey(math.NaN()); validRequestID(math.NaN()) || key != "x:NaN" {
 		t.Fatalf("NaN numeric ID key=%q valid=%v", key, validRequestID(math.NaN()))
 	}
-	if id := json.Number("1e999999999999999999999"); validRequestID(id) {
-		t.Fatalf("overflowing numeric ID was accepted: %s", id)
+	if id := json.Number("1e999999999999999999999"); !validRequestID(id) {
+		t.Fatalf("legal JSON numeric ID was rejected: %s", id)
 	}
 	if key := idKey(true); key != "x:true" {
 		t.Fatalf("fallback ID key=%q", key)
@@ -161,6 +161,9 @@ func TestExactRequestIDsAndCorrelation(t *testing.T) {
 		{"json-number", func() (Response, error) {
 			return s.Send(context.Background(), Request{ID: json.Number("9007199254740995"), Method: "Runtime.enable"})
 		}, `{"id":9007199254740995,"result":{}}`, json.Number("9007199254740995")},
+		{"large-exponent", func() (Response, error) {
+			return s.SendRaw(context.Background(), []byte(`{"id":1e999999999999999999999,"method":"Runtime.enable"}`))
+		}, `{"id":1e999999999999999999999,"result":{}}`, json.Number("1e999999999999999999999")},
 		{"string", func() (Response, error) {
 			return s.Send(context.Background(), Request{ID: "9007199254740995", Method: "Runtime.enable"})
 		}, `{"id":"9007199254740995","result":{}}`, "9007199254740995"},

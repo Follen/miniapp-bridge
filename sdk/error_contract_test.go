@@ -225,7 +225,6 @@ func TestMalformedRawCDPErrorsAreStructured(t *testing.T) {
 		[]byte(`[]`),
 		[]byte(`{"id":1}`),
 		[]byte(`{"id":true,"method":"Runtime.enable"}`),
-		[]byte(`{"id":1e9999,"method":"Runtime.enable"}`),
 	} {
 		_, err := s.SendRaw(context.Background(), payload)
 		assertSDKError(t, err, ErrInvalidRequest, "send", "request")

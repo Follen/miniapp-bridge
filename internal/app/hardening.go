@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	bridgecontext "github.com/Follen/miniapp-bridge/internal/context"
 	"github.com/Follen/miniapp-bridge/internal/logging"
 	"github.com/gorilla/websocket"
 )
@@ -262,7 +263,21 @@ func (a *App) finishOwnerRelease(kind string, client *wsClient) {
 
 func (a *App) clearContextsLocked() {
 	for _, item := range a.Contexts.List() {
-		a.Contexts.Remove(item.ID)
+		if a.Contexts.Remove(item.ID) {
+			a.notifyContextRemoved(item)
+		}
+	}
+}
+
+func (a *App) notifyContextsRemoved(contexts []bridgecontext.Context) {
+	for _, item := range contexts {
+		a.notifyContextRemoved(item)
+	}
+}
+
+func (a *App) notifyContextRemoved(item bridgecontext.Context) {
+	if observer := a.observerSnapshot(); observer.OnContext != nil {
+		observer.OnContext(ContextEvent{Kind: "removed", Context: item})
 	}
 }
 

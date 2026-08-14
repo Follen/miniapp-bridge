@@ -304,13 +304,9 @@ func UnwrapDebugMessageWithLimit(m DebugMessage, maxOutput int) (Unwrapped, erro
 
 func EncodeChrome(m ChromeDevtools) []byte {
 	var b bytes.Buffer
-	if m.OpID != 0 {
-		putU(&b, 1, m.OpID)
-	}
+	putU(&b, 1, m.OpID)
 	putS(&b, 2, m.Payload)
-	if m.JSContextID != "" {
-		putS(&b, 3, m.JSContextID)
-	}
+	putS(&b, 3, m.JSContextID)
 	return b.Bytes()
 }
 func DecodeChrome(d []byte) (ChromeDevtools, error) {

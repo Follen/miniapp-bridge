@@ -28,6 +28,9 @@ func (s *Service) refreshTargetMetadataLocked(native NativeSession) {
 	s.mu.Unlock()
 	target := metadata.TargetMetadata()
 	s.mu.Lock()
+	// Service owns the attachment bit; a stale optional metadata snapshot must
+	// not make a successful attach look detached.
+	target.Attached = s.nativeAttached
 	s.status.Target = target
 }
 
@@ -61,6 +64,7 @@ func (s *Service) Attach(ctx context.Context, target Target) error {
 	s.mu.Lock()
 	s.refreshNativeMetadataLocked(native, true)
 	s.status.Target = TargetStatus{Attached: true, Target: target}
+	s.refreshTargetMetadataLocked(native)
 	s.mu.Unlock()
 	s.publishStatus()
 	return nil
