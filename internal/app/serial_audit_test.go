@@ -33,6 +33,21 @@ func TestAuditConcurrentCDPDispatchHasStrictGlobalSequence(t *testing.T) {
 	if count := a.DebugClientCount(); count != 1 {
 		t.Fatalf("debug client count=%d want 1", count)
 	}
+	// The upstream connect self-bootstraps Runtime.enable and consumes the
+	// first outgoing sequence number; drain it so every frame below is a
+	// SendCDP payload with a stable, shifted sequence.
+	bootstrap := auditRead(t, debug, websocket.BinaryMessage)
+	bootstrapOuter, err := wmpf.DecodeDebugMessage(bootstrap)
+	if err != nil {
+		t.Fatal(err)
+	}
+	bootstrapChrome, err := wmpf.DecodeChrome(bootstrapOuter.Data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bootstrapOuter.Seq != 1 || bootstrapChrome.JSContextID != "" || bootstrapChrome.Payload != `{"id":1,"method":"Runtime.enable"}` {
+		t.Fatalf("bootstrap outer=%+v chrome=%+v", bootstrapOuter, bootstrapChrome)
+	}
 	const clientCount = 4
 	const perClient = 32
 	var group sync.WaitGroup
@@ -58,7 +73,7 @@ func TestAuditConcurrentCDPDispatchHasStrictGlobalSequence(t *testing.T) {
 		if err != nil {
 			t.Fatalf("frame %d decode: %v", seq, err)
 		}
-		if int(outer.Seq) != seq {
+		if int(outer.Seq) != seq+1 {
 			t.Fatalf("frame position %d has seq %d", seq, outer.Seq)
 		}
 		chrome, err := wmpf.DecodeChrome(outer.Data)

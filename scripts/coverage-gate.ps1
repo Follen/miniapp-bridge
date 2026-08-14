@@ -249,5 +249,5 @@ if ($Mode -eq 'All') {
     }
     Write-Output 'coverage_gate=100% reference behaviors; cli_frida_go_statements=100.0%; internal_go_statements=100.0%; sdk_go_statements=100.0%; tagged_internal_sdk_go_statements=100.0%; smoke_runner_go_statements=100.0%; c_shim_lines=100.0%; c_shim_branch_sites=100.0%; unit/race/tagged-race/vet=passed'
 } else {
-    Write-Output 'coverage_gate=Go reference behaviors; cli_frida_go_statements=100.0%; internal_go_statements=100.0%; sdk_go_statements=100.0%; tagged_internal_sdk_go_statements=100.0%; smoke_runner_go_statements=100.0%; tagged-race=passed; ordinary-unit/race/vet=delegated-to-linux'
+    Write-Output 'coverage_gate=Go reference behaviors; cli_frida_go_statements=100.0%; internal_go_statements=100.0%; sdk_go_statements=100.0%; tagged_internal_sdk_go_statements=100.0%; smoke_runner_go_statements=100.0%; tagged-race=passed; ordinary-unit/race/vet=delegated-to-windows-core-gates'
 }

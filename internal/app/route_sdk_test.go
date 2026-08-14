@@ -105,8 +105,18 @@ func TestSendCDPRouteRejectsUnknownAndMalformedInputs(t *testing.T) {
 		t.Fatalf("invalid routes changed state: pending=%d seq=%d", a.Requests.Len(), a.seq.Load())
 	}
 	withoutContext := New(0, 0, logging.New(false, false))
-	if err := withoutContext.SendCDPRoute(payload, ""); !errors.Is(err, ErrNoContext) {
-		t.Fatalf("missing selected context error=%v", err)
+	emptyRoute := &routeCaptureClient{}
+	withoutContext.DebugHub.Add(emptyRoute)
+	if err := withoutContext.SendCDPRoute(payload, ""); err != nil {
+		t.Fatalf("empty bootstrap route error=%v", err)
+	}
+	emptyFrames := emptyRoute.snapshot()
+	if len(emptyFrames) != 1 {
+		t.Fatalf("empty bootstrap route frames=%d want 1", len(emptyFrames))
+	}
+	_, empty := decodeRouteFrame(t, emptyFrames[0])
+	if empty.JSContextID != "" {
+		t.Fatalf("empty bootstrap route context=%q", empty.JSContextID)
 	}
 	a.closing.Store(true)
 	if err := a.SendCDPRoute(payload, "known"); !errors.Is(err, ErrClosed) {

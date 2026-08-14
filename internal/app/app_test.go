@@ -3,6 +3,7 @@ package app
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/Follen/miniapp-bridge/internal/logging"
 	"github.com/Follen/miniapp-bridge/internal/wmpf"
@@ -72,6 +73,47 @@ func TestBridgeAndRebind(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
+	// The bridge self-bootstraps the Runtime domain on upstream connect; drain
+	// and answer that frame before driving the controller flow below.
+	if e = d.SetReadDeadline(time.Now().Add(2 * time.Second)); e != nil {
+		t.Fatal(e)
+	}
+	typ, frame, e := d.ReadMessage()
+	if e != nil || typ != websocket.BinaryMessage {
+		t.Fatalf("bootstrap type=%d err=%v", typ, e)
+	}
+	outer, e := wmpf.DecodeDebugMessage(frame)
+	if e != nil || outer.Category != wmpf.CategoryChromeDevtools {
+		t.Fatalf("bootstrap outer=%+v err=%v", outer, e)
+	}
+	chrome, e := wmpf.DecodeChrome(outer.Data)
+	if e != nil || chrome.JSContextID != "" {
+		t.Fatalf("bootstrap chrome=%+v err=%v", chrome, e)
+	}
+	var bootstrapRequest struct {
+		ID     json.RawMessage `json:"id"`
+		Method string          `json:"method"`
+	}
+	if e = json.Unmarshal([]byte(chrome.Payload), &bootstrapRequest); e != nil {
+		t.Fatal(e)
+	}
+	if bootstrapRequest.Method != "Runtime.enable" {
+		t.Fatalf("bootstrap method=%q", bootstrapRequest.Method)
+	}
+	bootstrapReply := wmpf.EncodeDebugMessage(wmpf.DebugMessage{
+		Category: wmpf.CategoryChromeDevtoolsResult,
+		Data:     wmpf.EncodeChrome(wmpf.ChromeDevtools{Payload: `{"id":` + string(bootstrapRequest.ID) + `,"result":{}}`}),
+	})
+	if e = d.WriteMessage(websocket.BinaryMessage, bootstrapReply); e != nil {
+		t.Fatal(e)
+	}
+	deadlineBootstrap := time.Now().Add(time.Second)
+	for a.Requests.Len() != 0 {
+		if time.Now().After(deadlineBootstrap) {
+			t.Fatalf("bootstrap request was not resolved: %d pending", a.Requests.Len())
+		}
+		time.Sleep(time.Millisecond)
+	}
 	logDeadline := time.Now().Add(time.Second)
 	for !strings.Contains(logs.String(), "[miniapp] miniapp client connected") || !strings.Contains(logs.String(), "[cdp] CDP client connected") {
 		if time.Now().After(logDeadline) {
@@ -99,15 +141,15 @@ func TestBridgeAndRebind(t *testing.T) {
 	if e = c.WriteMessage(websocket.TextMessage, []byte(`{"id":1,"method":"Runtime.enable"}`)); e != nil {
 		t.Fatal(e)
 	}
-	typ, frame, e := d.ReadMessage()
+	typ, frame, e = d.ReadMessage()
 	if e != nil || typ != websocket.BinaryMessage {
 		t.Fatalf("debug type=%d err=%v", typ, e)
 	}
-	outer, e := wmpf.DecodeDebugMessage(frame)
+	outer, e = wmpf.DecodeDebugMessage(frame)
 	if e != nil || outer.Category != wmpf.CategoryChromeDevtools {
 		t.Fatalf("outer=%+v err=%v", outer, e)
 	}
-	chrome, e := wmpf.DecodeChrome(outer.Data)
+	chrome, e = wmpf.DecodeChrome(outer.Data)
 	if e != nil || chrome.JSContextID != "ctx-1" {
 		t.Fatalf("chrome=%+v err=%v", chrome, e)
 	}
@@ -119,8 +161,12 @@ func TestBridgeAndRebind(t *testing.T) {
 	if e != nil || typ != websocket.TextMessage || string(b) != `{"id":1,"result":{}}` {
 		t.Fatalf("cdp type=%d body=%s err=%v", typ, b, e)
 	}
-	if a.Requests.Len() != 0 {
-		t.Fatalf("pending requests=%d", a.Requests.Len())
+	deadlineController := time.Now().Add(time.Second)
+	for a.Requests.Len() != 0 {
+		if time.Now().After(deadlineController) {
+			t.Fatalf("controller request was not resolved: %d pending", a.Requests.Len())
+		}
+		time.Sleep(time.Millisecond)
 	}
 	_ = d.Close()
 	_ = c.Close()

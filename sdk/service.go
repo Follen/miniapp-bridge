@@ -10,12 +10,10 @@ import (
 	"github.com/Follen/miniapp-bridge/internal/app"
 	"github.com/Follen/miniapp-bridge/internal/capture"
 	bridgecdp "github.com/Follen/miniapp-bridge/internal/cdp"
-	bridgecontext "github.com/Follen/miniapp-bridge/internal/context"
 	"github.com/Follen/miniapp-bridge/internal/logging"
 	"github.com/Follen/miniapp-bridge/internal/wmpf"
 	"io"
 	"sort"
-	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -777,7 +775,8 @@ func (s *Service) SelectContext(id string) error {
 	if !s.app.Contexts.Select(id) {
 		return &Error{Op: "select", Component: "context", Err: fmt.Errorf("%w: %s", ErrUnknownContext, id)}
 	}
-	s.observeContext(app.ContextEvent{Kind: "selected", Context: bridgecontext.Context{ID: id}})
+	selected, _ := s.app.Contexts.Get(id)
+	s.observeContext(app.ContextEvent{Kind: "selected", Context: selected})
 	return nil
 }
 func (s *Service) Contexts() []JSContext { return s.Status().Contexts }
@@ -989,7 +988,7 @@ func (s *Service) SendRawRoute(ctx context.Context, payload []byte, route Route)
 		ID     exactJSONID `json:"id"`
 		Method string      `json:"method"`
 	}
-	if err := json.Unmarshal(payload, &env); err != nil {
+	if err := decodeJSONNumber(payload, &env); err != nil {
 		return Response{}, &Error{Op: "send", Component: "request", Err: errors.Join(ErrInvalidRequest, err)}
 	}
 	if env.Method == "" {
@@ -1027,7 +1026,7 @@ func (s *Service) observeCDP(payload []byte) {
 		Result map[string]any `json:"result"`
 		Error  *CDPError      `json:"error"`
 	}
-	if err := json.Unmarshal(payload, &env); err != nil {
+	if err := decodeJSONNumber(payload, &env); err != nil {
 		s.cdpEvents.publish(CDPEvent{
 			Time:    time.Now(),
 			Payload: append([]byte(nil), payload...),
@@ -1266,23 +1265,20 @@ func idKey(id any) string {
 	return key
 }
 
-func nextStructuredRequestID() string {
-	return fmt.Sprintf("sdk-%d", structuredRequestSequence.Add(1))
+// nextStructuredRequestID returns a process-unique integer request id for
+// structured sends that omit an explicit caller id. The WMPF miniapp debug
+// endpoint rejects non-integer CDP ids ("Message must have integer 'id'
+// property"), so the bridge default must stay numeric.
+func nextStructuredRequestID() int64 {
+	return int64(structuredRequestSequence.Add(1))
 }
 
 func validRequestID(id any) bool {
 	if _, ok := id.(string); ok {
 		return true
 	}
-	if _, ok := bridgecdp.IDKey(id); !ok {
-		return false
-	}
-	// IDKey already marshals and validates numeric IDs; a second encoding is
-	// guaranteed to succeed for the same value and is only needed for the
-	// finite-range check below.
-	encoded, _ := json.Marshal(id)
-	_, err := strconv.ParseFloat(string(encoded), 64)
-	return err == nil
+	_, ok := bridgecdp.IDKey(id)
+	return ok
 }
 
 func decodeJSONNumber(payload []byte, target any) error {

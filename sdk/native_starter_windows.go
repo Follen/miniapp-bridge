@@ -522,17 +522,18 @@ func (n *platformNativeSession) AttachTarget(ctx context.Context, target Target)
 	}
 	n.mu.Lock()
 	defer n.mu.Unlock()
-	if target.Version == 0 {
-		return errors.New("target version is required")
+	resolved, err := n.resolveTarget(ctx, target)
+	if err != nil {
+		return err
 	}
-	config, err := n.addressConfig(target.Version)
+	config, err := n.addressConfig(resolved.Version)
 	if err != nil {
 		return fmt.Errorf("load target config: %w", err)
 	}
 	if err := n.detachLocked(); err != nil {
 		return err
 	}
-	session, err := n.device.Attach(target.PID)
+	session, err := n.device.Attach(resolved.PID)
 	if err != nil {
 		return err
 	}
@@ -543,8 +544,57 @@ func (n *platformNativeSession) AttachTarget(ctx context.Context, target Target)
 	}
 	n.session, n.script = session, script
 	n.metadata.Attached = true
-	n.target = TargetStatus{Attached: true, Target: target}
+	n.target = TargetStatus{Attached: true, Target: resolved}
 	return nil
+}
+
+func (n *platformNativeSession) resolveTarget(ctx context.Context, requested Target) (Target, error) {
+	if requested.PID == 0 {
+		return Target{}, errors.New("target PID is required")
+	}
+	processes, err := n.device.Enumerate(ctx)
+	if err != nil {
+		return Target{}, fmt.Errorf("enumerate target: %w", err)
+	}
+	var discovered process.Process
+	for _, candidate := range processes {
+		if candidate.PID == requested.PID {
+			discovered = candidate
+			break
+		}
+	}
+	if discovered.PID == 0 {
+		return Target{}, fmt.Errorf("target PID %d was not found", requested.PID)
+	}
+	if requested.ParentPID != 0 && requested.ParentPID != discovered.ParentPID {
+		return Target{}, fmt.Errorf("target parent PID mismatch: got %d want %d", discovered.ParentPID, requested.ParentPID)
+	}
+	if requested.Name != "" && !strings.EqualFold(requested.Name, discovered.Name) {
+		return Target{}, fmt.Errorf("target name mismatch: got %q want %q", discovered.Name, requested.Name)
+	}
+	if requested.Path != "" && !strings.EqualFold(filepath.Clean(requested.Path), filepath.Clean(discovered.Path)) {
+		return Target{}, fmt.Errorf("target path mismatch: got %q want %q", discovered.Path, requested.Path)
+	}
+	if requested.Version != 0 && requested.Version != discovered.Version {
+		return Target{}, fmt.Errorf("target version mismatch: got %d want %d", discovered.Version, requested.Version)
+	}
+	if discovered.Version == 0 {
+		return Target{}, errors.New("target version is required")
+	}
+	bound, err := nativeBindTarget(ctx, discovered)
+	if err != nil {
+		return Target{}, fmt.Errorf("target identity rejected: %w", err)
+	}
+	if bound.PID != discovered.PID {
+		return Target{}, fmt.Errorf("target identity rejected: bound PID %d differs from requested %d", bound.PID, discovered.PID)
+	}
+	if bound.Version != 0 && bound.Version != discovered.Version {
+		return Target{}, fmt.Errorf("target identity rejected: bound version %d differs from discovered %d", bound.Version, discovered.Version)
+	}
+	return Target{
+		PID: bound.PID, ParentPID: bound.ParentPID, Name: bound.Name,
+		Path: bound.Path, Version: bound.Version,
+	}, nil
 }
 
 func (n *platformNativeSession) addressConfig(targetVersion int) (version.AddressConfig, error) {

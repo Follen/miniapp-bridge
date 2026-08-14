@@ -287,10 +287,17 @@ func TestHardeningHelpersAndStructuredErrorPaths(t *testing.T) {
 		t.Fatal("unexpected WebSocket error was hidden")
 	}
 
-	a.Contexts.Upsert(bridgecontext.Context{ID: "clear-me"})
+	var removed []ContextEvent
+	a.SetObserver(Observer{OnContext: func(event ContextEvent) { removed = append(removed, event) }})
+	a.Contexts.Upsert(bridgecontext.Context{ID: "clear-me", Target: "main"})
 	a.clearContextsLocked()
 	if a.Contexts.Len() != 0 {
 		t.Fatal("clearContextsLocked left state")
+	}
+	if len(removed) != 2 ||
+		removed[0].Kind != "removed" || removed[0].Context != (bridgecontext.Context{ID: "seed", Target: "seed-target"}) ||
+		removed[1].Kind != "removed" || removed[1].Context != (bridgecontext.Context{ID: "clear-me", Target: "main"}) {
+		t.Fatalf("clearContextsLocked events=%+v", removed)
 	}
 	var observed atomic.Int32
 	a.SetObserver(Observer{OnError: func(RuntimeError) { observed.Add(1) }})

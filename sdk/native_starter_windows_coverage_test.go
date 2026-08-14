@@ -277,39 +277,125 @@ func TestOpenNativeDeviceEnvironmentBranches(t *testing.T) {
 }
 
 func TestPlatformNativeSessionAttachDetachBranches(t *testing.T) {
+	preserveNativeStarterHooks(t)
 	config := version.EmbeddedConfigs()
 	versionID := 25297
 	if _, ok := config[versionID]; !ok {
 		t.Fatalf("embedded config %d missing", versionID)
 	}
+	targetProcess := process.Process{
+		PID: 7, ParentPID: 2, Name: "WeChatAppEx.exe",
+		Path: `C:\fixture\WMPF\25297\WeChatAppEx.exe`, Version: versionID,
+	}
+	nativeBindTarget = func(_ context.Context, target process.Process) (process.Process, error) {
+		target.Identity = process.TargetIdentity{
+			PID: target.PID, StartTime: time.Unix(1, 0), RendererType: "host", DiscoveredAt: time.Unix(2, 0),
+		}
+		return target, nil
+	}
+	deviceWithTarget := func() *starterCoverageDevice {
+		return &starterCoverageDevice{processes: []process.Process{targetProcess}}
+	}
 
 	t.Run("input and config errors", func(t *testing.T) {
-		native := &platformNativeSession{device: &starterCoverageDevice{}, configs: config}
+		native := &platformNativeSession{device: deviceWithTarget(), configs: config}
 		canceled, cancel := context.WithCancel(context.Background())
 		cancel()
-		if err := native.AttachTarget(canceled, Target{Version: versionID}); !errors.Is(err, context.Canceled) {
+		if err := native.AttachTarget(canceled, Target{PID: 7, Version: versionID}); !errors.Is(err, context.Canceled) {
 			t.Fatalf("canceled attach = %v", err)
 		}
 		if err := native.AttachTarget(context.Background(), Target{}); err == nil {
-			t.Fatal("zero-version target accepted")
+			t.Fatal("zero-PID target accepted")
 		}
-		if err := native.AttachTarget(context.Background(), Target{Version: -1}); err == nil {
+		native.device = &starterCoverageDevice{enumerateErr: errors.New("enumerate failed")}
+		if err := native.AttachTarget(context.Background(), Target{PID: 7}); err == nil {
+			t.Fatal("enumerate error accepted")
+		}
+		native.device = &starterCoverageDevice{processes: []process.Process{{PID: 8, Version: versionID}}}
+		if err := native.AttachTarget(context.Background(), Target{PID: 7}); err == nil {
+			t.Fatal("missing PID accepted")
+		}
+		native.device = &starterCoverageDevice{processes: []process.Process{{PID: 7}}}
+		if err := native.AttachTarget(context.Background(), Target{PID: 7}); err == nil {
+			t.Fatal("unknown target version accepted")
+		}
+		unsupported := targetProcess
+		unsupported.Version = -1
+		native.device = &starterCoverageDevice{processes: []process.Process{unsupported}}
+		if err := native.AttachTarget(context.Background(), Target{PID: 7, Version: -1}); err == nil {
 			t.Fatal("unsupported target accepted")
 		}
 	})
 
+	t.Run("requested identity mismatch", func(t *testing.T) {
+		tests := []struct {
+			name   string
+			target Target
+		}{
+			{name: "parent PID", target: Target{PID: 7, ParentPID: 3}},
+			{name: "name", target: Target{PID: 7, Name: "other.exe"}},
+			{name: "path", target: Target{PID: 7, Path: `C:\other\WeChatAppEx.exe`}},
+			{name: "version", target: Target{PID: 7, Version: versionID + 1}},
+		}
+		for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {
+				native := &platformNativeSession{device: deviceWithTarget(), configs: config}
+				if err := native.AttachTarget(context.Background(), test.target); err == nil {
+					t.Fatalf("mismatched target accepted: %+v", test.target)
+				}
+			})
+		}
+	})
+
+	t.Run("identity rejection preserves previous session", func(t *testing.T) {
+		wantErr := errors.New("identity changed")
+		oldScript := &starterCoverageScript{}
+		native := &platformNativeSession{device: deviceWithTarget(), configs: config, script: oldScript}
+		nativeBindTarget = func(context.Context, process.Process) (process.Process, error) {
+			return process.Process{}, wantErr
+		}
+		if err := native.AttachTarget(context.Background(), Target{PID: 7}); !errors.Is(err, wantErr) {
+			t.Fatalf("identity error = %v", err)
+		}
+		if oldScript.unloadCalls != 0 {
+			t.Fatalf("identity rejection unloaded previous script %d times", oldScript.unloadCalls)
+		}
+		nativeBindTarget = func(_ context.Context, target process.Process) (process.Process, error) { return target, nil }
+	})
+
+	t.Run("binder cannot change selected identity", func(t *testing.T) {
+		for _, test := range []struct {
+			name string
+			bind process.Process
+		}{
+			{name: "PID", bind: process.Process{PID: 8, Version: versionID}},
+			{name: "version", bind: process.Process{PID: 7, Version: versionID + 1}},
+		} {
+			t.Run(test.name, func(t *testing.T) {
+				native := &platformNativeSession{device: deviceWithTarget(), configs: config}
+				nativeBindTarget = func(context.Context, process.Process) (process.Process, error) { return test.bind, nil }
+				if err := native.AttachTarget(context.Background(), Target{PID: 7}); err == nil {
+					t.Fatalf("binder %s mutation accepted", test.name)
+				}
+			})
+		}
+		nativeBindTarget = func(_ context.Context, target process.Process) (process.Process, error) { return target, nil }
+	})
+
 	t.Run("previous detach error", func(t *testing.T) {
 		wantErr := errors.New("unload failed")
-		native := &platformNativeSession{device: &starterCoverageDevice{}, configs: config, script: &starterCoverageScript{unloadErr: wantErr}}
-		if err := native.AttachTarget(context.Background(), Target{Version: versionID}); !errors.Is(err, wantErr) {
+		native := &platformNativeSession{device: deviceWithTarget(), configs: config, script: &starterCoverageScript{unloadErr: wantErr}}
+		if err := native.AttachTarget(context.Background(), Target{PID: 7}); !errors.Is(err, wantErr) {
 			t.Fatalf("detach error = %v", err)
 		}
 	})
 
 	t.Run("device attach error", func(t *testing.T) {
 		wantErr := errors.New("attach failed")
-		native := &platformNativeSession{device: &starterCoverageDevice{attachErr: wantErr}, configs: config}
-		if err := native.AttachTarget(context.Background(), Target{PID: 7, Version: versionID}); !errors.Is(err, wantErr) {
+		device := deviceWithTarget()
+		device.attachErr = wantErr
+		native := &platformNativeSession{device: device, configs: config}
+		if err := native.AttachTarget(context.Background(), Target{PID: 7}); !errors.Is(err, wantErr) {
 			t.Fatalf("attach error = %v", err)
 		}
 	})
@@ -317,8 +403,10 @@ func TestPlatformNativeSessionAttachDetachBranches(t *testing.T) {
 	t.Run("script load error detaches", func(t *testing.T) {
 		wantErr := errors.New("load failed")
 		session := &starterCoverageSession{loadErr: wantErr}
-		native := &platformNativeSession{device: &starterCoverageDevice{session: session}, configs: config}
-		if err := native.AttachTarget(context.Background(), Target{PID: 7, Version: versionID}); !errors.Is(err, wantErr) {
+		device := deviceWithTarget()
+		device.session = session
+		native := &platformNativeSession{device: device, configs: config}
+		if err := native.AttachTarget(context.Background(), Target{PID: 7}); !errors.Is(err, wantErr) {
 			t.Fatalf("load error = %v", err)
 		}
 		if session.detachCalls != 1 {
@@ -329,15 +417,24 @@ func TestPlatformNativeSessionAttachDetachBranches(t *testing.T) {
 	t.Run("success and detach", func(t *testing.T) {
 		script := &starterCoverageScript{}
 		session := &starterCoverageSession{script: script}
-		native := &platformNativeSession{device: &starterCoverageDevice{session: session}, configs: config}
-		if err := native.AttachTarget(context.Background(), Target{PID: 7, Version: versionID}); err != nil {
+		device := deviceWithTarget()
+		device.session = session
+		native := &platformNativeSession{device: device, configs: config}
+		if err := native.AttachTarget(context.Background(), Target{PID: 7}); err != nil {
 			t.Fatal(err)
 		}
 		if !native.NativeMetadata().Attached {
 			t.Fatal("metadata not attached")
 		}
-		if got := native.TargetMetadata(); got != (TargetStatus{Attached: true, Target: Target{PID: 7, Version: versionID}}) {
+		wantTarget := TargetStatus{Attached: true, Target: Target{
+			PID: 7, ParentPID: 2, Name: "WeChatAppEx.exe",
+			Path: `C:\fixture\WMPF\25297\WeChatAppEx.exe`, Version: versionID,
+		}}
+		if got := native.TargetMetadata(); got != wantTarget {
 			t.Fatalf("target metadata = %+v", got)
+		}
+		if device.attachPID != 7 {
+			t.Fatalf("attached PID = %d", device.attachPID)
 		}
 		canceled, cancel := context.WithCancel(context.Background())
 		cancel()
@@ -350,7 +447,7 @@ func TestPlatformNativeSessionAttachDetachBranches(t *testing.T) {
 		if script.unloadCalls != 1 || session.detachCalls != 1 || native.NativeMetadata().Attached {
 			t.Fatalf("unload=%d detach=%d metadata=%+v", script.unloadCalls, session.detachCalls, native.NativeMetadata())
 		}
-		if got := native.TargetMetadata(); got.Attached || got.PID != 7 || got.Version != versionID {
+		if got := native.TargetMetadata(); got.Attached || got.Target != wantTarget.Target {
 			t.Fatalf("detached target metadata = %+v", got)
 		}
 	})

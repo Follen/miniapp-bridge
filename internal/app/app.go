@@ -118,6 +118,7 @@ type App struct {
 	replayID                uint64
 	replayWG                sync.WaitGroup
 	seq                     atomic.Uint32
+	bootstrapSeq            atomic.Uint64
 	listen                  func(string, string) (net.Listener, error)
 	serve                   func(*http.Server, net.Listener) error
 }
@@ -446,7 +447,10 @@ func (a *App) readDebug(c *wsClient) {
 				a.ClearRequests()
 			}
 			if ownerReleased {
-				_, _ = a.Contexts.EndGeneration(c.generation)
+				contexts := a.Contexts.List()
+				if _, err := a.Contexts.EndGeneration(c.generation); err == nil {
+					a.notifyContextsRemoved(contexts)
+				}
 			} else {
 				a.clearContextsLocked()
 			}
@@ -580,6 +584,7 @@ func (a *App) handleUnwrappedDebugForGeneration(u wmpf.Unwrapped, generation uin
 		}
 	case wmpf.CategoryRemoveJsContext:
 		v := value.(wmpf.JsContext)
+		ctx, _ := a.Contexts.Get(v.ID)
 		removed := false
 		if generation != 0 {
 			var err error
@@ -593,7 +598,7 @@ func (a *App) handleUnwrappedDebugForGeneration(u wmpf.Unwrapped, generation uin
 		}
 		if removed {
 			if observer := a.observerSnapshot(); observer.OnContext != nil {
-				observer.OnContext(ContextEvent{Kind: "removed", Context: bridgecontext.Context{ID: v.ID, Target: v.Name}})
+				observer.OnContext(ContextEvent{Kind: "removed", Context: ctx})
 			}
 		}
 	case wmpf.CategoryConnectJsContext:
@@ -631,15 +636,6 @@ func (a *App) handleUnwrappedDebugForGeneration(u wmpf.Unwrapped, generation uin
 	case wmpf.CategoryChromeDevtoolsResult:
 		v := value.(wmpf.ChromeDevtools)
 		payload := []byte(v.Payload)
-		var envelope map[string]json.RawMessage
-		if err := json.Unmarshal(payload, &envelope); err != nil || envelope == nil {
-			a.reportRuntimeError(
-				"upstream-cdp-payload",
-				generation,
-				fmt.Errorf("%w: expected a JSON object (%s)", ErrInvalidCDPPayload, logging.PayloadSummary(payload)),
-			)
-			return
-		}
 		var response struct {
 			ID     json.RawMessage `json:"id"`
 			Result map[string]any  `json:"result"`
@@ -654,11 +650,94 @@ func (a *App) handleUnwrappedDebugForGeneration(u wmpf.Unwrapped, generation uin
 				a.resolveCDPResponse(id, response.Result, response.Error)
 			}
 		}
+		if !a.applyCDPRuntimeContextEvent(payload, generation) {
+			return
+		}
 		a.CDPHub.Broadcast(payload)
 		if observer := a.observerSnapshot(); observer.OnCDP != nil {
 			observer.OnCDP(payload)
 		}
 	}
+}
+
+func (a *App) applyCDPRuntimeContextEvent(payload []byte, generation uint64) bool {
+	var event struct {
+		Method string `json:"method"`
+		Params struct {
+			Context struct {
+				ID   json.Number `json:"id"`
+				Name string      `json:"name"`
+			} `json:"context"`
+			ExecutionContextID json.Number `json:"executionContextId"`
+		} `json:"params"`
+	}
+	if err := json.Unmarshal(payload, &event); err != nil {
+		return true
+	}
+	isContextEvent := event.Method == "Runtime.executionContextCreated" ||
+		event.Method == "Runtime.executionContextDestroyed" ||
+		event.Method == "Runtime.executionContextsCleared"
+	if isContextEvent && generation != 0 {
+		current, active := a.Contexts.CurrentGeneration()
+		if !active || current != generation {
+			a.recordStaleDrop("upstream", generation)
+			return false
+		}
+	}
+	switch event.Method {
+	case "Runtime.executionContextCreated":
+		id := event.Params.Context.ID.String()
+		if id == "" {
+			return true
+		}
+		ctx := bridgecontext.Context{ID: id, Target: event.Params.Context.Name}
+		if generation != 0 {
+			if err := a.Contexts.UpsertForGeneration(generation, ctx); err != nil {
+				a.reportRuntimeError("context-registry", generation, err)
+				return true
+			}
+		} else {
+			if err := a.Contexts.TryUpsert(ctx); err != nil {
+				a.reportRuntimeError("context-registry", generation, err)
+				return true
+			}
+		}
+		if observer := a.observerSnapshot(); observer.OnContext != nil {
+			observer.OnContext(ContextEvent{Kind: "added", Context: ctx})
+		}
+	case "Runtime.executionContextDestroyed":
+		id := event.Params.ExecutionContextID.String()
+		if id == "" {
+			return true
+		}
+		ctx, _ := a.Contexts.Get(id)
+		removed := false
+		if generation != 0 {
+			removed, _ = a.Contexts.RemoveForGeneration(generation, id)
+		} else {
+			removed = a.Contexts.Remove(id)
+		}
+		if removed {
+			if observer := a.observerSnapshot(); observer.OnContext != nil {
+				observer.OnContext(ContextEvent{Kind: "removed", Context: ctx})
+			}
+		}
+	case "Runtime.executionContextsCleared":
+		for _, item := range a.Contexts.List() {
+			removed := false
+			if generation != 0 {
+				removed, _ = a.Contexts.RemoveForGeneration(generation, item.ID)
+			} else {
+				removed = a.Contexts.Remove(item.ID)
+			}
+			if removed {
+				if observer := a.observerSnapshot(); observer.OnContext != nil {
+					observer.OnContext(ContextEvent{Kind: "removed", Context: item})
+				}
+			}
+		}
+	}
+	return true
 }
 
 func (a *App) decodeCategoryData(category string, data any) (any, bool) {
@@ -769,7 +848,8 @@ func (a *App) SendCDP(payload []byte) error {
 }
 
 // SendCDPRoute dispatches a CDP payload to an explicit JavaScript context. An
-// empty context ID snapshots the selected context while holding dispatchMu.
+// empty context ID uses the selected context when available and otherwise
+// preserves the reference bridge's empty jscontext_id bootstrap route.
 func (a *App) SendCDPRoute(payload []byte, jscontextID string) error {
 	if a.closing.Load() {
 		return ErrClosed
@@ -801,7 +881,7 @@ func (a *App) routeContextID(jscontextID string) (string, error) {
 		if selected, ok := a.Contexts.Selected(); ok {
 			return selected.ID, nil
 		}
-		return "", ErrNoContext
+		return "", nil
 	}
 	if _, ok := a.Contexts.Get(jscontextID); !ok {
 		return "", fmt.Errorf("%w: %s", ErrUnknownContext, jscontextID)

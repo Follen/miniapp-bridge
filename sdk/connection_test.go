@@ -36,7 +36,17 @@ func TestUpstreamDisconnectFailsPendingAndReconnects(t *testing.T) {
 	}
 	requestDone := make(chan error, 1)
 	go func() {
-		_, err := s.Send(context.Background(), Request{ID: "disconnect-me", Method: "Runtime.enable"})
+		// The SDK-side upstream flag is updated by the connection observer,
+		// which can briefly trail the hub registration on a loaded runner.
+		// Retry once so the pending request is established before teardown.
+		var err error
+		for attempt := 0; attempt < 5; attempt++ {
+			_, err = s.Send(context.Background(), Request{ID: "disconnect-me", Method: "Runtime.enable"})
+			if !errors.Is(err, ErrNoUpstream) {
+				break
+			}
+			time.Sleep(20 * time.Millisecond)
+		}
 		requestDone <- err
 	}()
 	_ = upstream.SetReadDeadline(time.Now().Add(5 * time.Second))

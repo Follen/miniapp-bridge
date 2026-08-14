@@ -83,6 +83,42 @@ func TestAuditBridgeBroadcastOrderContextRoutingReconnectAndCorruptRecovery(t *t
 	debug1 := auditDial(t, dp)
 	defer debug1.Close()
 	auditRejectedDial(t, dp, "owner_exists")
+	// The bridge self-bootstraps the Runtime domain on every upstream connect.
+	// Drain and answer that frame (and wait for its broadcast) before the CDP
+	// controller connects, so no unexpected frame reaches cdp1 later.
+	bootstrap := auditRead(t, debug1, websocket.BinaryMessage)
+	outer, err := wmpf.DecodeDebugMessage(bootstrap)
+	if err != nil {
+		t.Fatal(err)
+	}
+	chrome, err := wmpf.DecodeChrome(outer.Data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var bootstrapRequest struct {
+		ID     json.RawMessage `json:"id"`
+		Method string          `json:"method"`
+	}
+	if err := json.Unmarshal([]byte(chrome.Payload), &bootstrapRequest); err != nil {
+		t.Fatal(err)
+	}
+	if chrome.JSContextID != "" || bootstrapRequest.Method != "Runtime.enable" {
+		t.Fatalf("bootstrap chrome=%+v request=%+v", chrome, bootstrapRequest)
+	}
+	bootstrapReply := wmpf.EncodeDebugMessage(wmpf.DebugMessage{
+		Category: wmpf.CategoryChromeDevtoolsResult,
+		Data:     wmpf.EncodeChrome(wmpf.ChromeDevtools{Payload: `{"id":` + string(bootstrapRequest.ID) + `,"result":{}}`}),
+	})
+	if err := debug1.WriteMessage(websocket.BinaryMessage, bootstrapReply); err != nil {
+		t.Fatal(err)
+	}
+	deadlineBootstrap := time.Now().Add(2 * time.Second)
+	for a.Requests.Len() != 0 {
+		if time.Now().After(deadlineBootstrap) {
+			t.Fatalf("bootstrap request was not resolved: %d pending", a.Requests.Len())
+		}
+		time.Sleep(time.Millisecond)
+	}
 	cdp1 := auditDial(t, cp)
 	defer cdp1.Close()
 	auditRejectedDial(t, cp, "owner_exists")
@@ -120,10 +156,10 @@ func TestAuditBridgeBroadcastOrderContextRoutingReconnectAndCorruptRecovery(t *t
 		if err != nil {
 			t.Fatalf("decode outer: %v", err)
 		}
-		if outer.Seq != uint32(i+1) {
-			t.Fatalf("seq=%d want %d", outer.Seq, i+1)
+		if outer.Seq != uint32(i+2) {
+			t.Fatalf("seq=%d want %d", outer.Seq, i+2)
 		}
-		chrome, err := wmpf.DecodeChrome(outer.Data)
+		chrome, err = wmpf.DecodeChrome(outer.Data)
 		if err != nil {
 			t.Fatalf("decode chrome: %v", err)
 		}

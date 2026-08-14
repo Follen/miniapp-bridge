@@ -9,7 +9,6 @@ import (
 	fridacore "github.com/Follen/miniapp-bridge/internal/frida"
 )
 
-var nativeZlibDecompress = fridacore.ZlibDecompress
 var nativeZlibDecompressWithLimit = fridacore.ZlibDecompressWithLimit
 
 func zlibCompress(data []byte) ([]byte, error) {

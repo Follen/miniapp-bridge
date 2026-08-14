@@ -52,6 +52,32 @@ func TestSimulatedEndToEndCDPMatrix(t *testing.T) {
 	})
 	upstream := auditDial(t, dp)
 	defer upstream.Close()
+	// The bridge self-bootstraps Runtime.enable on upstream connect. Drain and
+	// answer it (waiting for the broadcast) before any CDP client connects.
+	bootstrapOuter, bootstrapChrome := readOutgoingChrome(t, upstream)
+	if bootstrapOuter.Seq != 1 || bootstrapChrome.JSContextID != "" || !strings.Contains(bootstrapChrome.Payload, "Runtime.enable") {
+		t.Fatalf("bootstrap outer=%+v chrome=%+v", bootstrapOuter, bootstrapChrome)
+	}
+	var bootstrapRequest struct {
+		ID     json.RawMessage `json:"id"`
+		Method string          `json:"method"`
+	}
+	if err := json.Unmarshal([]byte(bootstrapChrome.Payload), &bootstrapRequest); err != nil || bootstrapRequest.Method != "Runtime.enable" {
+		t.Fatalf("bootstrap payload=%q err=%v", bootstrapChrome.Payload, err)
+	}
+	if err := upstream.WriteMessage(websocket.BinaryMessage, wmpf.EncodeDebugMessage(wmpf.DebugMessage{
+		Category: wmpf.CategoryChromeDevtoolsResult,
+		Data:     wmpf.EncodeChrome(wmpf.ChromeDevtools{Payload: `{"id":` + string(bootstrapRequest.ID) + `,"result":{}}`}),
+	})); err != nil {
+		t.Fatal(err)
+	}
+	deadlineBootstrap := time.Now().Add(time.Second)
+	for a.Requests.Len() != 0 {
+		if time.Now().After(deadlineBootstrap) {
+			t.Fatalf("bootstrap request was not resolved: %d pending", a.Requests.Len())
+		}
+		time.Sleep(time.Millisecond)
+	}
 	clientA := auditDial(t, cp)
 	defer clientA.Close()
 	auditRejectedDial(t, cp, "owner_exists")
@@ -79,7 +105,7 @@ func TestSimulatedEndToEndCDPMatrix(t *testing.T) {
 			t.Fatal(err)
 		}
 		outer, chrome := readOutgoingChrome(t, upstream)
-		if outer.Seq != uint32(i+1) || outer.Category != wmpf.CategoryChromeDevtools || chrome.Payload != request || chrome.JSContextID != "ctx-main" {
+		if outer.Seq != uint32(i+2) || outer.Category != wmpf.CategoryChromeDevtools || chrome.Payload != request || chrome.JSContextID != "ctx-main" {
 			t.Fatalf("command %s outer=%+v chrome=%+v", method, outer, chrome)
 		}
 	}
