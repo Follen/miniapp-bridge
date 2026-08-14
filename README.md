@@ -29,8 +29,8 @@ claim of live support.
 
 ## Quick start
 
-1. Download `miniapp-bridge-v0.0.5-windows-amd64.zip` from
-   [GitHub Releases](https://github.com/Follen/miniapp-bridge/releases/tag/v0.0.5).
+1. Download `miniapp-bridge-v0.0.7-windows-amd64.zip` from
+   [GitHub Releases](https://github.com/Follen/miniapp-bridge/releases/tag/v0.0.7).
 2. Extract the archive. Keep `miniapp-bridge.exe`, `miniapp-frida.dll`, and
    `manifest.json` in the same directory.
 3. Start the bridge:
@@ -78,10 +78,11 @@ back through the same protocol pipeline without attaching a live target.
 ## Go SDK
 
 The module path is `github.com/Follen/miniapp-bridge`; applications import the
-public package `github.com/Follen/miniapp-bridge/sdk`:
+public package `github.com/Follen/miniapp-bridge/sdk`. The full usage guide is
+[`SDK.md`](SDK.md) (中文版：[`SDK.zh.md`](SDK.zh.md)):
 
 ```powershell
-go get github.com/Follen/miniapp-bridge/sdk@v0.0.5
+go get github.com/Follen/miniapp-bridge/sdk@v0.0.7
 ```
 
 ```go
